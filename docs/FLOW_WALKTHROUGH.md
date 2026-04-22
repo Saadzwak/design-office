@@ -94,14 +94,18 @@ accidental extra testfit re-generate noted in P2-c below) :
   - *Fix* : flip the default to `use_vision=True` when
     `settings.anthropic_api_key` is loaded.
 
-- **P1-b — Post-iterate, the 3D preview is stale**. `iterate_variant`
-  replays the new zones into SketchUp (so the real viewport updates)
-  but the frontend still points at `/sketchup/sketchup_variant_<style>.png`
-  which is the pre-captured baseline. The caption says "Live SketchUp
-  render" which is misleading after an edit.
-  - *Fix* : have the iterate endpoint write a fresh iso screenshot to
-    a stable path and include it in the response (`screenshot_url`
-    field). Then frontend can swap the `<img src>` on each iterate.
+- ~~**P1-b — Post-iterate, the 3D preview is stale**~~. **Fixed in a
+  follow-up commit.** The iterate endpoint now captures a fresh iso
+  PNG to `backend/app/out/sketchup_shots/<style>_<uuid>.png`, exposes
+  it via `GET /api/testfit/screenshot/{filename}` with a whitelisted
+  `[A-Za-z0-9_-]+\.png` regex (rejects path traversal + invalid
+  extensions), and the `IterateResponse` carries a `screenshot_url`.
+  Frontend stashes the URL in `design-office.testfit.live_screenshots`
+  (localStorage) and the `useLiveScreenshots` hook pipes it through
+  `VariantViewer.liveScreenshotUrl` on /testfit, /justify, /export.
+  Caption now reads "Live SketchUp render · captured after the last
+  iteration" when the live URL is present, "Baseline SketchUp render"
+  otherwise.
 
 - **P1-c — Reviewer verdict is stale after iterate**. The iterate path
   returns an updated variant, but doesn't re-run the Reviewer. The

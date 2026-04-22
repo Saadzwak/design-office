@@ -4,6 +4,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
 import VariantViewer from "../components/viewer/VariantViewer";
+import { useLiveScreenshots } from "../hooks/useLiveScreenshots";
 import {
   fetchLumenFixture,
   generateJustify,
@@ -97,6 +98,7 @@ export default function Justify() {
 
   const chosenVariant = variants.find((v) => v.style === selected) ?? null;
   const chosenVerdict = verdicts.find((v) => v.style === selected) ?? null;
+  const liveScreenshots = useLiveScreenshots();
   const zones = useMemo(() => {
     if (!chosenVariant) return [];
     return chosenVariant.sketchup_trace
@@ -266,6 +268,7 @@ export default function Justify() {
                 variant={chosenVariant}
                 style={selected ?? null}
                 zones={zones}
+                liveScreenshotUrl={selected ? liveScreenshots[selected] ?? null : null}
               />
             </div>
             <div className="min-w-0 space-y-3">

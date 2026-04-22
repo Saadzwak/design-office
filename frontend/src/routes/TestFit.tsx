@@ -4,6 +4,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
 import VariantViewer from "../components/viewer/VariantViewer";
+import { useLiveScreenshots } from "../hooks/useLiveScreenshots";
 import {
   fetchCatalogPreview,
   fetchLumenFixture,
@@ -59,6 +60,7 @@ export default function TestFit() {
   const [instruction, setInstruction] = useState("");
   const [iterating, setIterating] = useState(false);
   const [history, setHistory] = useState<IterationEntry[]>([]);
+  const liveScreenshots = useLiveScreenshots();
 
   useEffect(() => {
     const ac = new AbortController();
@@ -164,6 +166,19 @@ export default function TestFit() {
         variants: updatedVariants,
       };
       persistResult(state.plan, updatedVariants, state.result.verdicts);
+      if (resp.screenshot_url) {
+        try {
+          const raw = localStorage.getItem("design-office.testfit.live_screenshots");
+          const map: Record<string, string> = raw ? JSON.parse(raw) : {};
+          map[active] = resp.screenshot_url;
+          localStorage.setItem(
+            "design-office.testfit.live_screenshots",
+            JSON.stringify(map),
+          );
+        } catch {
+          // ignore
+        }
+      }
       setState({ kind: "done", plan: state.plan, result: nextResult });
       setHistory((h) => [
         {
@@ -333,6 +348,7 @@ export default function TestFit() {
                 style={active}
                 zones={activeZones}
                 defaultView={state.kind === "done" ? "3d" : "2d"}
+                liveScreenshotUrl={liveScreenshots[active] ?? null}
               />
             </motion.div>
 

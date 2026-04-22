@@ -195,6 +195,7 @@ export type IterateResponse = {
   variant: VariantOutput;
   tokens: { input: number; output: number };
   duration_ms: number;
+  screenshot_url?: string | null;
 };
 
 export async function iterateVariant(req: IterateRequest): Promise<IterateResponse> {

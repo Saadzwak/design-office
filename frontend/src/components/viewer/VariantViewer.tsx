@@ -30,6 +30,9 @@ type Props = {
   zones: Zone[];
   /** Default view when both 2D + 3D are available. */
   defaultView?: "2d" | "3d";
+  /** Optional live SketchUp screenshot URL captured after an iterate call.
+   *  Overrides the static bundled baseline for the active style. */
+  liveScreenshotUrl?: string | null;
 };
 
 export default function VariantViewer({
@@ -38,11 +41,15 @@ export default function VariantViewer({
   style,
   zones,
   defaultView = "3d",
+  liveScreenshotUrl,
 }: Props) {
-  const hasScreenshot = style !== null && Boolean(SKETCHUP_SCREENSHOTS[style]);
+  const bundled = style !== null ? SKETCHUP_SCREENSHOTS[style] : undefined;
+  const activeSrc = liveScreenshotUrl || bundled;
+  const hasScreenshot = Boolean(activeSrc);
   const [view, setView] = useState<"2d" | "3d">(hasScreenshot ? defaultView : "2d");
   // When the style changes, reset to the preferred view if the screenshot is available.
   const activeView = hasScreenshot ? view : "2d";
+  const isLive = Boolean(liveScreenshotUrl);
 
   return (
     <div className="flex h-full flex-col">
@@ -78,9 +85,9 @@ export default function VariantViewer({
         )}
       </div>
       <div className="flex-1 overflow-hidden rounded-xl border border-neutral-500/20 bg-neutral-900/60">
-        {activeView === "3d" && style && hasScreenshot ? (
+        {activeView === "3d" && activeSrc ? (
           <img
-            src={SKETCHUP_SCREENSHOTS[style]}
+            src={activeSrc}
             alt={`SketchUp iso render of the ${style} variant`}
             className="h-full w-full object-contain"
           />
@@ -96,8 +103,9 @@ export default function VariantViewer({
       </div>
       {activeView === "3d" && hasScreenshot && (
         <p className="mt-2 font-mono text-[10px] text-neutral-500">
-          Live SketchUp render · captured during the Lumen round-trip against
-          SU_MCP v1.5.0 on port 9876.
+          {isLive
+            ? "Live SketchUp render · captured after the last iteration."
+            : "Baseline SketchUp render · captured during the Lumen round-trip against SU_MCP v1.5.0."}
         </p>
       )}
     </div>

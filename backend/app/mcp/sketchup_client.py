@@ -310,7 +310,19 @@ class SketchUpFacade:
     def compute_surfaces_by_type(self) -> dict:
         return self.backend.call("compute_surfaces_by_type")
 
-    def screenshot(self, view_name: str = "iso") -> str:
+    def screenshot(self, view_name: str = "iso", out_path: str | None = None) -> str:
+        """Capture an iso screenshot. When `out_path` is provided and the real
+        SketchUp MCP backend is live, a PNG is written to that absolute path.
+        When we are on the mock backend, only the intent is recorded and the
+        returned path is the one the caller asked for (so downstream URL
+        generation still works).
+        """
+
+        if out_path is not None:
+            response = self.backend.call(
+                "screenshot", view_name=view_name, path=out_path
+            )
+            return response.get("path") or out_path
         response = self.backend.call("screenshot", view_name=view_name)
         return response.get("path", "")
 

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import uuid
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
@@ -26,6 +27,7 @@ PROMPTS_DIR = BACKEND_ROOT / "prompts" / "agents"
 RESOURCES_DIR = BACKEND_ROOT / "data" / "resources"
 BENCHMARKS_DIR = BACKEND_ROOT / "data" / "benchmarks"
 FURNITURE_DIR = BACKEND_ROOT / "data" / "furniture"
+SKETCHUP_SHOTS_DIR = BACKEND_ROOT / "out" / "sketchup_shots"
 
 VARIANT_RESOURCES = [
     "office-programming.md",
@@ -423,6 +425,26 @@ class IterateResponse(BaseModel):
     variant: VariantOutput
     tokens: dict[str, int]
     duration_ms: int
+    screenshot_url: str | None = Field(
+        default=None,
+        description="Fresh SketchUp iso screenshot URL (captured post-replay) if available.",
+    )
+
+
+def sketchup_shot_path_for(filename: str) -> Path | None:
+    """Safely resolve a sketchup-shot filename under `SKETCHUP_SHOTS_DIR`.
+
+    Prevents path traversal by rejecting any filename that doesn't match the
+    expected pattern. Returns None if the file does not exist or the name is
+    rejected.
+    """
+
+    import re
+
+    if not re.fullmatch(r"[A-Za-z0-9_\-]+\.png", filename):
+        return None
+    candidate = SKETCHUP_SHOTS_DIR / filename
+    return candidate if candidate.exists() else None
 
 
 _ITERATE_USER = """Client : {client_name}
@@ -519,11 +541,27 @@ def iterate_variant(
     facade.new_scene(name=f"{request.client_name} — {new_variant.style.value} (iter)")
     _replay_floor_plan(facade, request.floor_plan)
     _replay_zones(facade, payload.get("zones", []))
-    shot = facade.screenshot(view_name="iso")
+
+    # Capture a fresh iso PNG so the frontend can show the post-iterate state
+    # instead of the pre-captured baseline. On the RecordingMock backend this
+    # is a no-op (no file written) — we fall back to None so the frontend
+    # keeps its bundled baseline.
+    SKETCHUP_SHOTS_DIR.mkdir(parents=True, exist_ok=True)
+    shot_filename = f"{request.variant.style.value}_{uuid.uuid4().hex[:12]}.png"
+    shot_path = SKETCHUP_SHOTS_DIR / shot_filename
+    try:
+        facade.screenshot(view_name="iso", out_path=str(shot_path))
+    except Exception:  # noqa: BLE001
+        pass  # SketchUp may be down ; fall back to baseline.
+
+    screenshot_url: str | None = None
+    if shot_path.exists() and shot_path.stat().st_size > 1024:
+        screenshot_url = f"/api/testfit/screenshot/{shot_filename}"
+
     new_variant = new_variant.model_copy(
         update={
             "sketchup_trace": facade.trace(),
-            "screenshot_paths": [shot] if shot else [],
+            "screenshot_paths": [str(shot_path)] if screenshot_url else [],
         }
     )
 
@@ -531,6 +569,7 @@ def iterate_variant(
         variant=new_variant,
         tokens={"input": sub.input_tokens, "output": sub.output_tokens},
         duration_ms=sub.duration_ms,
+        screenshot_url=screenshot_url,
     )
 
 

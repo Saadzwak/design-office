@@ -37,6 +37,7 @@ from app.surfaces.testfit import (
     IterateResponse,
     catalog_preview,
     iterate_variant,
+    sketchup_shot_path_for,
 )
 from app.surfaces.testfit import compile_default_surface as compile_testfit_surface
 from pydantic import BaseModel
@@ -195,6 +196,19 @@ def testfit_generate(payload: TestFitGenerateRequest) -> TestFitResponse:
         client_name=payload.client_name,
         styles=styles,
     )
+
+
+@app.get("/api/testfit/screenshot/{filename}")
+def testfit_screenshot(filename: str) -> FileResponse:
+    """Serve a post-iterate SketchUp PNG by filename. Whitelisted against
+    `[A-Za-z0-9_-]+.png` so the client can't traverse outside the shots
+    directory.
+    """
+
+    path = sketchup_shot_path_for(filename)
+    if path is None:
+        raise HTTPException(status_code=404, detail=f"Screenshot {filename} not found.")
+    return FileResponse(path, media_type="image/png")
 
 
 @app.post("/api/testfit/iterate", response_model=IterateResponse)

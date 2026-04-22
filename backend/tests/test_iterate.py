@@ -165,3 +165,29 @@ def test_iterate_endpoint_rejects_short_instruction() -> None:
         },
     )
     assert resp.status_code == 422
+
+
+def test_sketchup_shot_path_for_rejects_traversal_and_extensions() -> None:
+    from app.surfaces.testfit import sketchup_shot_path_for
+
+    # Not a .png ⇒ None
+    assert sketchup_shot_path_for("foo.txt") is None
+    assert sketchup_shot_path_for("foo") is None
+    # Path traversal ⇒ None (regex forbids '/' and '..')
+    assert sketchup_shot_path_for("..%2Fmain.py") is None
+    assert sketchup_shot_path_for("../../../etc/passwd") is None
+    assert sketchup_shot_path_for("subdir/file.png") is None
+    # Valid name but missing file ⇒ None
+    assert sketchup_shot_path_for("doesnotexist.png") is None
+
+
+def test_screenshot_endpoint_404_on_missing() -> None:
+    client = TestClient(app)
+    resp = client.get("/api/testfit/screenshot/missing_file_abc.png")
+    assert resp.status_code == 404
+
+
+def test_screenshot_endpoint_rejects_traversal() -> None:
+    client = TestClient(app)
+    resp = client.get("/api/testfit/screenshot/..%2Ffoo.png")
+    assert resp.status_code == 404

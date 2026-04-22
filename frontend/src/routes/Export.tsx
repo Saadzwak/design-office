@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
 
 import VariantViewer from "../components/viewer/VariantViewer";
+import { useLiveScreenshots } from "../hooks/useLiveScreenshots";
 import {
   exportDxfUrl,
   fetchLumenFixture,
@@ -69,6 +70,7 @@ export default function ExportRoute() {
 
   const chosenVariant = variants.find((v) => v.style === selected) ?? null;
   const chosenVerdict = verdicts.find((v) => v.style === selected) ?? null;
+  const liveScreenshots = useLiveScreenshots();
   const zones = useMemo(() => {
     if (!chosenVariant) return [];
     return chosenVariant.sketchup_trace
@@ -231,6 +233,7 @@ export default function ExportRoute() {
                 variant={chosenVariant}
                 style={selected ?? null}
                 zones={zones}
+                liveScreenshotUrl={selected ? liveScreenshots[selected] ?? null : null}
               />
             </div>
             <div className="min-w-0 space-y-3">
