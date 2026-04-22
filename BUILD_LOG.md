@@ -319,20 +319,43 @@ verification command so we know it landed.
 ### A. SketchUp Pro
 
 1. **Install SketchUp Pro** (trial 7 days : https://www.sketchup.com/try-sketchup).
-2. **Locate the plugins folder**. On Windows it is typically :
-   `C:\Users\<you>\AppData\Roaming\SketchUp\SketchUp 2024\SketchUp\Plugins\`
-3. **Copy the mhyrr plugin** (from `vendor/sketchup-mcp/`) :
-   - Copy `su_mcp.rb` (the bootstrap file) into the Plugins folder.
-   - Copy the entire `su_mcp/` **directory** into the Plugins folder (alongside `su_mcp.rb`).
+2. **Locate the plugins folder**. On Windows 2026 it is :
+   `C:\Users\<you>\AppData\Roaming\SketchUp\SketchUp 2026\SketchUp\Plugins\`
+3. **Copy the mhyrr plugin — correct layout** (the vendor repo is
+   double-nested, do not copy naively) :
+
+   - `vendor/sketchup-mcp/su_mcp/su_mcp.rb`        → `Plugins/su_mcp.rb`
+   - `vendor/sketchup-mcp/su_mcp/su_mcp/main.rb`   → `Plugins/su_mcp/main.rb`
+   - `vendor/sketchup-mcp/su_mcp/extension.json`   → `Plugins/su_mcp/extension.json`
+
+   The **outer** `vendor/sketchup-mcp/su_mcp.rb` is an older v0.1.0
+   with a broken path — DO NOT copy it.
+
 4. **Copy the Design Office extensions** : copy
-   `sketchup-plugin/design_office_extensions.rb` into the Plugins folder as well.
-5. **Restart SketchUp**. Look for `SU MCP Server running on port 9876` in the
-   Ruby console (Window → Ruby Console).
-6. **Verify from the backend** : with the backend venv active, run
+   `sketchup-plugin/design_office_extensions.rb` → `Plugins/design_office_extensions.rb`.
+
+   Final state of the Plugins folder (mcp- / design-office-only entries) :
+
+   ```
+   Plugins/
+   ├── su_mcp.rb                          (420 B)
+   ├── su_mcp/main.rb                     (65 KB)
+   ├── su_mcp/extension.json              (247 B)
+   └── design_office_extensions.rb        (9.5 KB)
+   ```
+
+5. **Restart SketchUp**. Open Window → Ruby Console — expect :
+   ```
+   MCP Extension loading...
+   [DesignOffice] v0.1.0 loaded — 6 ops available.
+   ```
+6. **Start the server** : Extensions menu → MCP Server → Start Server.
+   Console prints `Server started and listening` on port 9876.
+7. **Verify from the backend** : with the backend venv active, run
    `python -c "from app.mcp.sketchup_client import try_connect_tcp; print(try_connect_tcp('127.0.0.1', 9876))"`. Expect `True`.
-7. **Verify Design Office tools** : in the Ruby Console, call
-   `DesignOffice.create_phone_booth(position_mm: [5000, 5000], product_id: 'framery_one_compact')`. A pod-shaped block should appear at (5, 5 m) in the current SketchUp model.
-8. **No code changes needed backend-side** — `get_backend()` in
+8. **Verify Design Office tools** : in the Ruby Console, call
+   `DesignOffice.create_phone_booth(position_mm: [5000, 5000], product_id: 'framery_one_compact')`. A pod-shaped block should appear at (5, 5 m).
+9. **No code changes needed backend-side** — `get_backend()` in
    `backend/app/mcp/sketchup_client.py` auto-detects the open TCP port and
    switches from `RecordingMockBackend` to `TcpJsonBackend`. The
    `SketchUpFacade` wrapper is backend-agnostic, so every existing surface

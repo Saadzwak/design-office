@@ -26,9 +26,25 @@ Items that require Saad's physical intervention. Work continues around these as 
 - Needed for Phase 5 (DWG export via File IPC). Phase 5 also supports an `ezdxf`-only backend that runs headless, so partial demo stays possible without AutoCAD.
 
 ### B3. Load the SketchUp MCP extension
-- The actual plugin layout in the fork is `vendor/sketchup-mcp/su_mcp/` (files `extension.json`, `package.rb`, `su_mcp/`, `su_mcp.rb`), not `sketchup_plugin/` as referenced in CLAUDE.md.
-- Copy both `su_mcp.rb` and the `su_mcp/` subfolder from `vendor/sketchup-mcp/` into the SketchUp `Plugins/` folder (typically `C:\Users\<you>\AppData\Roaming\SketchUp\SketchUp 2024\SketchUp\Plugins\`).
-- Restart SketchUp. The MCP server should listen on port 9876.
+- ⚠️ The fork has a **confusing double-nested layout** — do not copy the whole `su_mcp/` folder naively or SketchUp will report "Could not find included file 'su_mcp/main'".
+- The **correct** deployment (confirmed in iter-12 on SketchUp Pro 2026) :
+
+  Plugins folder (typically `C:\Users\<you>\AppData\Roaming\SketchUp\SketchUp 2026\SketchUp\Plugins\`) must end up with :
+
+  ```
+  Plugins/
+  ├── su_mcp.rb                          ← copied from vendor/sketchup-mcp/su_mcp/su_mcp.rb   (INNER bootstrap, v1.5.0)
+  ├── su_mcp/
+  │   ├── main.rb                        ← copied from vendor/sketchup-mcp/su_mcp/su_mcp/main.rb
+  │   └── extension.json                 ← copied from vendor/sketchup-mcp/su_mcp/extension.json
+  └── design_office_extensions.rb        ← copied from sketchup-plugin/design_office_extensions.rb
+  ```
+
+  Do NOT copy the outer `vendor/sketchup-mcp/su_mcp.rb` (that's an older v0.1.0 with a broken path reference).
+
+- Restart SketchUp. Console should print `MCP Extension loading...` then `[DesignOffice] v0.1.0 loaded`.
+- Go to **Extensions → MCP Server → Start Server**. Console should print `Server started and listening`.
+- MCP server listens on port 9876.
 
 ### B4. Load the AutoCAD MCP LISP
 - Inside AutoCAD command line : `APPLOAD` → load `vendor/autocad-mcp/lisp-code/mcp_dispatch.lsp` → add to Startup Suite so it reloads automatically.
