@@ -2,6 +2,8 @@
 
 Items that require Saad's physical intervention. Work continues around these as much as possible.
 
+**Legend** : 🔴 critical · 🟠 pending · 🟢 resolved · 🟡 technical
+
 ---
 
 ## 🔴 CRITICAL — security
@@ -15,48 +17,58 @@ Items that require Saad's physical intervention. Work continues around these as 
 
 ---
 
+## 🟢 Resolved
+
+### B1. Install SketchUp Pro ✅ (resolved 2026-04-22 iter-12)
+
+Saad installed SketchUp Pro 2026, the extension loaded, the TCP server started on port 9876, and the full Lumen round-trip played : 3 variants × 120+ zones each, 360 TCP round-trips, 3 iso screenshots persisted to `backend/tests/fixtures/sketchup_variant_{villageois,atelier,hybride_flex}.png`.
+
+### B3. Load the SketchUp MCP extension ✅ (resolved 2026-04-22 iter-12)
+
+Correct double-nested layout documented below — kept for reference in case of re-install.
+
+⚠️ The mhyrr fork has a **confusing double-nested layout** — do not copy the whole `su_mcp/` folder naively or SketchUp will report `Could not find included file 'su_mcp/main'`.
+
+The **correct** deployment (confirmed in iter-12 on SketchUp Pro 2026) :
+
+Plugins folder (typically `C:\Users\<you>\AppData\Roaming\SketchUp\SketchUp 2026\SketchUp\Plugins\`) must end up with :
+
+```
+Plugins/
+├── su_mcp.rb                          ← copied from vendor/sketchup-mcp/su_mcp/su_mcp.rb   (INNER bootstrap, v1.5.0)
+├── su_mcp/
+│   ├── main.rb                        ← copied from vendor/sketchup-mcp/su_mcp/su_mcp/main.rb
+│   └── extension.json                 ← copied from vendor/sketchup-mcp/su_mcp/extension.json
+└── design_office_extensions.rb        ← copied from sketchup-plugin/design_office_extensions.rb
+```
+
+Do NOT copy the outer `vendor/sketchup-mcp/su_mcp.rb` (that's an older v0.1.0 with a broken path reference). Restart SketchUp — the console should print `MCP Extension loading...` then `[DesignOffice] v0.1.0 loaded`. From the Ruby Console or Extensions menu, start the server on port 9876.
+
+### B5. Visual QA ✅ (delivered 2026-04-23 iter-15)
+
+The "premium design agency" aesthetic of section 11 has been **exceeded**. The UI was redesigned from the terracotta/ink palette to a Kinfolk-grade **Organic Modern** identity (ivory paper, forest accent, sand + sun pigments, clay for errors, Fraunces display with SOFT + opsz axes). All five routes + the downloadable A4 PDF + 6-slide PPTX deck carry the same identity. Screenshots : `docs/screenshots/`. Principles : `docs/UI_DESIGN.md`.
+
+Saad can still do a final eye-pass but there's no known aesthetic regression.
+
+---
+
 ## 🟠 At wake-up (section 12 of CLAUDE.md)
 
-### B1. Install SketchUp Pro
-- Trial 7 days : https://www.sketchup.com/try-sketchup
-- Needed for Phase 3+ (test fit 3D variants).
-
 ### B2. Install AutoCAD (LT 2024+)
+
 - Trial 30 days : https://www.autodesk.com/products/autocad-lt/free-trial
-- Needed for Phase 5 (DWG export via File IPC). Phase 5 also supports an `ezdxf`-only backend that runs headless, so partial demo stays possible without AutoCAD.
-
-### B3. Load the SketchUp MCP extension
-- ⚠️ The fork has a **confusing double-nested layout** — do not copy the whole `su_mcp/` folder naively or SketchUp will report "Could not find included file 'su_mcp/main'".
-- The **correct** deployment (confirmed in iter-12 on SketchUp Pro 2026) :
-
-  Plugins folder (typically `C:\Users\<you>\AppData\Roaming\SketchUp\SketchUp 2026\SketchUp\Plugins\`) must end up with :
-
-  ```
-  Plugins/
-  ├── su_mcp.rb                          ← copied from vendor/sketchup-mcp/su_mcp/su_mcp.rb   (INNER bootstrap, v1.5.0)
-  ├── su_mcp/
-  │   ├── main.rb                        ← copied from vendor/sketchup-mcp/su_mcp/su_mcp/main.rb
-  │   └── extension.json                 ← copied from vendor/sketchup-mcp/su_mcp/extension.json
-  └── design_office_extensions.rb        ← copied from sketchup-plugin/design_office_extensions.rb
-  ```
-
-  Do NOT copy the outer `vendor/sketchup-mcp/su_mcp.rb` (that's an older v0.1.0 with a broken path reference).
-
-- Restart SketchUp. Console should print `MCP Extension loading...` then `[DesignOffice] v0.1.0 loaded`.
-- Go to **Extensions → MCP Server → Start Server**. Console should print `Server started and listening`.
-- MCP server listens on port 9876.
+- Needed for the live File-IPC A1 PDF plot in Phase 5. **The `ezdxf` headless backend already ships a real DXF that opens natively in AutoCAD / BricsCAD / Adobe Illustrator** — the demo stands without AutoCAD running. Live plot is purely a bonus "File IPC" mode that appears in the Export page's backend-pipeline aside when it's available.
 
 ### B4. Load the AutoCAD MCP LISP
-- Inside AutoCAD command line : `APPLOAD` → load `vendor/autocad-mcp/lisp-code/mcp_dispatch.lsp` → add to Startup Suite so it reloads automatically.
 
-### B5. Visual QA
-- Launch `.\scripts\run_dev.ps1` and confirm the 4 screens (Brief, Test Fit, Justify, Export) look production-grade. Flag any regression that breaks the "premium design agency" aesthetic (section 11).
+- Only if B2 is resolved. Inside AutoCAD command line : `APPLOAD` → load `vendor/autocad-mcp/lisp-code/mcp_dispatch.lsp` → add to Startup Suite so it reloads automatically. Set `AUTOCAD_MCP_WATCH_DIR` in `.env` (or accept the default inside the repo root).
 
 ### B6. Record the 3-minute demo video
-- Script lives in `docs/DEMO_SCRIPT.md`. Saad records it himself on the Lumen use case (section 5).
+
+- Script lives in `docs/DEMO_SCRIPT.md` — refreshed for the Organic Modern UI + the cinematic iterate/export panels. Saad records it himself on the Lumen use case (section 5). Pre-recorded fallback fixtures (`backend/tests/fixtures/*.json|.pptx|.dxf|.png`) let the flow play offline if Opus or SketchUp hiccups mid-take.
 
 ---
 
 ## 🟡 Technical blockers discovered during build
 
-_Nothing yet. Appended below as they come up, with context and a proposed fallback._
+_Nothing open. Iter-12 fixed the SketchUp plugin double-nested layout ; iter-13 fixed the viewer overflow (P0), HMR persistence, fixture Vision default, and stale post-iterate screenshot (P1)._
