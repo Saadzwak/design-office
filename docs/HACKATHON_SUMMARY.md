@@ -40,10 +40,11 @@ Design Office augments the four surfaces where human time is spent :
    agent checking PMR, ERP type W, programme coverage, and column
    integrity.
 3. **Sourced justification** — retained variant → client-facing
-   argumentaire with inline citations, rendered as an A4 PDF (5 pages)
-   using ReportLab in the Design Office palette. Four specialty
-   researchers (Acoustic / Biophilic & neuroarchitecture / Regulatory /
-   Programming) run in parallel then consolidate.
+   argumentaire with inline citations, rendered as both an A4 PDF
+   (ReportLab, 5 pages) and a 6-slide 16:9 pitch deck (python-pptx)
+   in the Design Office palette. Four specialty researchers (Acoustic /
+   Biophilic & neuroarchitecture / Regulatory / Programming) run in
+   parallel then consolidate.
 4. **Technical DWG** — retained variant → dimensioned A1 DXF with
    Design Office layers (AGENCEMENT, MOBILIER, COTATIONS, CLOISONS,
    CIRCULATIONS) and a title-block cartouche. Ships through `ezdxf`
@@ -132,6 +133,8 @@ Everything is in the public repo :
   — live Test Fit 3-variant + 3-reviewer output on Lumen, 133 KB
 - [`backend/tests/fixtures/justify_output_sample.json`](../backend/tests/fixtures/justify_output_sample.json)
   — live Justify consolidated argumentaire + 4 agent traces, 65 KB
+- [`backend/tests/fixtures/lumen_justify_pitch_deck.pptx`](../backend/tests/fixtures/lumen_justify_pitch_deck.pptx)
+  — 6-slide pitch deck from the argumentaire, 39 KB
 - [`backend/tests/fixtures/lumen_export_atelier.dxf`](../backend/tests/fixtures/lumen_export_atelier.dxf)
   — live A1 DXF at 1:100, all 5 Design Office layers populated, title
   block cartouche, 168 KB

@@ -167,6 +167,30 @@ export async function generateTestFit(req: TestFitGenerateRequest): Promise<Test
   return r.json();
 }
 
+export type IterateRequest = {
+  instruction: string;
+  floor_plan: FloorPlan;
+  variant: VariantOutput;
+  programme_markdown?: string;
+  client_name?: string;
+};
+
+export type IterateResponse = {
+  variant: VariantOutput;
+  tokens: { input: number; output: number };
+  duration_ms: number;
+};
+
+export async function iterateVariant(req: IterateRequest): Promise<IterateResponse> {
+  const r = await fetch("/api/testfit/iterate", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(req),
+  });
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+
 // ---------------------------------------------------------------------------
 // Justify surface (Phase 4)
 // ---------------------------------------------------------------------------

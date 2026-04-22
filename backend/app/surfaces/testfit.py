@@ -406,6 +406,134 @@ def compile_default_surface() -> TestFitSurface:
     return TestFitSurface(orchestration=Orchestration(client=ClaudeClient()))
 
 
+# ---------------------------------------------------------------------------
+# Natural-language iteration (CLAUDE.md §13 Phase 3 step 7)
+# ---------------------------------------------------------------------------
+
+
+class IterateRequest(BaseModel):
+    instruction: str = Field(..., min_length=3, description="Natural-language modification request.")
+    floor_plan: FloorPlan
+    variant: VariantOutput
+    programme_markdown: str = Field(default="")
+    client_name: str = Field(default="Client")
+
+
+class IterateResponse(BaseModel):
+    variant: VariantOutput
+    tokens: dict[str, int]
+    duration_ms: int
+
+
+_ITERATE_USER = """Client : {client_name}
+
+<instruction>
+{instruction}
+</instruction>
+
+<variant>
+{variant_json}
+</variant>
+
+<floor_plan>
+{floor_plan_json}
+</floor_plan>
+
+<programme>
+{programme_markdown}
+</programme>
+
+<catalog_json>
+{catalog_json}
+</catalog_json>
+
+<ratios_json>
+{ratios_json}
+</ratios_json>
+
+Return the updated variant JSON per your system instructions."""
+
+
+def iterate_variant(
+    request: IterateRequest,
+    orchestration: Orchestration | None = None,
+) -> IterateResponse:
+    """Apply a natural-language modification to an existing variant.
+
+    Keeps style + title unchanged by default, updates zones / metrics /
+    narrative as the user asked. The returned variant is replayed through
+    the SketchUp facade so the trace is a fresh record of what the updated
+    design would execute.
+    """
+
+    orch = orchestration or Orchestration(client=ClaudeClient())
+    catalog_json = (FURNITURE_DIR / "catalog.json").read_text(encoding="utf-8")
+    ratios_json = (BENCHMARKS_DIR / "ratios.json").read_text(encoding="utf-8")
+
+    agent = SubAgent(
+        name="Iterate",
+        system_prompt=_read(PROMPTS_DIR / "testfit_iterate.md"),
+        user_template=_ITERATE_USER,
+        max_tokens=16000,
+    )
+    context = {
+        "client_name": request.client_name,
+        "instruction": request.instruction,
+        "variant_json": json.dumps(
+            {
+                "style": request.variant.style.value,
+                "title": request.variant.title,
+                "narrative": request.variant.narrative,
+                "zones": _zones_from_trace(request.variant.sketchup_trace),
+                "metrics": request.variant.metrics.model_dump(),
+            },
+            ensure_ascii=False,
+        ),
+        "floor_plan_json": request.floor_plan.model_dump_json(),
+        "programme_markdown": request.programme_markdown,
+        "catalog_json": catalog_json,
+        "ratios_json": ratios_json,
+    }
+
+    sub = orch.run_subagent(agent, context, tag="testfit.iterate")
+    try:
+        payload = json.loads(_strip_json(sub.text))
+    except Exception as exc:  # noqa: BLE001
+        raise ValueError(
+            f"Iteration agent returned malformed JSON: {exc}. Raw: {sub.text[:400]}"
+        ) from exc
+
+    metrics = VariantMetrics(
+        **payload.get("metrics", request.variant.metrics.model_dump())
+    )
+    new_variant = VariantOutput(
+        style=request.variant.style,
+        title=payload.get("title", request.variant.title),
+        narrative=payload.get("narrative", request.variant.narrative),
+        metrics=metrics,
+        sketchup_trace=[],
+        screenshot_paths=[],
+    )
+
+    facade = SketchUpFacade(backend=get_backend())
+    facade.new_scene(name=f"{request.client_name} — {new_variant.style.value} (iter)")
+    _replay_floor_plan(facade, request.floor_plan)
+    _replay_zones(facade, payload.get("zones", []))
+    shot = facade.screenshot(view_name="iso")
+    new_variant = new_variant.model_copy(
+        update={
+            "sketchup_trace": facade.trace(),
+            "screenshot_paths": [shot] if shot else [],
+        }
+    )
+
+    return IterateResponse(
+        variant=new_variant,
+        tokens={"input": sub.input_tokens, "output": sub.output_tokens},
+        duration_ms=sub.duration_ms,
+    )
+
+
 def catalog_preview() -> dict:
     raw = json.loads((FURNITURE_DIR / "catalog.json").read_text(encoding="utf-8"))
     return {

@@ -15,8 +15,8 @@ time today, and where no serious AI tool exists :
 | # | Surface | Input | Output | Time today |
 |---|---------|-------|--------|-----------|
 | 1 | **Brief** | Client brief in natural language | Costed, sourced functional programme | 2 – 8 weeks |
-| 2 | **Test fit** | PDF floor plan + programme | Three 3D variants in SketchUp, iterable in natural language | 1 – 3 weeks |
-| 3 | **Justify** | Retained variant | Client-facing argumentaire with citations + A4 PDF | 3 – 5 days |
+| 2 | **Test fit** | PDF floor plan + programme | Three 3D variants in SketchUp, **iterable in natural language** | 1 – 3 weeks |
+| 3 | **Justify** | Retained variant | Client-facing argumentaire with citations + A4 PDF + 6-slide PPTX pitch deck | 3 – 5 days |
 | 4 | **Export** | Retained variant | Dimensioned A1 DXF with Design Office layers | 2 – 4 days |
 
 Everything orchestrated by Claude **Opus 4.7** — Vision HD reads the plans,
@@ -231,6 +231,8 @@ The repo ships with **live-generated fixtures** under
   verdicts for Lumen (142 k input / 22 k output tokens, 108 s).
 - `justify_output_sample.json` — the consolidated argumentaire (148 k /
   22 k tokens, 229 s, 14 242 chars, 5 agents).
+- `lumen_justify_pitch_deck.pptx` — the 6-slide pitch deck derived from
+  the argumentaire (39 KB, opens in PowerPoint / Keynote / Slides).
 - `lumen_export_atelier.dxf` — the Atelier variant rendered to an A1 DXF
   (168 KB, 334 ops, all 5 Design Office layers populated).
 
@@ -241,7 +243,8 @@ cd backend
 .\.venv\Scripts\Activate.ps1
 python scripts/run_lumen_full.py        # regenerate 3 variants + 3 reviewers
 python scripts/run_lumen_justify.py     # regenerate Justify argumentaire + PDF
-python scripts/run_lumen_export.py      # regenerate the DXF
+python scripts/run_lumen_pptx.py        # regenerate the 6-slide pitch deck (no Opus)
+python scripts/run_lumen_export.py      # regenerate the DXF (no Opus)
 ```
 
 Each script writes outputs back to `tests/fixtures/` and

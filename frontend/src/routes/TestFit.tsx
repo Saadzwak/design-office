@@ -8,6 +8,7 @@ import {
   fetchCatalogPreview,
   fetchLumenFixture,
   generateTestFit,
+  iterateVariant,
   uploadPlanPdf,
   type CatalogPreview,
   type FloorPlan,
@@ -39,6 +40,15 @@ type State =
   | { kind: "done"; plan: FloorPlan; result: TestFitResponse }
   | { kind: "error"; message: string };
 
+type IterationEntry = {
+  instruction: string;
+  tokens: { input: number; output: number };
+  duration_ms: number;
+  ts: string;
+  success: boolean;
+  error?: string;
+};
+
 export default function TestFit() {
   const [state, setState] = useState<State>({ kind: "idle" });
   const [catalog, setCatalog] = useState<CatalogPreview | null>(null);
@@ -46,6 +56,9 @@ export default function TestFit() {
   const [programme, setProgramme] = useState(() =>
     localStorage.getItem("design-office.programme") ?? "",
   );
+  const [instruction, setInstruction] = useState("");
+  const [iterating, setIterating] = useState(false);
+  const [history, setHistory] = useState<IterationEntry[]>([]);
 
   useEffect(() => {
     const ac = new AbortController();
@@ -93,6 +106,70 @@ export default function TestFit() {
       setState({ kind: "done", plan, result });
     } catch (err) {
       setState({ kind: "error", message: String(err) });
+    }
+  };
+
+  const persistResult = (floor_plan: FloorPlan, variants: VariantOutput[], verdicts: TestFitResponse["verdicts"]) => {
+    try {
+      localStorage.setItem(
+        "design-office.testfit.result",
+        JSON.stringify({ floor_plan, variants, verdicts }),
+      );
+    } catch {
+      // LocalStorage may be full ; ignore.
+    }
+  };
+
+  const onIterate = async () => {
+    if (state.kind !== "done") return;
+    const trimmed = instruction.trim();
+    if (trimmed.length < 3) return;
+    const current = state.result.variants.find((v) => v.style === active);
+    if (!current) return;
+
+    setIterating(true);
+    try {
+      const resp = await iterateVariant({
+        instruction: trimmed,
+        floor_plan: state.plan,
+        variant: current,
+        programme_markdown: programme || FALLBACK_PROGRAMME,
+        client_name: "Lumen",
+      });
+      const updatedVariants = state.result.variants.map((v) =>
+        v.style === active ? resp.variant : v,
+      );
+      const nextResult: TestFitResponse = {
+        ...state.result,
+        variants: updatedVariants,
+      };
+      persistResult(state.plan, updatedVariants, state.result.verdicts);
+      setState({ kind: "done", plan: state.plan, result: nextResult });
+      setHistory((h) => [
+        {
+          instruction: trimmed,
+          tokens: resp.tokens,
+          duration_ms: resp.duration_ms,
+          ts: new Date().toISOString(),
+          success: true,
+        },
+        ...h,
+      ]);
+      setInstruction("");
+    } catch (err) {
+      setHistory((h) => [
+        {
+          instruction: trimmed,
+          tokens: { input: 0, output: 0 },
+          duration_ms: 0,
+          ts: new Date().toISOString(),
+          success: false,
+          error: err instanceof Error ? err.message : String(err),
+        },
+        ...h,
+      ]);
+    } finally {
+      setIterating(false);
     }
   };
 
@@ -292,6 +369,69 @@ export default function TestFit() {
               )}
             </div>
           </div>
+          {state.kind === "done" && activeVariant && (
+            <div className="mt-6 rounded-2xl border border-neutral-500/20 bg-neutral-800/30 p-6">
+              <p className="font-mono text-xs uppercase tracking-widest text-neutral-400">
+                Iterate in natural language
+              </p>
+              <p className="mt-2 text-sm text-neutral-300">
+                Examples : <em>"agrandis la boardroom"</em>,{" "}
+                <em>"pousse les postes vers la façade sud"</em>,{" "}
+                <em>"add two phone booths near the café"</em>.
+              </p>
+              <div className="mt-4 flex gap-3">
+                <input
+                  value={instruction}
+                  onChange={(e) => setInstruction(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      onIterate();
+                    }
+                  }}
+                  placeholder="Décris la modification…"
+                  className="flex-1 rounded-xl border border-neutral-500/30 bg-neutral-800/40 px-4 py-2.5 font-mono text-sm text-bone-text focus:border-terracotta/50 focus:outline-none"
+                  disabled={iterating}
+                />
+                <button
+                  className="btn-primary"
+                  onClick={onIterate}
+                  disabled={iterating || instruction.trim().length < 3}
+                >
+                  {iterating ? "Iterating…" : "Apply"}
+                </button>
+              </div>
+              {history.length > 0 && (
+                <ul className="mt-5 space-y-2">
+                  {history.slice(0, 5).map((entry, i) => (
+                    <li
+                      key={i}
+                      className="flex items-start justify-between gap-4 rounded-lg border border-neutral-500/20 bg-neutral-900/40 px-3 py-2"
+                    >
+                      <div className="flex items-start gap-2 text-xs">
+                        <span
+                          className={
+                            entry.success
+                              ? "mt-0.5 inline-block h-2 w-2 rounded-full bg-green-400/80"
+                              : "mt-0.5 inline-block h-2 w-2 rounded-full bg-terracotta"
+                          }
+                        />
+                        <span className="text-bone-text">{entry.instruction}</span>
+                        {entry.error && (
+                          <span className="text-terracotta/80">· {entry.error}</span>
+                        )}
+                      </div>
+                      <span className="font-mono text-[10px] text-neutral-400">
+                        {entry.success
+                          ? `${entry.tokens.input}/${entry.tokens.output} tok · ${(entry.duration_ms / 1000).toFixed(1)}s`
+                          : "failed"}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
         </section>
       </div>
     </div>

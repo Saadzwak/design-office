@@ -31,7 +31,12 @@ from app.surfaces.justify import (
     pdf_path_for,
 )
 from app.surfaces.justify_pptx import pptx_path_for
-from app.surfaces.testfit import catalog_preview
+from app.surfaces.testfit import (
+    IterateRequest,
+    IterateResponse,
+    catalog_preview,
+    iterate_variant,
+)
 from app.surfaces.testfit import compile_default_surface as compile_testfit_surface
 from pydantic import BaseModel
 
@@ -146,6 +151,23 @@ def testfit_generate(payload: TestFitGenerateRequest) -> TestFitResponse:
         client_name=payload.client_name,
         styles=styles,
     )
+
+
+@app.post("/api/testfit/iterate", response_model=IterateResponse)
+def testfit_iterate(payload: IterateRequest) -> IterateResponse:
+    """Natural-language iteration on a retained variant — "enlarge the
+    boardroom", "push desks toward the south façade", etc.
+    """
+
+    if not settings.anthropic_api_key:
+        raise HTTPException(
+            status_code=503,
+            detail="ANTHROPIC_API_KEY is not loaded.",
+        )
+    try:
+        return iterate_variant(payload)
+    except ValueError as exc:  # malformed JSON from the iterate agent
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
 
 
 # ---------------------------------------------------------------------------

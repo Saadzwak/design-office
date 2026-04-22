@@ -791,7 +791,74 @@ bytes**, 6 slides, opens in PowerPoint / Keynote / Google Slides.
 ### Iter 10 — wrap (2026-04-22T18:42Z)
 
 Phase 8 bonus in pocket. Full CLAUDE.md mission (Phases 1-7 + Phase 8
-item 2) now committed. Total hackathon deliverables stand at :
+item 2) now committed.
+
+---
+
+## Iter 11 — Phase 3 gap : /api/testfit/iterate (2026-04-22T19:05Z)
+
+**Status** : ✅ done, live — natural-language variant iteration shipped.
+This closes CLAUDE.md §13 Phase 3 step 7 which had been queued but never
+landed.
+
+### What landed
+
+**System prompt** `backend/app/prompts/agents/testfit_iterate.md` :
+strict JSON-only output, preserves untouched zones, logs the change in
+`metrics.notes`, keeps `style` unchanged unless explicitly asked.
+
+**Surface** `backend/app/surfaces/testfit.py::iterate_variant` :
+- Input : `IterateRequest(instruction, floor_plan, variant, programme,
+  client_name)`
+- Passes the current variant JSON, plan, programme, catalog, ratios to
+  the Iterate agent via the existing `Orchestration.run_subagent`
+- Parses the response JSON, builds a fresh `VariantOutput`, then
+  **replays** it through the SketchUp facade (mock or live) so the
+  frontend receives a clean `sketchup_trace` + screenshot path
+- Raises `ValueError` on malformed JSON (endpoint translates to 502)
+
+**HTTP** : `POST /api/testfit/iterate` → `IterateResponse(variant,
+tokens, duration_ms)`. Rejects instructions shorter than 3 chars with
+422.
+
+**Frontend** `/testfit` : chat input under the variant detail panel.
+- Enter submits (Shift+Enter for newline)
+- History list (5 most recent) with coloured-dot status + per-call
+  tokens / duration
+- Variant in localStorage is updated so Justify + Export pick up the
+  edited version without a fresh Test Fit run
+
+**Tests** (24 passed total, +3 in `test_iterate.py`) :
+- `iterate_variant` with a stubbed Claude client returns an updated
+  variant whose `notes` records the change AND whose replayed
+  SketchUp trace shows the modified meeting room dimensions
+- Malformed JSON from the agent surfaces as `ValueError`
+- `/api/testfit/iterate` 422 on too-short instructions
+
+### Demo script update
+
+The 01:15 – 01:45 slot in `docs/DEMO_SCRIPT.md` ("natural-language
+iteration") is now backed by a real endpoint. No fallback or caveat
+needed during the demo.
+
+### Docs refresh
+
+- `README.md` : 4-surface table flags "iterable in natural language"
+  on Test Fit + adds pitch-deck PPTX to Justify output ; fixtures
+  section lists `lumen_justify_pitch_deck.pptx` ; replay commands
+  include `run_lumen_pptx.py`.
+- `docs/HACKATHON_SUMMARY.md` : Justify line now mentions both PDF
+  + PPTX ; artefacts list includes the pitch deck.
+
+### Iter 11 — wrap (2026-04-22T19:05Z)
+
+13 commits. All CLAUDE.md deliverables + Phase 8 bonus + previously-
+queued iterate endpoint shipped.
+
+**Still parallel** : SketchUp live branch. The TCP backend and plugins
+are ready ; cube smoke + Lumen replay scripts pre-staged. The live
+switch remains a 1-minute human action (Extensions → MCP Server →
+Start Server) away.
 
 | Artefact | Format | Size | Path |
 |----------|--------|------|------|
