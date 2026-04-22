@@ -26,7 +26,8 @@ Items that require Saad's physical intervention. Work continues around these as 
 - Needed for Phase 5 (DWG export via File IPC). Phase 5 also supports an `ezdxf`-only backend that runs headless, so partial demo stays possible without AutoCAD.
 
 ### B3. Load the SketchUp MCP extension
-- Copy everything from `vendor/sketchup-mcp/sketchup_plugin/` into the SketchUp `Plugins/` folder.
+- The actual plugin layout in the fork is `vendor/sketchup-mcp/su_mcp/` (files `extension.json`, `package.rb`, `su_mcp/`, `su_mcp.rb`), not `sketchup_plugin/` as referenced in CLAUDE.md.
+- Copy both `su_mcp.rb` and the `su_mcp/` subfolder from `vendor/sketchup-mcp/` into the SketchUp `Plugins/` folder (typically `C:\Users\<you>\AppData\Roaming\SketchUp\SketchUp 2024\SketchUp\Plugins\`).
 - Restart SketchUp. The MCP server should listen on port 9876.
 
 ### B4. Load the AutoCAD MCP LISP

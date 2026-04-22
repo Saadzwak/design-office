@@ -32,21 +32,32 @@ Margin = 113 − 19 = ~94 h available for debug, rework, and Saad-side tasks (Sk
 
 ## Phase 1 — Fondations
 
-**Status** : in progress
+**Status** : ✅ done
 **Started** : 2026-04-22T07:09:13Z
-**Target duration** : 2 h
+**Finished** : 2026-04-22T12:46:18Z
+**Target duration** : 2 h (hands-on work well under target; wall-clock dominated by npm / pip fetches)
 
-### Iter 01 — bootstrap
+### Iter 01 — bootstrap (2026-04-22T07:09Z → 2026-04-22T12:46Z, ≈ wall-clock but mostly npm install and pip resolve)
 
 - [x] Renamed `claude.md.md` → `CLAUDE.md`
 - [x] Created `.gitignore`, `LICENSE` (MIT), `.env.example`, `README.md`
-- [ ] `BUILD_LOG.md` + `BLOCKERS.md` (in flight)
-- [ ] `git init` + first commit
-- [ ] Backend scaffold (FastAPI + `/health` + pytest smoke)
-- [ ] Frontend scaffold (Vite + React + Tailwind + 5 route stubs + fonts)
-- [ ] `vendor/` clones (sketchup-mcp, autocad-mcp, strip inner `.git`)
-- [ ] `scripts/run_dev.ps1`
-- [ ] Phase 1 smoke tests green
+- [x] `BUILD_LOG.md` + `BLOCKERS.md`
+- [x] `git init` + first commit (`57e91fd chore(bootstrap)`)
+- [x] Backend scaffold — `backend/pyproject.toml`, `app/main.py`, `app/config.py`, `app/claude_client.py` (stub), namespaced packages, `tests/test_health.py` green in 1.48 s
+- [x] Frontend scaffold — Vite + React 18 + TS strict + Tailwind 3.4 + Framer 11, 5 routes (Landing / Brief / TestFit / Justify / Export), Fraunces + Inter + JetBrains Mono via Google Fonts, section 11 palette wired in `tailwind.config.ts`
+- [x] `vendor/sketchup-mcp/` + `vendor/autocad-mcp/` cloned (depth=1), inner `.git` stripped
+- [x] `scripts/run_dev.ps1`
+- [x] Phase 1 smoke tests green :
+  - `pytest -q` → 1 passed
+  - `tsc -b --noEmit` → no errors
+  - Live `uvicorn` + `curl /health` → `{status:"ok",version:"0.1.0",model:"claude-opus-4-7",api_key_loaded:false}`
+  - Live `vite` + `curl localhost:5173/` → HTML served (1 082 bytes)
+
+### Notes appended during bootstrap
+
+- SketchUp plugin path in the fork is `vendor/sketchup-mcp/su_mcp/` + `su_mcp.rb`, NOT `sketchup_plugin/` as CLAUDE.md section 12 mentioned. `BLOCKERS.md B3` updated with the correct path for Saad.
+- `readme = "../README.md"` rejected by setuptools (path outside package). Dropped the field — README is reachable via repo root regardless.
+- Phase 1 consumed **zero** Opus tokens, as planned.
 
 ### Security flag (carry until resolved)
 
@@ -61,3 +72,20 @@ Margin = 113 − 19 = ~94 h available for debug, rework, and Saad-side tasks (Sk
 | Output     | 100 000 | 0           | 100 000   |
 
 Phase 1 is 100 % local scaffolding — zero API calls expected.
+
+---
+
+## Phase 2 — Surface 1 Brief
+
+**Status** : queued (entered in next `/loop` iteration)
+**Target duration** : 3 h
+
+### Planned order (section 13.2)
+
+1. `backend/app/claude_client.py` — hook up real wrapper (already stubbed) + wire token budget guardrails.
+2. `backend/app/data/resources/` — 10 MCP Resources Markdown, each 50–200 lines with real sources. Local-only, **no Opus calls needed**.
+3. `backend/app/data/benchmarks/` — JSON ratios (Leesman, Gensler, HOK).
+4. `backend/app/agents/orchestrator.py` — `run_parallel_agents(agents, context)` helper.
+5. Three sub-agents (Effectifs, Benchmarks, Contraintes) + consolidateur — real Opus calls. **Gated on Saad rotating the leaked API key (BLOCKERS.md B0).** Until rotation is confirmed, work will pause on this step and move to Phase 3 step 1 (pipeline PDF scaffolding, still Opus-free) to avoid idle time.
+6. `POST /api/brief/synthesize` endpoint.
+7. `frontend/src/routes/Brief.tsx` — wire to endpoint, stream sub-agent trace.
