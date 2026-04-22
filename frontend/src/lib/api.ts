@@ -207,3 +207,41 @@ export async function generateJustify(req: JustifyRequest): Promise<JustifyRespo
 export function justifyPdfUrl(pdfId: string): string {
   return `/api/justify/pdf/${pdfId}`;
 }
+
+// ---------------------------------------------------------------------------
+// Export surface (Phase 5)
+// ---------------------------------------------------------------------------
+
+export type ExportRequest = {
+  client_name?: string;
+  floor_plan: FloorPlan;
+  variant: VariantOutput;
+  scale?: number;
+  project_reference?: string;
+  drawer_initials?: string;
+};
+
+export type ExportResponse = {
+  export_id: string;
+  dxf_filename: string;
+  dxf_bytes: number;
+  sheet: string;
+  scale: string;
+  layers: string[];
+  trace_length: number;
+  plot_pdf_available: boolean;
+};
+
+export async function generateExport(req: ExportRequest): Promise<ExportResponse> {
+  const r = await fetch("/api/export/dwg", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(req),
+  });
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+
+export function exportDxfUrl(exportId: string): string {
+  return `/api/export/dxf/${exportId}`;
+}

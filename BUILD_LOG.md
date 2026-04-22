@@ -554,3 +554,79 @@ argumentaire with a 5-page PDF.
 Committed and Phase 5 queued for the next wake (Export — Surface 4,
 AutoCAD DWG A1, 2 h target ; backend helper already exists, needs wiring
 into a surface + endpoint + frontend).
+
+---
+
+## Iter 07 — Phase 5 Export (2026-04-22T17:35Z)
+
+**Status** : ✅ done, live DXF shipped (168 KB, 334 ops), 15 tests pass.
+
+### What landed
+
+**ExportSurface** (`backend/app/surfaces/export.py`) — takes a retained
+variant + floor plan and translates them into an A1-sheet DXF. Pipeline :
+
+1. `AutoCadFacade.new_drawing` + standard Design Office layers
+   (AGENCEMENT / MOBILIER / COTATIONS / CLOISONS / CIRCULATIONS)
+2. A1 sheet frame sized at 1:SCALE (default 1:100) with an inner frame
+3. Floor plan (envelope, columns, cores with labels, stairs with
+   ESCALIER text + diagonal, window line segments)
+4. Variant zones replayed from the `sketchup_trace` — workstation
+   clusters as desk block refs, meeting rooms as floor rectangles
+   with tables, phone booths as Framery One Compact footprints,
+   partitions, collab zones, biophilic zones
+5. Overall horizontal + vertical dimensions (COTATIONS)
+6. Title-block cartouche in the bottom-right (project, scale, date,
+   sheet, drawer, postes count, client name + variant title)
+7. Save + optional `plot_pdf` (real if File-IPC backend is live)
+8. Manifest JSON next to the DXF for audit
+
+**HTTP**
+- `POST /api/export/dwg` → `ExportResponse` (export_id, filename,
+  bytes, sheet, scale, layers, trace length, plot availability)
+- `GET /api/export/dxf/{export_id}` → streams the DXF back as
+  `application/acad` with a descriptive download filename
+
+**Tests** (15 passed, +3 in test_export.py) :
+- DXF round-trip via `ezdxf.readfile` — confirms the 5 layers exist AND
+  have at least one entity each on a realistic Lumen-shaped variant
+- Manifest JSON presence check
+- `/api/export/dxf/{id}` 404 path
+- Full `/api/export/dwg` endpoint round-trip + `/dxf/{id}` download
+
+**Live run on saved Lumen approved variant (atelier)** :
+- 168 k bytes DXF
+- 334 AutoCad operations
+- Sheet A1 @ 1:100
+- All 5 Design Office layers populated
+- Copied to `backend/tests/fixtures/lumen_export_atelier.dxf` for Saad
+  to open in AutoCAD tomorrow
+
+**Frontend** `/export` (`frontend/src/routes/Export.tsx`)
+- Pulls retained Test Fit result from localStorage (or Lumen fixture)
+- Variant selector with reviewer-verdict-coloured dots
+- Scale picker (1:50 / 1:100 / 1:200) + project reference field
+- "Generate technical DXF" CTA → POST /api/export/dwg
+- Status states (idle / generating / done / error)
+- Download link once ready, layer chips showing the 5 Design Office
+  layers, file-size + ops count chips
+- Explainer panel documenting the ezdxf-vs-File-IPC backend switch
+- `tsc --noEmit` clean.
+
+### Token usage
+
+Zero Opus tokens — the Export surface is pure geometry translation.
+
+### Iter 07 — wrap (2026-04-22T17:35Z)
+
+Phase 5 committed. Four of the five mission-critical surfaces are now
+live and exercised end-to-end on the Lumen fixture. Only Phase 6 (UI
+polish) + Phase 7 (docs) remain per CLAUDE.md §13.
+
+Parallel branch : live SketchUp connection is being set up by Saad.
+Plugins copied to `C:\Users\redaz\AppData\Roaming\SketchUp\SketchUp
+2026\SketchUp\Plugins\` (mhyrr + DesignOffice hardened module). The
+TCP backend has been upgraded from raw JSON to JSON-RPC 2.0 with
+`eval_ruby` dispatch into the DesignOffice module. Waiting for the
+server to be started from the Extensions menu to run the cube smoke
+test.

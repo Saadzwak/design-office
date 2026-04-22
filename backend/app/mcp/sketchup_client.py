@@ -49,32 +49,126 @@ class RecordingMockBackend:
 
 @dataclass
 class TcpJsonBackend:
-    """Minimal JSON-over-TCP client compatible with the mhyrr/sketchup-mcp
-    protocol. The protocol is line-delimited JSON with `tool` + `params` keys.
-    We keep the wire-format intentionally small to avoid pulling a full MCP SDK
-    in here (section 14 : 50 lines custom > 500 MB lib).
+    """JSON-RPC 2.0 client for the `mhyrr/sketchup-mcp` plugin.
+
+    The plugin's TCP server (see `vendor/sketchup-mcp/su_mcp/su_mcp/main.rb`)
+    accepts one line of JSON per connection, replies with one line, closes.
+    Every call is translated to a `tools/call` JSON-RPC method with the
+    appropriate tool name and arguments.
+
+    Our Design Office high-level operations (`create_workstation_cluster`,
+    etc.) are not native to the vendor plugin — they live in the
+    `DesignOffice` Ruby module we install alongside the plugin. We call them
+    by sending an `eval_ruby` request that invokes
+    `DesignOffice.create_phone_booth(...)` on the server side.
     """
 
     host: str
     port: int
-    timeout_s: float = 5.0
+    timeout_s: float = 30.0
     _calls: list[dict[str, Any]] = field(default_factory=list)
+    _next_id: int = 1
+
+    # ------------------------------------------------------------------
+    # Public facade-level entrypoint used by SketchUpFacade
+    # ------------------------------------------------------------------
 
     def call(self, tool: str, **params: Any) -> dict[str, Any]:
         self._calls.append({"tool": tool, "params": params})
-        payload = json.dumps({"tool": tool, "params": params}) + "\n"
-        with socket.create_connection((self.host, self.port), timeout=self.timeout_s) as s:
-            s.sendall(payload.encode("utf-8"))
-            buf = b""
-            while not buf.endswith(b"\n"):
-                chunk = s.recv(4096)
-                if not chunk:
-                    break
-                buf += chunk
-        return json.loads(buf.decode("utf-8"))
+        if tool in _NATIVE_TOOLS:
+            return self._jsonrpc_call(tool, params)
+        return self._eval_design_office(tool, params)
 
     def trace(self) -> list[dict[str, Any]]:
         return list(self._calls)
+
+    # ------------------------------------------------------------------
+    # JSON-RPC wire protocol
+    # ------------------------------------------------------------------
+
+    def _send_raw(self, payload: dict[str, Any]) -> dict[str, Any]:
+        line = json.dumps(payload) + "\n"
+        with socket.create_connection((self.host, self.port), timeout=self.timeout_s) as s:
+            s.sendall(line.encode("utf-8"))
+            buf = b""
+            while not buf.endswith(b"\n"):
+                chunk = s.recv(65536)
+                if not chunk:
+                    break
+                buf += chunk
+        if not buf:
+            raise ConnectionError(
+                "SketchUp MCP server returned no data — is SU_MCP running?"
+            )
+        response = json.loads(buf.decode("utf-8"))
+        if "error" in response:
+            raise RuntimeError(
+                f"SketchUp MCP error (code {response['error'].get('code')}): "
+                f"{response['error'].get('message')}"
+            )
+        return response
+
+    def _jsonrpc_call(self, tool: str, arguments: dict[str, Any]) -> dict[str, Any]:
+        payload = {
+            "jsonrpc": "2.0",
+            "method": "tools/call",
+            "params": {"name": tool, "arguments": arguments},
+            "id": self._next_id,
+        }
+        self._next_id += 1
+        response = self._send_raw(payload)
+        result = response.get("result", {})
+        # Unwrap JSON-RPC content envelope into a flat dict for the facade.
+        return {
+            "ok": bool(result.get("success", True)),
+            "resource_id": result.get("resourceId"),
+            "content": result.get("content"),
+        }
+
+    def _eval_design_office(self, tool: str, params: dict[str, Any]) -> dict[str, Any]:
+        """Build a Ruby one-liner that dispatches to the DesignOffice module
+        we install alongside the vendor plugin. This is how our proprietary
+        operations reach SketchUp.
+        """
+
+        code = _build_ruby_call(tool, params)
+        return self._jsonrpc_call("eval_ruby", {"code": code})
+
+
+# mhyrr/sketchup-mcp built-in tools — these are forwarded as-is.
+_NATIVE_TOOLS: set[str] = {
+    "create_component",
+    "delete_component",
+    "transform_component",
+    "get_selection",
+    "export",
+    "export_scene",
+    "set_material",
+    "boolean_operation",
+    "chamfer_edges",
+    "fillet_edges",
+    "create_mortise_tenon",
+    "create_dovetail",
+    "create_finger_joint",
+    "eval_ruby",
+}
+
+
+def _build_ruby_call(tool: str, params: dict[str, Any]) -> str:
+    """Serialise a DesignOffice.<tool>(keyword: value) call as Ruby source.
+
+    We stringify the params with JSON so Ruby's `JSON.parse` reads them back
+    safely. Keyword arguments are required by the Ruby module signature.
+    """
+
+    serialised = {k: v for k, v in params.items()}
+    json_payload = json.dumps(serialised).replace("\\", "\\\\").replace("'", "\\'")
+    return (
+        "require 'json'\n"
+        f"_params = JSON.parse('{json_payload}')\n"
+        f"DesignOffice.{tool}(**_params.transform_keys(&:to_sym))\n"
+        "'ok'"
+    )
 
 
 def try_connect_tcp(host: str, port: int, timeout_s: float = 0.5) -> bool:

@@ -18,6 +18,12 @@ from app.surfaces.brief import (
     compile_default_surface,
     preview_resources_manifest,
 )
+from app.surfaces.export import (
+    ExportRequest,
+    ExportResponse,
+    compile_default_surface as compile_export_surface,
+    dxf_path_for,
+)
 from app.surfaces.justify import (
     JustifyRequest,
     JustifyResponse,
@@ -166,4 +172,34 @@ def justify_pdf(pdf_id: str) -> FileResponse:
         path,
         media_type="application/pdf",
         filename=f"design-office-{pdf_id}.pdf",
+    )
+
+
+# ---------------------------------------------------------------------------
+# Surface 4 — Technical Export (DWG / DXF)
+# ---------------------------------------------------------------------------
+
+
+@app.post("/api/export/dwg", response_model=ExportResponse)
+def export_dwg(payload: ExportRequest) -> ExportResponse:
+    """Generate an A1 DXF from the retained variant + floor plan.
+
+    Always succeeds headlessly via ezdxf — switches to the live AutoCAD
+    backend once `AUTOCAD_MCP_WATCH_DIR` is set and AutoCAD is running with
+    the `mcp_dispatch.lsp` loaded.
+    """
+
+    surface = compile_export_surface()
+    return surface.generate(payload)
+
+
+@app.get("/api/export/dxf/{export_id}")
+def export_dxf(export_id: str) -> FileResponse:
+    path = dxf_path_for(export_id)
+    if path is None:
+        raise HTTPException(status_code=404, detail=f"Export {export_id} not found.")
+    return FileResponse(
+        path,
+        media_type="application/acad",
+        filename=f"design-office-{export_id}.dxf",
     )
