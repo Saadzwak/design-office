@@ -17,7 +17,8 @@ def test_testfit_catalog_lists_40_plus_items() -> None:
 
 def test_testfit_fixture_returns_lumen_floorplan() -> None:
     client = TestClient(app)
-    response = client.get("/api/testfit/fixture")
+    # Force PyMuPDF-only so the test doesn't hit Opus Vision.
+    response = client.get("/api/testfit/fixture?use_vision=false")
     assert response.status_code == 200
     plan = FloorPlan.model_validate(response.json())
     assert plan.name == "Lumen plateau (fixture)"
@@ -34,6 +35,6 @@ def test_fixture_pdf_is_generated() -> None:
     fixture = Path(__file__).resolve().parent.parent / "app" / "data" / "fixtures" / "lumen_plan.pdf"
     # The fixture endpoint regenerates on demand; hit it to guarantee presence.
     client = TestClient(app)
-    client.get("/api/testfit/fixture")
+    client.get("/api/testfit/fixture?use_vision=false")
     assert fixture.exists()
     assert fixture.stat().st_size > 1000

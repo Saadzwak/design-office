@@ -132,10 +132,20 @@ def testfit_catalog() -> dict:
 
 
 @app.get("/api/testfit/fixture")
-def testfit_fixture() -> FloorPlan:
+def testfit_fixture(use_vision: bool | None = None) -> FloorPlan:
+    """Serve the Lumen fictitious plan. Uses Vision HD when the API key is
+    loaded (per P1-a in docs/FLOW_WALKTHROUGH.md), PyMuPDF-only otherwise.
+
+    `?use_vision=false` forces the vision-less path (useful for unit tests
+    that don't want to hit the API).
+    """
+
     if not FIXTURE_PDF.exists():
         generate_lumen_plan_pdf(FIXTURE_PDF)
-    return parse_pdf(FIXTURE_PDF, use_vision=False)
+    resolved_use_vision = (
+        use_vision if use_vision is not None else bool(settings.anthropic_api_key)
+    )
+    return parse_pdf(FIXTURE_PDF, use_vision=resolved_use_vision)
 
 
 @app.post("/api/testfit/parse")

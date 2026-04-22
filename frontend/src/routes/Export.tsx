@@ -223,9 +223,9 @@ export default function ExportRoute() {
           )}
         </aside>
 
-        <section className="space-y-4">
+        <section className="min-w-0 space-y-4">
           <div className="grid gap-4 lg:grid-cols-[1fr,1fr]">
-            <div className="aspect-[3/2] rounded-2xl border border-neutral-500/20 bg-neutral-800/20 p-3">
+            <div className="aspect-[3/2] min-w-0 rounded-2xl border border-neutral-500/20 bg-neutral-800/20 p-3">
               <VariantViewer
                 plan={floorPlan}
                 variant={chosenVariant}
@@ -233,7 +233,7 @@ export default function ExportRoute() {
                 zones={zones}
               />
             </div>
-            <div className="space-y-3">
+            <div className="min-w-0 space-y-3">
               {chosenVariant ? (
                 <>
                   <p className="font-mono text-xs uppercase tracking-widest text-neutral-400">

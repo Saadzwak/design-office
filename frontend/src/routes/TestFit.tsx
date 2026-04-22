@@ -63,9 +63,29 @@ export default function TestFit() {
   useEffect(() => {
     const ac = new AbortController();
     fetchCatalogPreview(ac.signal).then(setCatalog).catch(() => null);
-    fetchLumenFixture(ac.signal)
-      .then((plan) => setState({ kind: "plan_ready", plan }))
-      .catch((err) => setState({ kind: "error", message: String(err) }));
+
+    // If a previous run left a 3-variant result in localStorage, restore it
+    // immediately. Otherwise fall back to just the Lumen fixture plan.
+    const restored = (() => {
+      try {
+        const raw = localStorage.getItem("design-office.testfit.result");
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        if (!parsed?.floor_plan || !parsed?.variants?.length) return null;
+        return parsed as TestFitResponse;
+      } catch {
+        return null;
+      }
+    })();
+
+    if (restored) {
+      setState({ kind: "done", plan: restored.floor_plan, result: restored });
+    } else {
+      fetchLumenFixture(ac.signal)
+        .then((plan) => setState({ kind: "plan_ready", plan }))
+        .catch((err) => setState({ kind: "error", message: String(err) }));
+    }
+
     return () => ac.abort();
   }, []);
 
@@ -305,7 +325,7 @@ export default function TestFit() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.35 }}
-              className="aspect-[3/2] rounded-2xl border border-neutral-500/20 bg-neutral-800/20 p-3"
+              className="aspect-[3/2] min-w-0 rounded-2xl border border-neutral-500/20 bg-neutral-800/20 p-3"
             >
               <VariantViewer
                 plan={plan}
@@ -316,7 +336,7 @@ export default function TestFit() {
               />
             </motion.div>
 
-            <div className="space-y-4">
+            <div className="min-w-0 space-y-4">
               <p className="font-mono text-xs uppercase tracking-widest text-neutral-400">
                 {STYLE_SUBTITLE[active]}
               </p>
