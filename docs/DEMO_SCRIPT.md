@@ -197,6 +197,27 @@ the screenshots pane will show the PlanSvg overlay instead.
   DXF. Open it in Adobe Illustrator or BricsCAD instead — both read DXF
   natively.
 
+## Before hitting Record
+
+Run the pre-flight check from the repo root **while both dev servers are
+running** :
+
+```powershell
+.\scripts\demo_preflight.ps1
+```
+
+It verifies, in order : the 12 required fixtures + screenshots are on
+disk, the backend `/health` endpoint returns `status=ok` with the API
+key loaded, the four HTTP surfaces (`integrations/status`,
+`brief/manifest`, `testfit/catalog`, `testfit/fixture`) respond with
+sane data, the frontend shell is reachable, and the SketchUp MCP TCP
+socket on `127.0.0.1:9876` answers.
+
+Expected last line : `READY - every surface is green. Hit Record.`
+If a warning appears (e.g. SketchUp MCP not started), the demo still
+plays on the bundled iso screenshots — acceptable fallback. Any
+`FAIL` means stop and investigate before recording.
+
 ## Recording notes
 
 - Resolution : 2 560 × 1 440, 60 fps

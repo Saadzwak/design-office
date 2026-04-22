@@ -66,6 +66,7 @@ Saad can still do a final eye-pass but there's no known aesthetic regression.
 ### B6. Record the 3-minute demo video
 
 - Script lives in `docs/DEMO_SCRIPT.md` — refreshed for the Organic Modern UI + the cinematic iterate/export panels. Saad records it himself on the Lumen use case (section 5). Pre-recorded fallback fixtures (`backend/tests/fixtures/*.json|.pptx|.dxf|.png`) let the flow play offline if Opus or SketchUp hiccups mid-take.
+- **Pre-flight** : before hitting Record, run `.\scripts\demo_preflight.ps1` from the repo root. It checks 12 required artefacts on disk, backend `/health` + API key, the 4 HTTP surfaces, the frontend shell, and the SketchUp MCP TCP probe on :9876. Exits 0 when everything is green ("READY - every surface is green. Hit Record."), non-zero if any surface is down.
 
 ---
 
