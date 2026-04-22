@@ -1,8 +1,10 @@
 # Design Office
 
-> **AI co-architect for office interiors.** Turn a client brief into a sourced
-> programme, then a 3D test fit, a client-facing argumentaire, and a
+> **A quiet co-architect for office interiors.** Turn a client brief into a
+> sourced programme, then a 3D test fit, a client-facing argumentaire, and a
 > dimensioned A1 DWG — in minutes, not weeks.
+
+![Design Office landing](docs/screenshots/01-landing.png)
 
 Built for the Anthropic **Built with Opus 4.7** hackathon (deadline
 2026-04-26). MIT License, 100 % open source.
@@ -250,12 +252,34 @@ python scripts/run_lumen_export.py      # regenerate the DXF (no Opus)
 Each script writes outputs back to `tests/fixtures/` and
 `app/out/justify/` / `app/out/export/`.
 
+## Design language
+
+Design Office ships with an **Organic Modern** identity — ivory paper
+(`#FAF7F2`), forest accent (`#2F4A3F`), sand and sun pigments for the
+three variants, clay for errors. Typography is Fraunces (variable,
+SOFT + opsz axes) for display + body, Inter for UI, JetBrains Mono for
+labels. The aesthetic reference is Kinfolk magazine, Saguez & Partners,
+MoreySmith — never a SaaS dashboard.
+
+The five page captures below come from headless Chrome at 1 440 × 900.
+Full principles + palette + motion tokens live in
+**[`docs/UI_DESIGN.md`](docs/UI_DESIGN.md)**.
+
+| I · Landing | II · Brief | III · Test Fit | IV · Justify | V · Export |
+|:-:|:-:|:-:|:-:|:-:|
+| [![Landing](docs/screenshots/01-landing.png)](docs/screenshots/01-landing.png) | [![Brief](docs/screenshots/02-brief.png)](docs/screenshots/02-brief.png) | [![Test Fit](docs/screenshots/03-testfit.png)](docs/screenshots/03-testfit.png) | [![Justify](docs/screenshots/04-justify.png)](docs/screenshots/04-justify.png) | [![Export](docs/screenshots/05-export.png)](docs/screenshots/05-export.png) |
+
 ## Documentation
 
 - **[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)** — deep dive on the
   four surfaces, orchestration, Vision HD fusion, MCP integrations.
+- **[`docs/UI_DESIGN.md`](docs/UI_DESIGN.md)** — visual language :
+  palette tokens, typography, motion, a11y.
 - **[`docs/USE_CASE.md`](docs/USE_CASE.md)** — full Lumen walkthrough
   with real numbers and screenshots.
+- **[`docs/FLOW_WALKTHROUGH.md`](docs/FLOW_WALKTHROUGH.md)** — A-Z
+  runbook on the Lumen fixture with tokens, durations, P0 / P1 / P2
+  priorities.
 - **[`docs/DEMO_SCRIPT.md`](docs/DEMO_SCRIPT.md)** — 3-min video
   shot-by-shot.
 - **[`docs/HACKATHON_SUMMARY.md`](docs/HACKATHON_SUMMARY.md)** — written

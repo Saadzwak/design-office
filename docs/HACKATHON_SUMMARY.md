@@ -116,7 +116,7 @@ wall-clock** — from pasted brief to signable DXF + client-ready PDF.
 
 - **Backend** : FastAPI, Pydantic v2, pydantic-settings,
   python-dotenv, anthropic Python SDK, PyMuPDF, ezdxf, ReportLab,
-  Pillow, pytest
+  python-pptx, Pillow, pytest
 - **Frontend** : Vite 5, React 18, TypeScript strict, Tailwind 3.4 +
   @tailwindcss/typography, Framer Motion 11, React Router 6,
   react-markdown + remark-gfm, Lucide React
@@ -124,6 +124,20 @@ wall-clock** — from pasted brief to signable DXF + client-ready PDF.
   module) + forked `puran-water/autocad-mcp` (LISP dispatcher + ezdxf)
 - **Infra** : 2 processes on a single Windows workstation (uvicorn +
   Vite dev server)
+
+## Visual identity
+
+Design Office ships with an **Organic Modern** palette (ivory
+`#FAF7F2` canvas, forest `#2F4A3F` accent, sand + sun for the three
+variants, clay for errors). Typography is Fraunces (variable, opsz
+9-144, wght 100-900, SOFT 0-100) for display + body, Inter for UI,
+JetBrains Mono for labels. Aesthetic reference : Kinfolk magazine,
+Saguez & Partners, MoreySmith. The downloadable A4 PDF and 6-slide
+pitch deck carry the same identity — ivory page, forest eyebrows,
+sand rules — so the exported artefacts read as a continuation of the
+app rather than a separate template. Principles, tokens and motion
+documented in [`UI_DESIGN.md`](UI_DESIGN.md) ; five page captures
+in [`screenshots/`](screenshots/).
 
 ## Artefacts to inspect
 
@@ -144,18 +158,24 @@ Everything is in the public repo :
 
 ## What stands on day-0 of the judging window
 
-- **Phases 1 – 5 and 7 are code-complete**. Phase 6 (final UI polish)
-  is a stretch item.
-- **Four surfaces exercised end-to-end live** with Opus 4.7 calls. The
-  Test Fit Lumen round-trip passes today, as does Justify.
-- **15 pytest tests pass** (health, brief manifest, test-fit fixture,
-  justify markdown / PDF / 404, export round-trip + layer presence,
-  AutoCAD ezdxf).
-- **Frontend tsc strict is clean** across all 5 routes and components.
-- **Plugins copied** to the SketchUp 2026 Plugins folder ; the TCP
-  backend upgraded from raw JSON to JSON-RPC 2.0. Live SketchUp
-  round-trip is the only item still waiting on the human starting the
-  server.
+- **Phases 1 – 7 + Phase 8 bonus (PPTX + iterate) are code-complete**.
+  Organic Modern UI redesign landed end of day — Kinfolk-grade
+  ivory-paper identity across all five routes + downloadable
+  artefacts.
+- **Four surfaces exercised end-to-end live** on the Lumen fixture
+  with real Opus 4.7 calls. End-to-end wall-clock ≈ 10 min.
+- **Live SketchUp round-trip proven** : 3 variants replayed through
+  SU_MCP v1.5.0 + our DesignOffice Ruby module, 360 TCP round-trips,
+  3 iso screenshots on disk.
+- **34 pytest tests pass** (health, brief manifest, test-fit fixture,
+  justify markdown / PDF / PPTX / 404, export round-trip + layer
+  presence, AutoCAD ezdxf, iterate round-trip).
+- **Frontend tsc strict is clean** across all 6 routes and components.
+- **Cross-page Ask Design Office chat** on every route with
+  page-aware context injection.
+- **Only waiting on** : AutoCAD install for live File-IPC A1 plot
+  (headless ezdxf already ships a real DXF), and the demo video
+  recording.
 
 ## Future work (post-hackathon)
 
