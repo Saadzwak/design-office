@@ -5,7 +5,7 @@ from pathlib import Path
 
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 
 from app import __version__
 from app.config import get_settings
@@ -18,6 +18,7 @@ from app.surfaces.brief import (
     compile_default_surface,
     preview_resources_manifest,
 )
+from app.chat import ChatRequest, ChatResponse, run_chat, run_chat_stream
 from app.surfaces.export import (
     ExportRequest,
     ExportResponse,
@@ -280,4 +281,39 @@ def export_dxf(export_id: str) -> FileResponse:
         path,
         media_type="application/acad",
         filename=f"design-office-{export_id}.dxf",
+    )
+
+
+# ---------------------------------------------------------------------------
+# Cross-page chat — "Ask Design Office"
+# ---------------------------------------------------------------------------
+
+
+@app.post("/api/chat/message", response_model=ChatResponse)
+def chat_message(payload: ChatRequest) -> ChatResponse:
+    """Non-streaming chat turn. Simple path for tests and clients that
+    don't want to handle SSE.
+    """
+
+    if not settings.anthropic_api_key:
+        raise HTTPException(status_code=503, detail="ANTHROPIC_API_KEY not loaded.")
+    try:
+        return run_chat(payload)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@app.post("/api/chat/stream")
+def chat_stream(payload: ChatRequest) -> StreamingResponse:
+    """Server-sent event stream. Events : `token` (deltas) then `end`."""
+
+    if not settings.anthropic_api_key:
+        raise HTTPException(status_code=503, detail="ANTHROPIC_API_KEY not loaded.")
+    return StreamingResponse(
+        run_chat_stream(payload),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+        },
     )

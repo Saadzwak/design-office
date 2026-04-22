@@ -1,5 +1,6 @@
 import { NavLink, Outlet } from "react-router-dom";
 
+import ChatDrawer from "./components/chat/ChatDrawer";
 import IntegrationBadge from "./components/ui/IntegrationBadge";
 
 const NAV = [
@@ -49,6 +50,7 @@ export default function App() {
           Built with Opus 4.7 · MIT License · Hackathon 2026
         </p>
       </footer>
+      <ChatDrawer />
     </div>
   );
 }

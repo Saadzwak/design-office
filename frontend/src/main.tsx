@@ -4,6 +4,7 @@ import { RouterProvider, createBrowserRouter } from "react-router-dom";
 
 import App from "./App";
 import Brief from "./routes/Brief";
+import Chat from "./routes/Chat";
 import Export from "./routes/Export";
 import Justify from "./routes/Justify";
 import Landing from "./routes/Landing";
@@ -19,6 +20,7 @@ const router = createBrowserRouter([
       { path: "/testfit", element: <TestFit /> },
       { path: "/justify", element: <Justify /> },
       { path: "/export", element: <Export /> },
+      { path: "/chat", element: <Chat /> },
     ],
   },
 ]);
