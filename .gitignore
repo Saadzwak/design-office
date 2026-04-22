@@ -1,0 +1,42 @@
+# --- Secrets & env ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# --- Python / backend ---
+backend/.venv/
+backend/venv/
+backend/__pycache__/
+backend/**/__pycache__/
+backend/**/*.pyc
+backend/.pytest_cache/
+backend/.ruff_cache/
+backend/logs/
+backend/dist/
+backend/build/
+backend/*.egg-info/
+
+# --- Node / frontend ---
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/coverage/
+
+# --- Vendor MCP internal git (we strip .git after clone but guard anyway) ---
+vendor/**/.git
+vendor/**/.venv
+
+# --- Editor / OS ---
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# --- Build artefacts ---
+*.dwg.tmp
+*.pdf.tmp
+out/
+tmp/
