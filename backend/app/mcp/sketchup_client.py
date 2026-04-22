@@ -86,27 +86,54 @@ class TcpJsonBackend:
     # JSON-RPC wire protocol
     # ------------------------------------------------------------------
 
-    def _send_raw(self, payload: dict[str, Any]) -> dict[str, Any]:
+    def _send_raw(self, payload: dict[str, Any], attempts: int = 3) -> dict[str, Any]:
+        """Send one line, read one line back. The SU_MCP server polls the
+        TCP socket on a `UI.start_timer(0.1)` loop — a brand-new server
+        sometimes drops the very first connection before its timer has
+        fired, so we retry a couple of times with a short back-off.
+        """
+
         line = json.dumps(payload) + "\n"
-        with socket.create_connection((self.host, self.port), timeout=self.timeout_s) as s:
-            s.sendall(line.encode("utf-8"))
-            buf = b""
-            while not buf.endswith(b"\n"):
-                chunk = s.recv(65536)
-                if not chunk:
-                    break
-                buf += chunk
-        if not buf:
-            raise ConnectionError(
-                "SketchUp MCP server returned no data — is SU_MCP running?"
-            )
-        response = json.loads(buf.decode("utf-8"))
-        if "error" in response:
-            raise RuntimeError(
-                f"SketchUp MCP error (code {response['error'].get('code')}): "
-                f"{response['error'].get('message')}"
-            )
-        return response
+        last_exc: BaseException | None = None
+        for attempt in range(1, attempts + 1):
+            try:
+                with socket.create_connection(
+                    (self.host, self.port), timeout=self.timeout_s
+                ) as s:
+                    s.sendall(line.encode("utf-8"))
+                    buf = b""
+                    while not buf.endswith(b"\n"):
+                        chunk = s.recv(65536)
+                        if not chunk:
+                            break
+                        buf += chunk
+                if not buf:
+                    raise ConnectionError(
+                        "SketchUp MCP server returned no data — is SU_MCP running?"
+                    )
+                response = json.loads(buf.decode("utf-8"))
+                if "error" in response:
+                    raise RuntimeError(
+                        f"SketchUp MCP error (code {response['error'].get('code')}): "
+                        f"{response['error'].get('message')}"
+                    )
+                return response
+            except (
+                ConnectionError,
+                ConnectionRefusedError,
+                ConnectionResetError,
+                OSError,
+                json.JSONDecodeError,
+            ) as exc:
+                last_exc = exc
+                if attempt == attempts:
+                    raise
+                # 0.3 s, 0.9 s — enough for the SketchUp timer to tick.
+                import time as _time
+
+                _time.sleep(0.3 * attempt)
+        assert last_exc is not None
+        raise last_exc
 
     def _jsonrpc_call(self, tool: str, arguments: dict[str, Any]) -> dict[str, Any]:
         payload = {
