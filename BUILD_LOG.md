@@ -1016,3 +1016,137 @@ next Saad directive or until AutoCAD comes online.
 
 Still parallel : SketchUp live branch, waiting for `Extensions →
 MCP Server → Start Server`.
+
+---
+
+## Iter 13 — Walkthrough docs + P0/P1 viewer fixes (2026-04-22T20:10Z)
+
+**Status** : ✅ done.
+
+- `docs/FLOW_WALKTHROUGH.md` : full A-Z walkthrough on the Lumen fixture
+  with real numbers (tokens, durations, file sizes, reviewer verdicts).
+  Structured as P0 (MUST WORK for the demo), P1 (SHOULD WORK),
+  P2 (NICE-TO-HAVE).
+- **P0 viewer overflow** : the `aspect-[3/2]` container was pushing
+  3 905 × 2 537 px into a grid column without `min-w-0`, forcing the
+  whole page to ~4 000 px wide. Added `min-w-0` on every grid child +
+  outer section across TestFit / Justify / Export. Verified
+  `document.documentElement.scrollWidth === innerWidth` on all three
+  surfaces at 1 440 × 900.
+- **P0 TestFit HMR persistence** : added `localStorage` restore of
+  `design-office.testfit.result` on mount so a hot reload during the
+  demo doesn't wipe the 3-variant run.
+- **P1-a fixture uses Vision HD by default** : `/api/testfit/fixture`
+  was pinned to `use_vision=False` for test speed. Default flipped to
+  `True` (uses the loaded API key); `?use_vision=false` stays as an
+  escape hatch for CI.
+- **P1-b post-iterate screenshot freshness** : `/api/testfit/iterate`
+  now captures a fresh `Facade.screenshot(out_path=)` PNG after each
+  iterate, returns it as `IterateResponse.screenshot_url`. Added
+  `GET /api/testfit/screenshot/{filename}` with a
+  `[A-Za-z0-9_-]+\.png` whitelist that rejects path traversal.
+  Frontend updates the live screenshot map in localStorage and the
+  viewer reloads the live iso without a full regeneration.
+
+---
+
+## Iter 14 — Cross-page "Ask Design Office" chat (2026-04-22T20:45Z)
+
+**Status** : ✅ done, live.
+
+- `ChatDrawer` floating button on every route except `/chat` ; click →
+  scrim + spring-in 480 px drawer with a `ChatPanel`. Esc closes.
+- `/chat` route as a fullpage variant (`ChatPanel mode="fullpage"`).
+- `POST /api/chat/message` (non-streaming default) + `?stream=1` SSE
+  opt-in for the eager cases. Vite dev proxy was buffering SSE; the
+  frontend defaults to non-stream to keep latency predictable.
+- Page-aware system prompt — the client passes `{ page, context }` and
+  the backend picks one of 5 intros ("Describe the client…",
+  "Pick a variant…") + injects variant / programme / brief context if
+  available in localStorage.
+- localStorage-persisted thread (`design-office.chat.messages`) with a
+  1 039-byte cap so a demo-day reload keeps the session warm.
+
+---
+
+## Iter 15 — Organic Modern UI redesign (2026-04-22T23:05Z)
+
+**Status** : ✅ done, committed `154dea4`, 23 files, +2 260 / −1 200.
+
+Triggered by Saad's directive after viewing the first-pass terracotta/
+ink palette : *"transformer l'UI/UX en quelque chose de magnifique, digne
+des meilleures agences d'architecture d'intérieur contemporaines."*
+
+### New palette (tokens in `frontend/tailwind.config.ts`)
+
+Ivory `#FAF7F2` canvas, forest `#2F4A3F` accent, sand `#C9B79C`
+secondary, sun `#E8C547` highlight, clay `#A0522D` errors,
+`mist-50…900` warm neutrals, ink scale (`#1C1F1A` / `#3E4240` /
+`#7F837D`).
+
+### Typography
+
+- Fraunces loaded with the **SOFT axis** (0-100) + `opsz` (9-144) so
+  display headlines sit at `opsz: 144, wght: 620, SOFT: 100` for a
+  warm editorial feel.
+- Inter 300-700 variable, JetBrains Mono 400/500.
+
+### New primitives
+
+- `components/ui/TypewriterText.tsx` — per-char reveal with a
+  blinking caret. Used for live agent status lines.
+- `components/ui/DotStatus.tsx` — 5 tones (idle/running/ok/warn/error)
+  mapped to `mist-300 / forest+dot-pulse / forest / sand-deep / clay`.
+
+### Pages redesigned from scratch
+
+- **Landing** — magazine hero with two B&W Unsplash photographs
+  (corridor + reading room), italic `co-architect` in a `display-sm`
+  (52 px) Fraunces headline, metric strip (10 min / 2 700 lines / 3×3
+  agents / 41 SKUs), Roman-numeral surface index, editorial quote
+  with second photograph, scrolling-sources marquee, CTA with
+  terracotta + sand blur glows.
+- **Brief** — blank-page serif editor (`.textarea-page` utility),
+  Fraunces client name on an underline input, 4 managed-agents as
+  editorial numbered rows, typewriter reveal of the synthesis trace
+  instead of skeleton bars.
+- **TestFit** — 65 % viewer on the right, left rail as an editorial
+  index with per-variant pigment dots (forest villageois / sand
+  atelier / sun hybride flex), editorial metrics (postes / rooms /
+  booths / flex / collab m² / total) as bare Fraunces numbers.
+- **Justify** — Kinfolk spread with forest `blockquote` callouts,
+  editorial research-trace aside, ghost PDF + PPTX buttons.
+- **Export** — single hero CTA on a 4:3 viewer, discreet knobs
+  (scale / ref / variant) below, pipeline explainer side column.
+- **PlanSvg** — now reads as a real architectural plan : ink cores,
+  sand columns with soft ink-soft edge, forest-accented window
+  segments on the facades, plan drawn on ivory bg instead of a dark
+  chrome.
+
+### Back-office : PDF + PPTX re-paletted
+
+- `surfaces/justify.py` — eyebrow `#C9694E → #2F4A3F`, rules
+  `#A68A5B → #C9B79C`, body `#181816 → #1C1F1A`, link color
+  `#C9694E → #2F4A3F`. Re-rendered `148727235162bc34.pdf` (24 KB,
+  5 pages) with the new palette — same content, new identity.
+- `surfaces/justify_pptx.py` — flipped the deck from dark-SaaS to
+  ivory-editorial. `INK` (bg) = `#FAF7F2`, `BONE_TEXT` (default
+  text) = `#1C1F1A`, `TERRACOTTA` (accent) = `#2F4A3F` (forest),
+  `OCHRE` (rules) = `#A08863` (sand-deep). Re-rendered
+  `lumen_justify_pitch_deck.pptx` (39 KB, 6 slides). All 10
+  Justify/PPTX tests green after the swap.
+
+### Screenshots + docs
+
+- `docs/UI_DESIGN.md` (180 lines) : principles, palette, typography,
+  motion, a11y, five-pages-at-a-glance table with links.
+- `docs/screenshots/` : 5 headless-Chrome captures at 1 440 × 900
+  (landing, brief, testfit, justify, export).
+
+### Sanity checks
+
+- `npx tsc -b --noEmit` → clean on every route
+- `pytest -q tests/test_justify.py tests/test_justify_pptx.py` → 10 passed
+- Visual verification via headless Chrome at 1 440 × 900 on all five
+  pages — the new identity reads as Gensler/Saguez-worthy.
+

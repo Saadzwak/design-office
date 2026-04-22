@@ -23,15 +23,21 @@ from app.surfaces.justify import OUT_DIR as PDF_OUT_DIR  # reuse dir layout
 
 PPTX_OUT_DIR = Path(__file__).resolve().parent.parent / "out" / "justify_pptx"
 
-# Design Office palette (mirrors Section 11 of CLAUDE.md).
-INK = RGBColor(0x0E, 0x0E, 0x0C)
-INK_SOFT = RGBColor(0x18, 0x18, 0x16)
-BONE = RGBColor(0xFA, 0xF9, 0xF5)
-BONE_TEXT = RGBColor(0xEC, 0xEB, 0xE4)
-TERRACOTTA = RGBColor(0xC9, 0x69, 0x4E)
-OCHRE = RGBColor(0xA6, 0x8A, 0x5B)
-NEUTRAL_400 = RGBColor(0x75, 0x71, 0x6A)
-NEUTRAL_300 = RGBColor(0xA7, 0xA3, 0x98)
+# Organic Modern palette — ivory paper deck, forest accent, sand rules.
+# Mirrors frontend/tailwind.config.ts tokens so the exported deck reads
+# like a continuation of the app rather than a separate artefact.
+#
+# The legacy names (INK = background, BONE_TEXT = default text) are kept
+# so downstream code doesn't churn — but the RGB values flip the deck
+# from a dark SaaS-hero aesthetic to an editorial ivory page.
+INK = RGBColor(0xFA, 0xF7, 0xF2)         # canvas — slide background (was near-black)
+INK_SOFT = RGBColor(0xE8, 0xE3, 0xD8)    # hairline — faint bands / rules
+BONE = RGBColor(0xFF, 0xFC, 0xF6)        # raised — card fills
+BONE_TEXT = RGBColor(0x1C, 0x1F, 0x1A)   # ink — default text on ivory
+TERRACOTTA = RGBColor(0x2F, 0x4A, 0x3F)  # forest — accent for eyebrows / headlines
+OCHRE = RGBColor(0xA0, 0x88, 0x63)       # sand-deep — hairlines, rules
+NEUTRAL_400 = RGBColor(0x7F, 0x83, 0x7D)  # ink-muted — secondary labels
+NEUTRAL_300 = RGBColor(0xC6, 0xC1, 0xB4)  # mist-300 — tertiary hairlines
 
 
 @dataclass(frozen=True)

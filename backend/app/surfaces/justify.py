@@ -260,13 +260,15 @@ def _render_client_pdf(
     styles = getSampleStyleSheet()
     base_font = "Helvetica"
 
+    # Organic Modern palette — ivory paper feel even in print.
+    # ink #1C1F1A · forest #2F4A3F · sand #C9B79C · ink-soft #2F3330.
     hero_style = ParagraphStyle(
         "DOHero",
         parent=styles["Title"],
         fontName="Helvetica-Bold",
         fontSize=24,
         leading=30,
-        textColor="#181816",
+        textColor="#1C1F1A",
         spaceAfter=6,
     )
     eyebrow_style = ParagraphStyle(
@@ -275,7 +277,7 @@ def _render_client_pdf(
         fontName="Courier-Bold",
         fontSize=9,
         leading=11,
-        textColor="#C9694E",
+        textColor="#2F4A3F",
         spaceAfter=12,
     )
     h2_style = ParagraphStyle(
@@ -284,7 +286,7 @@ def _render_client_pdf(
         fontName="Helvetica-Bold",
         fontSize=15,
         leading=19,
-        textColor="#22211E",
+        textColor="#1C1F1A",
         spaceBefore=14,
         spaceAfter=6,
     )
@@ -294,7 +296,7 @@ def _render_client_pdf(
         fontName="Helvetica-Bold",
         fontSize=12,
         leading=15,
-        textColor="#34332F",
+        textColor="#2F3330",
         spaceBefore=10,
         spaceAfter=4,
     )
@@ -304,7 +306,7 @@ def _render_client_pdf(
         fontName=base_font,
         fontSize=10.5,
         leading=14.5,
-        textColor="#181816",
+        textColor="#1C1F1A",
         alignment=TA_JUSTIFY,
         spaceAfter=6,
     )
@@ -339,7 +341,7 @@ def _render_client_pdf(
         )
     )
     story.append(Spacer(1, 6))
-    story.append(HRFlowable(color="#A68A5B", thickness=0.7, width="100%"))
+    story.append(HRFlowable(color="#C9B79C", thickness=0.7, width="100%"))
     story.append(Spacer(1, 12))
 
     for block in _markdown_blocks(argumentaire_markdown):
@@ -353,7 +355,7 @@ def _render_client_pdf(
         elif kind == "bullet":
             story.append(Paragraph("• " + text, bullet_style))
         elif kind == "rule":
-            story.append(HRFlowable(color="#A68A5B", thickness=0.4, width="100%"))
+            story.append(HRFlowable(color="#C9B79C", thickness=0.4, width="100%"))
             story.append(Spacer(1, 6))
         elif kind == "pagebreak":
             story.append(PageBreak())
@@ -417,7 +419,7 @@ def _markdown_blocks(md: str) -> list[tuple[str, str]]:
 def _inline_md_to_rl(text: str) -> str:
     """Translate the subset of inline Markdown we emit into ReportLab HTML
     tags. Bold **x** → <b>x</b>, italic *x* → <i>x</i>, links [t](u) →
-    <link href="u" color="#C9694E">t</link>, inline code `c` → <font
+    <link href="u" color="#2F4A3F">t</link>, inline code `c` → <font
     face="Courier">c</font>.
     """
 
@@ -435,7 +437,7 @@ def _inline_md_to_rl(text: str) -> str:
     def link(m: re.Match[str]) -> str:
         label = m.group(1)
         url = m.group(2).replace("&", "&amp;")
-        return f'<link href="{url}" color="#C9694E">{label}</link>'
+        return f'<link href="{url}" color="#2F4A3F">{label}</link>'
 
     # Escape XML-reserved before inserting tags, but preserve our own tags afterwards.
     text = text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
