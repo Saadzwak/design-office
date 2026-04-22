@@ -1,0 +1,420 @@
+{
+  "version": "2026-04-22",
+  "description": "Furniture reference catalogue for Design Office. Dimensions are manufacturer-published where sourced, [À VÉRIFIER] otherwise.",
+  "items": [
+    {
+      "id": "steelcase_migration_se_1600",
+      "brand": "Steelcase",
+      "model": "Migration SE",
+      "type": "desk_electric",
+      "dimensions_mm": {"width": 1600, "depth": 800, "height_min": 650, "height_max": 1250},
+      "footprint_m2": 1.28,
+      "recommended_clearance_mm": {"front": 1200, "side": 900},
+      "source": "https://www.steelcase.com/products/height-adjustable-desks/migration-se/"
+    },
+    {
+      "id": "steelcase_migration_se_1800",
+      "brand": "Steelcase",
+      "model": "Migration SE 1800",
+      "type": "desk_electric",
+      "dimensions_mm": {"width": 1800, "depth": 800, "height_min": 650, "height_max": 1250},
+      "footprint_m2": 1.44,
+      "recommended_clearance_mm": {"front": 1200, "side": 900},
+      "source": "https://www.steelcase.com/products/height-adjustable-desks/migration-se/"
+    },
+    {
+      "id": "millerknoll_jarvis_1524",
+      "brand": "Herman Miller",
+      "model": "Jarvis 27x60",
+      "type": "desk_electric",
+      "dimensions_mm": {"width": 1524, "depth": 686, "height_min": 622, "height_max": 1270},
+      "footprint_m2": 1.05,
+      "recommended_clearance_mm": {"front": 1200, "side": 900},
+      "source": "https://store.hermanmiller.com/standing-desks/jarvis-laminate-standing-desk/2548841.html"
+    },
+    {
+      "id": "millerknoll_jarvis_1829",
+      "brand": "Herman Miller",
+      "model": "Jarvis 30x72",
+      "type": "desk_electric",
+      "dimensions_mm": {"width": 1829, "depth": 762, "height_min": 622, "height_max": 1270},
+      "footprint_m2": 1.39,
+      "recommended_clearance_mm": {"front": 1200, "side": 900},
+      "source": "https://store.hermanmiller.com/standing-desks/jarvis-laminate-standing-desk/2548841.html"
+    },
+    {
+      "id": "vitra_tyde2_1600",
+      "brand": "Vitra",
+      "model": "Tyde 2 1600",
+      "type": "desk_electric",
+      "dimensions_mm": {"width": 1600, "depth": 800, "height_min": 650, "height_max": 1260},
+      "footprint_m2": 1.28,
+      "recommended_clearance_mm": {"front": 1200, "side": 900},
+      "source": "[À VÉRIFIER] Vitra Tyde 2 2024-2025 spec"
+    },
+    {
+      "id": "humanscale_float",
+      "brand": "Humanscale",
+      "model": "Float",
+      "type": "desk_counterbalanced",
+      "dimensions_mm": {"width": 1524, "depth": 762, "height_min": 711, "height_max": 1219},
+      "footprint_m2": 1.16,
+      "recommended_clearance_mm": {"front": 1200, "side": 900},
+      "source": "[À VÉRIFIER] Humanscale Float spec"
+    },
+    {
+      "id": "steelcase_series1",
+      "brand": "Steelcase",
+      "model": "Series 1",
+      "type": "task_chair",
+      "dimensions_mm": {"width": 680, "depth": 680, "height_min": 406, "height_max": 521},
+      "footprint_m2": 0.46,
+      "recommended_clearance_mm": {"front": 300, "side": 150},
+      "source": "[À VÉRIFIER] Steelcase Series 1 spec sheet"
+    },
+    {
+      "id": "steelcase_gesture",
+      "brand": "Steelcase",
+      "model": "Gesture",
+      "type": "task_chair",
+      "dimensions_mm": {"width": 720, "depth": 700, "height_min": 420, "height_max": 520},
+      "footprint_m2": 0.50,
+      "recommended_clearance_mm": {"front": 300, "side": 150},
+      "source": "[À VÉRIFIER]"
+    },
+    {
+      "id": "millerknoll_aeron_b",
+      "brand": "Herman Miller",
+      "model": "Aeron size B",
+      "type": "task_chair",
+      "dimensions_mm": {"width": 686, "depth": 660, "height_min": 406, "height_max": 520},
+      "footprint_m2": 0.45,
+      "recommended_clearance_mm": {"front": 300, "side": 150},
+      "source": "[À VÉRIFIER] Aeron B spec"
+    },
+    {
+      "id": "millerknoll_embody",
+      "brand": "Herman Miller",
+      "model": "Embody",
+      "type": "task_chair",
+      "dimensions_mm": {"width": 740, "depth": 730, "height_min": 420, "height_max": 520},
+      "footprint_m2": 0.54,
+      "recommended_clearance_mm": {"front": 300, "side": 150},
+      "source": "[À VÉRIFIER] Embody spec"
+    },
+    {
+      "id": "vitra_id_chair_mesh",
+      "brand": "Vitra",
+      "model": "ID Chair Mesh",
+      "type": "task_chair",
+      "dimensions_mm": {"width": 680, "depth": 680, "height_min": 415, "height_max": 540},
+      "footprint_m2": 0.46,
+      "recommended_clearance_mm": {"front": 300, "side": 150},
+      "source": "[À VÉRIFIER]"
+    },
+    {
+      "id": "wilkhahn_on",
+      "brand": "Wilkhahn",
+      "model": "ON",
+      "type": "task_chair",
+      "dimensions_mm": {"width": 680, "depth": 620, "height_min": 420, "height_max": 520},
+      "footprint_m2": 0.42,
+      "recommended_clearance_mm": {"front": 300, "side": 150},
+      "source": "[À VÉRIFIER]"
+    },
+    {
+      "id": "vitra_eames_segmented_2400",
+      "brand": "Vitra",
+      "model": "Eames Segmented 2400",
+      "type": "meeting_table",
+      "dimensions_mm": {"width": 2400, "depth": 1200, "height": 740},
+      "footprint_m2": 2.88,
+      "recommended_clearance_mm": {"front": 600, "side": 900},
+      "source": "[À VÉRIFIER] Vitra Eames Segmented 2024 catalogue"
+    },
+    {
+      "id": "vitra_eames_segmented_4000",
+      "brand": "Vitra",
+      "model": "Eames Segmented 4000",
+      "type": "meeting_table",
+      "dimensions_mm": {"width": 4000, "depth": 1400, "height": 740},
+      "footprint_m2": 5.60,
+      "recommended_clearance_mm": {"front": 600, "side": 900},
+      "source": "[À VÉRIFIER]"
+    },
+    {
+      "id": "hm_everywhere_1800",
+      "brand": "Herman Miller",
+      "model": "Everywhere 1800x900",
+      "type": "meeting_table",
+      "dimensions_mm": {"width": 1800, "depth": 900, "height": 740},
+      "footprint_m2": 1.62,
+      "recommended_clearance_mm": {"front": 600, "side": 900},
+      "source": "[À VÉRIFIER]"
+    },
+    {
+      "id": "hm_everywhere_round_1200",
+      "brand": "Herman Miller",
+      "model": "Everywhere Round 1200",
+      "type": "huddle_table",
+      "dimensions_mm": {"diameter": 1200, "height": 740},
+      "footprint_m2": 1.13,
+      "recommended_clearance_mm": {"around": 750},
+      "source": "[À VÉRIFIER]"
+    },
+    {
+      "id": "usm_haller_conference",
+      "brand": "USM",
+      "model": "Haller Conference 2400",
+      "type": "meeting_table",
+      "dimensions_mm": {"width": 2400, "depth": 1100, "height": 740},
+      "footprint_m2": 2.64,
+      "recommended_clearance_mm": {"front": 600, "side": 900},
+      "source": "[À VÉRIFIER]"
+    },
+    {
+      "id": "framery_one",
+      "brand": "Framery",
+      "model": "One",
+      "type": "phone_booth_1p",
+      "dimensions_mm": {"width": 1220, "depth": 1000, "height": 2255},
+      "footprint_m2": 1.22,
+      "recommended_clearance_mm": {"front": 850, "back": 0, "side": 150},
+      "acoustic_reduction_db": 30,
+      "source": "https://framery.com/en-us/office-pods-and-booths/framery-one/tech-specs/"
+    },
+    {
+      "id": "framery_one_compact",
+      "brand": "Framery",
+      "model": "One Compact",
+      "type": "phone_booth_1p",
+      "dimensions_mm": {"width": 1030, "depth": 1000, "height": 2250},
+      "footprint_m2": 1.03,
+      "recommended_clearance_mm": {"front": 850, "back": 0, "side": 150},
+      "acoustic_reduction_db": 30,
+      "source": "https://framery.com/en-us/office-pods-and-booths/framery-one-compact/tech-specs/"
+    },
+    {
+      "id": "framery_q",
+      "brand": "Framery",
+      "model": "Q",
+      "type": "meeting_pod_4p",
+      "dimensions_mm": {"width": 2400, "depth": 1240, "height": 2410},
+      "footprint_m2": 2.98,
+      "recommended_clearance_mm": {"front": 900, "side": 150},
+      "source": "[À VÉRIFIER] Framery Q 2024 spec"
+    },
+    {
+      "id": "poppin_hush_1p",
+      "brand": "Poppin",
+      "model": "Hush Phone Booth",
+      "type": "phone_booth_1p",
+      "dimensions_mm": {"width": 1200, "depth": 1000, "height": 2290},
+      "footprint_m2": 1.20,
+      "recommended_clearance_mm": {"front": 850, "side": 150},
+      "source": "[À VÉRIFIER]"
+    },
+    {
+      "id": "orangebox_air3_meeting",
+      "brand": "Orangebox",
+      "model": "Air3 Meeting Pod",
+      "type": "meeting_pod_6p",
+      "dimensions_mm": {"width": 3200, "depth": 1800, "height": 2300},
+      "footprint_m2": 5.76,
+      "recommended_clearance_mm": {"front": 900, "side": 150},
+      "source": "[À VÉRIFIER]"
+    },
+    {
+      "id": "vitra_alcove_2264",
+      "brand": "Vitra",
+      "model": "Alcove High Back 2264",
+      "type": "lounge_sofa",
+      "dimensions_mm": {"width": 2264, "depth": 840, "height": 1280},
+      "footprint_m2": 1.90,
+      "recommended_clearance_mm": {"front": 600, "side": 0},
+      "source": "[À VÉRIFIER] Vitra Alcove spec"
+    },
+    {
+      "id": "vitra_soft_work",
+      "brand": "Vitra",
+      "model": "Soft Work",
+      "type": "activity_sofa",
+      "dimensions_mm": {"width": 2400, "depth": 1080, "height": 910},
+      "footprint_m2": 2.59,
+      "recommended_clearance_mm": {"front": 600, "side": 300},
+      "source": "[À VÉRIFIER]"
+    },
+    {
+      "id": "hay_mags_soft_3s",
+      "brand": "Hay",
+      "model": "Mags Soft 3-seater",
+      "type": "lounge_sofa",
+      "dimensions_mm": {"width": 2280, "depth": 955, "height": 760},
+      "footprint_m2": 2.18,
+      "recommended_clearance_mm": {"front": 600, "side": 0},
+      "source": "[À VÉRIFIER]"
+    },
+    {
+      "id": "muuto_outline_sofa_3s",
+      "brand": "Muuto",
+      "model": "Outline 3-seater",
+      "type": "lounge_sofa",
+      "dimensions_mm": {"width": 2150, "depth": 840, "height": 710},
+      "footprint_m2": 1.81,
+      "recommended_clearance_mm": {"front": 600, "side": 0},
+      "source": "[À VÉRIFIER]"
+    },
+    {
+      "id": "vitra_tip_ton",
+      "brand": "Vitra",
+      "model": "Tip Ton",
+      "type": "stackable_chair",
+      "dimensions_mm": {"width": 470, "depth": 555, "height": 800},
+      "footprint_m2": 0.26,
+      "recommended_clearance_mm": {},
+      "source": "[À VÉRIFIER]"
+    },
+    {
+      "id": "magis_jam",
+      "brand": "Magis",
+      "model": "Jam",
+      "type": "stackable_chair",
+      "dimensions_mm": {"width": 550, "depth": 540, "height": 790},
+      "footprint_m2": 0.30,
+      "recommended_clearance_mm": {},
+      "source": "[À VÉRIFIER]"
+    },
+    {
+      "id": "bisley_pedestal_essentials",
+      "brand": "Bisley",
+      "model": "Essentials Pedestal 3 Drawer",
+      "type": "pedestal_storage",
+      "dimensions_mm": {"width": 420, "depth": 580, "height": 620},
+      "footprint_m2": 0.24,
+      "recommended_clearance_mm": {"front": 500},
+      "source": "[À VÉRIFIER] Bisley Essentials dimensions"
+    },
+    {
+      "id": "vitra_kado_locker_400",
+      "brand": "Vitra",
+      "model": "Kado Locker 400",
+      "type": "flex_locker",
+      "dimensions_mm": {"width": 400, "depth": 400, "height": 400, "cells_per_column": 5},
+      "footprint_m2": 0.16,
+      "recommended_clearance_mm": {"front": 750},
+      "source": "[À VÉRIFIER]"
+    },
+    {
+      "id": "steelcase_flex_locker",
+      "brand": "Steelcase",
+      "model": "Flex Personal Space Locker",
+      "type": "flex_locker",
+      "dimensions_mm": {"width": 400, "depth": 450, "height": 400, "cells_per_column": 5},
+      "footprint_m2": 0.18,
+      "recommended_clearance_mm": {"front": 750},
+      "source": "[À VÉRIFIER]"
+    },
+    {
+      "id": "steelcase_v_ia_partition",
+      "brand": "Steelcase",
+      "model": "V.I.A. Partition 1200",
+      "type": "partition_wall",
+      "dimensions_mm": {"width": 1200, "depth": 100, "height": 2700},
+      "footprint_m2": 0.12,
+      "recommended_clearance_mm": {},
+      "acoustic_stc": 45,
+      "source": "[À VÉRIFIER]"
+    },
+    {
+      "id": "haworth_enclose",
+      "brand": "Haworth",
+      "model": "Enclose Partition",
+      "type": "partition_wall",
+      "dimensions_mm": {"width": 1200, "depth": 100, "height": 2700},
+      "footprint_m2": 0.12,
+      "recommended_clearance_mm": {},
+      "acoustic_stc": 42,
+      "source": "[À VÉRIFIER]"
+    },
+    {
+      "id": "arper_kinesit",
+      "brand": "Arper",
+      "model": "Kinesit",
+      "type": "task_chair",
+      "dimensions_mm": {"width": 640, "depth": 580, "height_min": 420, "height_max": 525},
+      "footprint_m2": 0.37,
+      "recommended_clearance_mm": {"front": 300, "side": 150},
+      "source": "[À VÉRIFIER]"
+    },
+    {
+      "id": "pedrali_babila_lounge",
+      "brand": "Pedrali",
+      "model": "Babila Lounge",
+      "type": "lounge_armchair",
+      "dimensions_mm": {"width": 690, "depth": 660, "height": 730},
+      "footprint_m2": 0.46,
+      "recommended_clearance_mm": {"front": 300},
+      "source": "[À VÉRIFIER]"
+    },
+    {
+      "id": "steelcase_roam",
+      "brand": "Steelcase",
+      "model": "Roam Mobile Stand",
+      "type": "mobile_screen_stand",
+      "dimensions_mm": {"width": 800, "depth": 760, "height": 1900},
+      "footprint_m2": 0.61,
+      "recommended_clearance_mm": {},
+      "source": "[À VÉRIFIER]"
+    },
+    {
+      "id": "vitra_joyn_bench_3200",
+      "brand": "Vitra",
+      "model": "Joyn Bench 3200",
+      "type": "bench_desk_double",
+      "dimensions_mm": {"width": 3200, "depth": 1640, "height": 720},
+      "footprint_m2": 5.25,
+      "recommended_clearance_mm": {"front": 1200, "side": 900},
+      "source": "[À VÉRIFIER]"
+    },
+    {
+      "id": "kinnarps_fields",
+      "brand": "Kinnarps",
+      "model": "Fields Acoustic Booth",
+      "type": "meeting_pod_4p",
+      "dimensions_mm": {"width": 2200, "depth": 1400, "height": 2300},
+      "footprint_m2": 3.08,
+      "recommended_clearance_mm": {"front": 900, "side": 150},
+      "source": "[À VÉRIFIER]"
+    },
+    {
+      "id": "sedus_se_motion",
+      "brand": "Sedus",
+      "model": "SE:motion",
+      "type": "task_chair",
+      "dimensions_mm": {"width": 655, "depth": 610, "height_min": 420, "height_max": 525},
+      "footprint_m2": 0.40,
+      "recommended_clearance_mm": {"front": 300, "side": 150},
+      "source": "[À VÉRIFIER]"
+    },
+    {
+      "id": "haworth_buzzinest",
+      "brand": "Haworth / BuzziSpace",
+      "model": "BuzziNest",
+      "type": "lounge_pod",
+      "dimensions_mm": {"width": 1440, "depth": 910, "height": 1500},
+      "footprint_m2": 1.31,
+      "recommended_clearance_mm": {"front": 600},
+      "source": "[À VÉRIFIER]"
+    },
+    {
+      "id": "nowy_styl_office_lab_pod",
+      "brand": "Nowy Styl",
+      "model": "Office Lab Pod 6p",
+      "type": "meeting_pod_6p",
+      "dimensions_mm": {"width": 3400, "depth": 2000, "height": 2300},
+      "footprint_m2": 6.80,
+      "recommended_clearance_mm": {"front": 900, "side": 150},
+      "source": "[À VÉRIFIER]"
+    }
+  ]
+}

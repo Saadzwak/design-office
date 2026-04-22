@@ -1,16 +1,28 @@
 """FastAPI entrypoint for the Design Office backend."""
 
-from fastapi import FastAPI, HTTPException
+import json
+import tempfile
+from pathlib import Path
+
+from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 
 from app import __version__
 from app.config import get_settings
+from app.models import FloorPlan, TestFitResponse, VariantStyle
+from app.pdf.fixtures import generate_lumen_plan_pdf
+from app.pdf.parser import parse_pdf
 from app.surfaces.brief import (
     BriefRequest,
     BriefResponse,
     compile_default_surface,
     preview_resources_manifest,
 )
+from app.surfaces.testfit import catalog_preview
+from app.surfaces.testfit import compile_default_surface as compile_testfit_surface
+
+FIXTURE_PDF = Path(__file__).resolve().parent / "data" / "fixtures" / "lumen_plan.pdf"
 
 settings = get_settings()
 
@@ -56,3 +68,68 @@ def brief_synthesize(payload: BriefRequest) -> BriefResponse:
         )
     surface = compile_default_surface()
     return surface.synthesize(payload)
+
+
+# ---------------------------------------------------------------------------
+# Surface 2 — Test Fit
+# ---------------------------------------------------------------------------
+
+
+@app.get("/api/testfit/catalog")
+def testfit_catalog() -> dict:
+    return catalog_preview()
+
+
+@app.get("/api/testfit/fixture")
+def testfit_fixture() -> FloorPlan:
+    if not FIXTURE_PDF.exists():
+        generate_lumen_plan_pdf(FIXTURE_PDF)
+    return parse_pdf(FIXTURE_PDF, use_vision=False)
+
+
+@app.post("/api/testfit/parse")
+async def testfit_parse(
+    file: UploadFile = File(...),
+    use_vision: bool = Form(default=False),
+) -> FloorPlan:
+    if file.content_type not in ("application/pdf", "application/octet-stream"):
+        raise HTTPException(status_code=415, detail=f"Unsupported file type: {file.content_type}")
+    raw = await file.read()
+    if not raw:
+        raise HTTPException(status_code=400, detail="Empty file.")
+    with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as fh:
+        fh.write(raw)
+        tmp = Path(fh.name)
+    try:
+        plan = parse_pdf(tmp, use_vision=use_vision)
+    finally:
+        tmp.unlink(missing_ok=True)
+    return plan
+
+
+class TestFitGenerateRequest(BaseModel):
+    floor_plan: FloorPlan
+    programme_markdown: str
+    client_name: str = "Client"
+    styles: list[VariantStyle] | None = None
+
+
+@app.post("/api/testfit/generate", response_model=TestFitResponse)
+def testfit_generate(payload: TestFitGenerateRequest) -> TestFitResponse:
+    if not settings.anthropic_api_key:
+        raise HTTPException(
+            status_code=503,
+            detail="ANTHROPIC_API_KEY is not loaded.",
+        )
+    surface = compile_testfit_surface()
+    styles = payload.styles or [
+        VariantStyle.VILLAGEOIS,
+        VariantStyle.ATELIER,
+        VariantStyle.HYBRIDE_FLEX,
+    ]
+    return surface.generate(
+        floor_plan=payload.floor_plan,
+        programme_markdown=payload.programme_markdown,
+        client_name=payload.client_name,
+        styles=styles,
+    )
