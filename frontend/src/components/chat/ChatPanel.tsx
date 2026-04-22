@@ -16,10 +16,6 @@ import {
   type SuggestedAction,
 } from "../../lib/chat";
 
-// SSE through Vite dev proxy can buffer the response until the generation
-// finishes, which makes the drawer appear frozen. We only opt into streaming
-// when the page URL carries `?stream=1`; by default use the non-streaming
-// endpoint for a snappier, reliable UX.
 const STREAMING_BY_DEFAULT = false;
 
 type Mode = "drawer" | "fullpage";
@@ -30,12 +26,17 @@ type Props = {
 };
 
 const PAGE_HELLO: Record<string, string> = {
-  landing: "Bonjour. Je peux vous aider à démarrer un projet, expliquer les 4 surfaces, ou citer une source. Sur quoi voulez-vous travailler ?",
-  brief: "Nous sommes sur le Brief. Posez-moi une question sur le programme Lumen, ou demandez-moi de re-synthétiser avec un autre angle.",
-  testfit: "Nous sommes sur le Test Fit. Je peux commenter les 3 variantes, recommander la meilleure pour Lumen, ou proposer une itération (« agrandis la boardroom »).",
-  justify: "Nous sommes sur Justify. Je peux résumer l'argumentaire, isoler l'argument acoustique / PMR / biophilie, ou proposer une variante de phrasing.",
-  export: "Nous sommes sur Export. Je peux vous aider à choisir l'échelle du DWG, expliquer les 5 calques Design Office, ou lancer l'export directement.",
-  chat: "Bonjour. Comment puis-je aider sur Lumen ?",
+  landing:
+    "Je peux vous aider à démarrer un projet, expliquer les quatre surfaces, ou citer une source. Sur quoi voulez-vous travailler ?",
+  brief:
+    "Nous sommes sur le Brief. Posez-moi une question sur le programme, ou demandez-moi de re-synthétiser avec un autre angle.",
+  testfit:
+    "Nous sommes sur le Test Fit. Je peux commenter les trois variantes, recommander la meilleure, ou proposer une itération (« agrandis la boardroom »).",
+  justify:
+    "Nous sommes sur Justify. Je peux résumer l'argumentaire, isoler l'argument acoustique / PMR / biophilie, ou proposer une variante de phrasing.",
+  export:
+    "Nous sommes sur Export. Je peux vous aider à choisir l'échelle du DWG, expliquer les cinq calques Design Office, ou lancer l'export directement.",
+  chat: "Comment puis-je aider sur le projet ?",
 };
 
 export default function ChatPanel({ mode, onClose }: Props) {
@@ -117,12 +118,8 @@ export default function ChatPanel({ mode, onClose }: Props) {
 
   const confirmAction = useCallback(
     async (act: SuggestedAction) => {
-      // Dispatch to the right Design Office endpoint. The ChatPanel only
-      // initiates the call — pages re-render from localStorage on refocus.
       try {
         if (act.type === "iterate_variant") {
-          // Run iterate by posting to the existing endpoint using the
-          // current testfit result in localStorage as the base.
           const raw = localStorage.getItem("design-office.testfit.result");
           if (!raw) throw new Error("No Test Fit result in this session yet.");
           const testfit = JSON.parse(raw);
@@ -149,11 +146,24 @@ export default function ChatPanel({ mode, onClose }: Props) {
             "design-office.testfit.result",
             JSON.stringify({ ...testfit, variants: nextVariants }),
           );
+          if (updated.screenshot_url) {
+            try {
+              const rawMap = localStorage.getItem("design-office.testfit.live_screenshots");
+              const map: Record<string, string> = rawMap ? JSON.parse(rawMap) : {};
+              map[style] = updated.screenshot_url;
+              localStorage.setItem(
+                "design-office.testfit.live_screenshots",
+                JSON.stringify(map),
+              );
+            } catch {
+              // ignore
+            }
+          }
           setMessages((ms) => [
             ...ms,
             {
               role: "assistant",
-              content: `✓ Itération appliquée sur \`${style}\`. Rafraîchissez /testfit pour voir la variante mise à jour.`,
+              content: `✓ Itération appliquée sur \`${style}\`. Retournez sur /testfit pour voir la variante mise à jour.`,
             },
           ]);
         } else if (act.type === "export_dxf") {
@@ -186,26 +196,28 @@ export default function ChatPanel({ mode, onClose }: Props) {
   return (
     <div className="flex h-full min-h-0 flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-neutral-500/20 px-4 py-3">
-        <div className="flex items-center gap-2">
-          <span className="flex h-7 w-7 items-center justify-center rounded-md bg-terracotta/15">
-            <Sparkles className="h-4 w-4 text-terracotta" />
+      <div className="flex items-center justify-between border-b border-hairline px-5 py-4">
+        <div className="flex items-center gap-3">
+          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-forest/10 text-forest">
+            <Sparkles className="h-3.5 w-3.5" />
           </span>
           <div>
-            <p className="font-serif text-sm leading-none">Ask Design Office</p>
-            <p className="font-mono text-[10px] uppercase tracking-widest text-neutral-400">
+            <p className="font-display text-[15px] leading-none text-ink" style={{ fontVariationSettings: '"opsz" 36, "wght" 520, "SOFT" 100' }}>
+              Ask Design Office
+            </p>
+            <p className="mt-1 font-mono text-[10px] uppercase tracking-label text-ink-muted">
               {context.page} · Opus 4.7
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-0.5">
           <button
             onClick={() => {
               setMessages([]);
               setAction(null);
               clearConversation();
             }}
-            className="rounded-md p-1.5 text-neutral-400 transition-colors hover:bg-neutral-700/30 hover:text-bone-text"
+            className="rounded-md p-1.5 text-ink-muted transition-colors hover:bg-mist-50 hover:text-ink"
             title="Clear conversation"
           >
             <Trash2 className="h-4 w-4" />
@@ -214,14 +226,14 @@ export default function ChatPanel({ mode, onClose }: Props) {
             <>
               <button
                 onClick={() => navigate("/chat")}
-                className="rounded-md p-1.5 text-neutral-400 transition-colors hover:bg-neutral-700/30 hover:text-bone-text"
+                className="rounded-md p-1.5 text-ink-muted transition-colors hover:bg-mist-50 hover:text-ink"
                 title="Expand to full page"
               >
                 <Maximize2 className="h-4 w-4" />
               </button>
               <button
                 onClick={onClose}
-                className="rounded-md p-1.5 text-neutral-400 transition-colors hover:bg-neutral-700/30 hover:text-bone-text"
+                className="rounded-md p-1.5 text-ink-muted transition-colors hover:bg-mist-50 hover:text-ink"
                 title="Close"
               >
                 <X className="h-4 w-4" />
@@ -230,7 +242,7 @@ export default function ChatPanel({ mode, onClose }: Props) {
           ) : (
             <button
               onClick={() => navigate(-1)}
-              className="rounded-md p-1.5 text-neutral-400 transition-colors hover:bg-neutral-700/30 hover:text-bone-text"
+              className="rounded-md p-1.5 text-ink-muted transition-colors hover:bg-mist-50 hover:text-ink"
               title="Back to app"
             >
               <Minimize2 className="h-4 w-4" />
@@ -240,20 +252,22 @@ export default function ChatPanel({ mode, onClose }: Props) {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4">
+      <div className="flex-1 space-y-5 overflow-y-auto px-5 py-6">
         {messages.length === 0 && !streamedReply && (
-          <div className="rounded-xl border border-neutral-500/20 bg-neutral-800/30 p-3 text-sm text-neutral-300">
-            {hello}
-          </div>
+          <p className="font-serif text-[15px] leading-relaxed text-ink-soft">{hello}</p>
         )}
         {messages.map((m, i) => (
           <Bubble key={i} role={m.role} text={m.content} />
         ))}
         {pending && streamedReply && <Bubble role="assistant" text={streamedReply} streaming />}
         {pending && !streamedReply && (
-          <div className="flex items-center gap-2 text-xs text-neutral-400">
-            <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-terracotta" />
-            Opus is thinking…
+          <div className="flex items-center gap-2 text-[12px] text-ink-muted">
+            <span className="flex gap-1">
+              <span className="dot dot-pulse" style={{ animationDelay: "0ms" }} />
+              <span className="dot dot-pulse" style={{ animationDelay: "150ms" }} />
+              <span className="dot dot-pulse" style={{ animationDelay: "300ms" }} />
+            </span>
+            <span className="font-mono text-[10px] uppercase tracking-label">Opus réfléchit</span>
           </div>
         )}
         <AnimatePresence>
@@ -262,13 +276,13 @@ export default function ChatPanel({ mode, onClose }: Props) {
               initial={{ opacity: 0, y: 4 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
-              className="rounded-xl border border-terracotta/40 bg-terracotta/5 p-3"
+              className="rounded-lg border border-forest/20 bg-forest/5 p-4"
             >
-              <p className="font-mono text-[10px] uppercase tracking-widest text-terracotta">
+              <p className="font-mono text-[10px] uppercase tracking-eyebrow text-forest">
                 Action suggérée
               </p>
-              <p className="mt-1 text-sm text-bone-text">{action.label}</p>
-              <p className="mt-1 font-mono text-[11px] text-neutral-400">
+              <p className="mt-2 font-sans text-[14px] text-ink">{action.label}</p>
+              <p className="mt-1 font-mono text-[11px] text-ink-muted">
                 {action.type}
                 {action.params && Object.keys(action.params).length
                   ? " · " + JSON.stringify(action.params).slice(0, 80)
@@ -286,7 +300,7 @@ export default function ChatPanel({ mode, onClose }: Props) {
           )}
         </AnimatePresence>
         {error && (
-          <div className="rounded-xl border border-terracotta/50 bg-terracotta/10 p-3 text-xs text-terracotta">
+          <div className="rounded-lg border border-clay/40 bg-clay/5 p-3 text-[12px] text-clay">
             {error}
           </div>
         )}
@@ -294,8 +308,8 @@ export default function ChatPanel({ mode, onClose }: Props) {
       </div>
 
       {/* Composer */}
-      <div className="border-t border-neutral-500/20 p-3">
-        <div className="flex items-end gap-2">
+      <div className="border-t border-hairline px-5 py-4">
+        <div className="flex items-end gap-3">
           <textarea
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
@@ -305,20 +319,20 @@ export default function ChatPanel({ mode, onClose }: Props) {
                 ? "Agrandis la boardroom, résume l'argument acoustique…"
                 : "Posez votre question…"
             }
-            className="min-h-[48px] flex-1 resize-none rounded-xl border border-neutral-500/30 bg-neutral-800/40 px-3 py-2 font-sans text-sm text-bone-text focus:border-terracotta/60 focus:outline-none"
             rows={2}
+            className="min-h-[44px] flex-1 resize-none rounded-md border border-hairline bg-raised px-3 py-2 font-sans text-[14px] leading-relaxed text-ink placeholder:text-ink-muted focus:border-forest focus:outline-none focus:ring-2 focus:ring-forest/20"
           />
           <button
             onClick={() => send()}
             disabled={!draft.trim() || pending}
-            className="btn-primary h-10 px-3"
+            className="btn-primary h-[44px] px-3"
             title="Send (Enter)"
           >
             <Send className="h-4 w-4" />
           </button>
         </div>
-        <p className="mt-2 font-mono text-[10px] text-neutral-500">
-          Enter envoie · Shift+Enter nouvelle ligne
+        <p className="mt-2 font-mono text-[10px] uppercase tracking-label text-ink-muted">
+          Entrée envoie · Shift+Entrée nouvelle ligne
         </p>
       </div>
     </div>
@@ -339,17 +353,17 @@ function Bubble({
     <div className={["flex", isUser ? "justify-end" : "justify-start"].join(" ")}>
       <div
         className={[
-          "max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed",
+          "max-w-[85%] rounded-lg px-3.5 py-2.5 text-[14px] leading-relaxed",
           isUser
-            ? "bg-neutral-700/50 text-bone-text"
-            : "border border-neutral-500/20 bg-neutral-800/40 text-bone-text",
-          streaming ? "ring-1 ring-terracotta/40" : "",
+            ? "bg-mist-100 text-ink"
+            : "border border-hairline bg-raised text-ink",
+          streaming ? "ring-1 ring-forest/30" : "",
         ].join(" ")}
       >
         {isUser ? (
           <p className="whitespace-pre-wrap">{text}</p>
         ) : (
-          <div className="prose prose-invert prose-sm max-w-none [&_p]:my-1 [&_pre]:whitespace-pre-wrap [&_code]:break-words">
+          <div className="prose-chat">
             <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>
           </div>
         )}

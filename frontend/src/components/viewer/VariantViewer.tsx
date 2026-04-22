@@ -47,25 +47,27 @@ export default function VariantViewer({
   const activeSrc = liveScreenshotUrl || bundled;
   const hasScreenshot = Boolean(activeSrc);
   const [view, setView] = useState<"2d" | "3d">(hasScreenshot ? defaultView : "2d");
-  // When the style changes, reset to the preferred view if the screenshot is available.
   const activeView = hasScreenshot ? view : "2d";
   const isLive = Boolean(liveScreenshotUrl);
 
   return (
     <div className="flex h-full flex-col">
-      <div className="mb-2 flex items-center justify-between gap-2">
-        <span className="font-mono text-[10px] uppercase tracking-widest text-neutral-400">
-          {activeView === "3d" ? "SketchUp iso" : "Plan 2D"}
+      <div className="flex items-center justify-between gap-2 border-b border-hairline px-4 py-2.5">
+        <span className="font-mono text-[10px] uppercase tracking-label text-ink-muted">
+          {activeView === "3d" ? "SketchUp · iso" : "Plan · 2D"}
+          {isLive && activeView === "3d" && (
+            <span className="ml-3 text-forest">· live</span>
+          )}
         </span>
         {hasScreenshot && (
-          <div className="inline-flex rounded-lg border border-neutral-500/30 bg-neutral-900/50 p-0.5 text-[11px]">
+          <div className="inline-flex items-center gap-1 rounded-md border border-hairline bg-canvas p-0.5">
             <button
               onClick={() => setView("3d")}
               className={[
-                "rounded-md px-2 py-0.5 font-mono uppercase tracking-widest transition-colors",
+                "rounded-[4px] px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-label transition-colors",
                 activeView === "3d"
-                  ? "bg-terracotta/80 text-ink"
-                  : "text-neutral-300 hover:text-bone-text",
+                  ? "bg-forest text-raised"
+                  : "text-ink-soft hover:text-ink",
               ].join(" ")}
             >
               3D
@@ -73,10 +75,10 @@ export default function VariantViewer({
             <button
               onClick={() => setView("2d")}
               className={[
-                "rounded-md px-2 py-0.5 font-mono uppercase tracking-widest transition-colors",
+                "rounded-[4px] px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-label transition-colors",
                 activeView === "2d"
-                  ? "bg-terracotta/80 text-ink"
-                  : "text-neutral-300 hover:text-bone-text",
+                  ? "bg-forest text-raised"
+                  : "text-ink-soft hover:text-ink",
               ].join(" ")}
             >
               2D
@@ -84,7 +86,7 @@ export default function VariantViewer({
           </div>
         )}
       </div>
-      <div className="flex-1 overflow-hidden rounded-xl border border-neutral-500/20 bg-neutral-900/60">
+      <div className="flex-1 overflow-hidden bg-canvas">
         {activeView === "3d" && activeSrc ? (
           <img
             src={activeSrc}
@@ -92,20 +94,22 @@ export default function VariantViewer({
             className="h-full w-full object-contain"
           />
         ) : plan ? (
-          <div className="h-full w-full p-2">
+          <div className="h-full w-full p-6">
             <PlanSvg plan={plan} highlightedVariant={style} zones={zones} />
           </div>
         ) : (
-          <div className="grid h-full place-items-center text-sm text-neutral-400">
-            Loading plan…
+          <div className="grid h-full place-items-center">
+            <p className="font-mono text-[11px] uppercase tracking-label text-ink-muted">
+              Loading plan…
+            </p>
           </div>
         )}
       </div>
       {activeView === "3d" && hasScreenshot && (
-        <p className="mt-2 font-mono text-[10px] text-neutral-500">
+        <p className="border-t border-hairline px-4 py-2 font-mono text-[10px] text-ink-muted">
           {isLive
-            ? "Live SketchUp render · captured after the last iteration."
-            : "Baseline SketchUp render · captured during the Lumen round-trip against SU_MCP v1.5.0."}
+            ? "Live SketchUp render — captured after the last iteration."
+            : "Baseline SketchUp render — captured against SU_MCP v1.5.0."}
         </p>
       )}
     </div>

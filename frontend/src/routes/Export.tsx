@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
 
+import DotStatus from "../components/ui/DotStatus";
 import VariantViewer from "../components/viewer/VariantViewer";
 import { useLiveScreenshots } from "../hooks/useLiveScreenshots";
 import {
@@ -23,6 +24,12 @@ const STYLE_LABEL: Record<VariantOutput["style"], string> = {
   villageois: "Villageois",
   atelier: "Atelier",
   hybride_flex: "Hybride flex",
+};
+
+const STYLE_DOT: Record<VariantOutput["style"], string> = {
+  villageois: "bg-forest",
+  atelier: "bg-sand-deep",
+  hybride_flex: "bg-sun",
 };
 
 type State =
@@ -111,123 +118,43 @@ export default function ExportRoute() {
   };
 
   return (
-    <div className="space-y-6">
-      <header>
-        <h1 className="font-serif text-4xl">Technical export</h1>
-        <p className="mt-3 max-w-2xl text-neutral-300">
-          Produce a dimensioned A1 DXF with Design Office layers (AGENCEMENT, MOBILIER, COTATIONS,
-          CLOISONS, CIRCULATIONS) and a title-block cartouche — ready for the next studio or the
-          bureau de contrôle.
+    <div className="space-y-20">
+      <header className="max-w-3xl">
+        <p className="eyebrow-forest">IV · Export</p>
+        <h1
+          className="mt-5 font-display text-display-sm leading-[1.02] text-ink"
+          style={{ fontVariationSettings: '"opsz" 144, "wght" 620, "SOFT" 100' }}
+        >
+          An A1 DXF, <em className="italic">ready for the studio</em>.
+        </h1>
+        <p className="mt-4 text-[15px] leading-relaxed text-ink-soft">
+          Five Design Office layers — AGENCEMENT, MOBILIER, COTATIONS, CLOISONS, CIRCULATIONS —
+          assembled with a proper title-block cartouche. Opens in AutoCAD, BricsCAD or Illustrator.
+          If AutoCAD is live, a printable A1 PDF is plotted alongside.
         </p>
       </header>
 
-      <div className="grid gap-6 lg:grid-cols-[380px,1fr]">
-        <aside className="space-y-4">
-          <div className="rounded-2xl border border-neutral-500/20 bg-neutral-800/20 p-6">
-            <h2 className="font-serif text-lg">Retained variant</h2>
-            {variants.length === 0 ? (
-              <p className="mt-3 text-sm text-neutral-300">
-                No Test Fit result in this session. Go to{" "}
-                <a className="text-terracotta hover:underline" href="/testfit">
-                  Test Fit
-                </a>{" "}
-                first.
-              </p>
-            ) : (
-              <ul className="mt-3 space-y-2">
-                {variants.map((v) => {
-                  const verdict = verdicts.find((r) => r.style === v.style);
-                  const dot =
-                    verdict?.verdict === "approved"
-                      ? "bg-green-400/80"
-                      : verdict?.verdict === "approved_with_notes"
-                        ? "bg-ochre"
-                        : "bg-terracotta";
-                  const active = selected === v.style;
-                  return (
-                    <li key={v.style}>
-                      <button
-                        onClick={() => setSelected(v.style)}
-                        className={[
-                          "flex w-full items-center gap-3 rounded-xl border px-4 py-3 text-left transition-colors",
-                          active
-                            ? "border-terracotta/60 bg-neutral-700/40"
-                            : "border-neutral-500/30 hover:border-neutral-300/50",
-                        ].join(" ")}
-                      >
-                        <span className={`inline-block h-2 w-2 rounded-full ${dot}`} />
-                        <div className="flex-1">
-                          <p className="text-sm text-bone-text">{STYLE_LABEL[v.style]}</p>
-                          <p className="font-mono text-[11px] text-neutral-400">
-                            {v.metrics.workstation_count} postes · {verdict?.verdict ?? "—"}
-                          </p>
-                        </div>
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </div>
-
-          <div className="rounded-2xl border border-neutral-500/20 bg-neutral-800/20 p-6">
-            <h2 className="font-serif text-lg">Drawing parameters</h2>
-            <label className="mt-3 block font-mono text-[11px] uppercase tracking-widest text-neutral-400">
-              Scale (1:N)
-            </label>
-            <div className="mt-1 flex gap-2">
-              {[50, 100, 200].map((s) => (
-                <button
-                  key={s}
-                  onClick={() => setScale(s)}
-                  className={[
-                    "rounded-lg border px-3 py-1.5 text-sm transition-colors",
-                    scale === s
-                      ? "border-terracotta/70 bg-neutral-700/50 text-bone-text"
-                      : "border-neutral-500/30 text-neutral-300 hover:border-neutral-300/50",
-                  ].join(" ")}
-                >
-                  1:{s}
-                </button>
-              ))}
-            </div>
-            <label className="mt-4 block font-mono text-[11px] uppercase tracking-widest text-neutral-400">
-              Project reference
-            </label>
-            <input
-              value={projectRef}
-              onChange={(e) => setProjectRef(e.target.value)}
-              className="mt-1 w-full rounded-xl border border-neutral-500/30 bg-neutral-800/40 px-3 py-2 font-mono text-xs text-bone-text focus:border-terracotta/50 focus:outline-none"
-            />
-          </div>
-
-          <button
-            className="btn-primary w-full"
-            disabled={!chosenVariant || !floorPlan || state.kind === "generating"}
-            onClick={onGenerate}
-          >
-            {state.kind === "generating" ? "Generating DXF…" : "Generate technical DXF"}
-          </button>
-
-          {state.kind === "done" && (
-            <a
-              className="btn-ghost block w-full text-center"
-              href={exportDxfUrl(state.response.export_id)}
-              target="_blank"
-              rel="noreferrer"
-              download
+      {variants.length === 0 ? (
+        <section className="border-t border-hairline pt-14">
+          <p className="max-w-xl text-[14px] leading-relaxed text-ink-soft">
+            No Test Fit result in this session. Go to{" "}
+            <a className="text-forest underline-offset-2 hover:underline" href="/testfit">
+              Test Fit
+            </a>{" "}
+            first to pick a variant to export.
+          </p>
+        </section>
+      ) : (
+        <>
+          {/* ───────── hero : viewer at rest + single CTA ───────── */}
+          <section className="grid gap-12 lg:grid-cols-[minmax(0,1fr),minmax(0,1fr)] lg:items-center">
+            <motion.div
+              key={selected ?? "none"}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.4 }}
+              className="aspect-[4/3] w-full min-w-0 overflow-hidden rounded-lg border border-hairline bg-raised"
             >
-              Download {state.response.dxf_filename}
-            </a>
-          )}
-          {state.kind === "error" && (
-            <p className="font-mono text-xs text-terracotta">{state.message}</p>
-          )}
-        </aside>
-
-        <section className="min-w-0 space-y-4">
-          <div className="grid gap-4 lg:grid-cols-[1fr,1fr]">
-            <div className="aspect-[3/2] min-w-0 rounded-2xl border border-neutral-500/20 bg-neutral-800/20 p-3">
               <VariantViewer
                 plan={floorPlan}
                 variant={chosenVariant}
@@ -235,102 +162,212 @@ export default function ExportRoute() {
                 zones={zones}
                 liveScreenshotUrl={selected ? liveScreenshots[selected] ?? null : null}
               />
-            </div>
-            <div className="min-w-0 space-y-3">
-              {chosenVariant ? (
+            </motion.div>
+
+            <div className="min-w-0 lg:pl-4">
+              {chosenVariant && (
                 <>
-                  <p className="font-mono text-xs uppercase tracking-widest text-neutral-400">
-                    {STYLE_LABEL[chosenVariant.style]} · 1:{scale}
-                  </p>
-                  <h2 className="font-serif text-2xl">{chosenVariant.title}</h2>
-                  <div className="grid grid-cols-2 gap-2 text-xs text-neutral-300">
-                    <Metric label="Postes" value={chosenVariant.metrics.workstation_count} />
-                    <Metric label="Réunions" value={chosenVariant.metrics.meeting_room_count} />
-                    <Metric label="Phone booths" value={chosenVariant.metrics.phone_booth_count} />
-                    <Metric label="Flex" value={chosenVariant.metrics.flex_ratio_applied.toFixed(2)} />
-                  </div>
-                  {chosenVerdict && (
-                    <p className="font-mono text-[11px] text-neutral-400">
-                      Reviewer · {chosenVerdict.verdict.replace(/_/g, " ")}
+                  <div className="flex items-center gap-3">
+                    <span
+                      className={`inline-block h-[9px] w-[9px] rounded-full ${STYLE_DOT[chosenVariant.style]}`}
+                    />
+                    <p className="font-mono text-[10px] uppercase tracking-label text-ink-muted">
+                      {STYLE_LABEL[chosenVariant.style]} · 1:{scale}
                     </p>
+                  </div>
+                  <h2
+                    className="mt-3 font-display text-[2.5rem] leading-tight text-ink"
+                    style={{ fontVariationSettings: '"opsz" 144, "wght" 560, "SOFT" 100' }}
+                  >
+                    {chosenVariant.title}
+                  </h2>
+                  {chosenVerdict && (
+                    <div className="mt-4 flex items-center gap-2">
+                      <DotStatus
+                        tone={
+                          chosenVerdict.verdict === "approved"
+                            ? "ok"
+                            : chosenVerdict.verdict === "approved_with_notes"
+                              ? "warn"
+                              : "error"
+                        }
+                      />
+                      <p className="font-mono text-[10px] uppercase tracking-label text-ink-muted">
+                        Reviewer · {chosenVerdict.verdict.replace(/_/g, " ")}
+                      </p>
+                    </div>
                   )}
+
+                  {/* ───────── the hero CTA ───────── */}
+                  <div className="mt-10">
+                    <button
+                      className="btn-primary px-7 py-3.5 text-[14px]"
+                      onClick={onGenerate}
+                      disabled={state.kind === "generating"}
+                    >
+                      {state.kind === "generating"
+                        ? "Generating DXF…"
+                        : "Generate technical DXF"}
+                    </button>
+                    {state.kind === "done" && (
+                      <a
+                        className="btn-ghost ml-3 inline-flex"
+                        href={exportDxfUrl(state.response.export_id)}
+                        target="_blank"
+                        rel="noreferrer"
+                        download
+                      >
+                        Download ↗
+                      </a>
+                    )}
+                    {state.kind === "error" && (
+                      <p className="mt-3 font-mono text-[11px] text-clay">{state.message}</p>
+                    )}
+                  </div>
+
+                  {/* ───────── knobs (kept discreet) ───────── */}
+                  <div className="mt-10 flex flex-wrap items-end gap-8 border-t border-hairline pt-6">
+                    <div>
+                      <p className="label-xs text-ink-muted">Scale</p>
+                      <div className="mt-2 flex gap-1">
+                        {[50, 100, 200].map((s) => (
+                          <button
+                            key={s}
+                            onClick={() => setScale(s)}
+                            className={[
+                              "rounded-md border px-3 py-1.5 font-mono text-[11px] transition-colors",
+                              scale === s
+                                ? "border-forest bg-forest/5 text-forest"
+                                : "border-hairline text-ink-soft hover:border-mist-300",
+                            ].join(" ")}
+                          >
+                            1:{s}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="flex-1 min-w-[180px]">
+                      <p className="label-xs text-ink-muted">Project reference</p>
+                      <input
+                        value={projectRef}
+                        onChange={(e) => setProjectRef(e.target.value)}
+                        className="input-line mt-2 w-full font-mono text-[13px] text-ink"
+                      />
+                    </div>
+                    <div className="flex-1 min-w-[200px]">
+                      <p className="label-xs text-ink-muted">Variant</p>
+                      <div className="mt-2 flex gap-2">
+                        {variants.map((v) => (
+                          <button
+                            key={v.style}
+                            onClick={() => setSelected(v.style)}
+                            className={[
+                              "flex items-center gap-2 rounded-md border px-3 py-1.5 font-mono text-[11px] transition-colors",
+                              selected === v.style
+                                ? "border-forest bg-forest/5 text-forest"
+                                : "border-hairline text-ink-soft hover:border-mist-300",
+                            ].join(" ")}
+                          >
+                            <span
+                              className={`inline-block h-[6px] w-[6px] rounded-full ${STYLE_DOT[v.style]}`}
+                            />
+                            <span>{STYLE_LABEL[v.style]}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
                 </>
-              ) : (
-                <p className="text-sm text-neutral-400">Pick a variant on the left.</p>
               )}
             </div>
-          </div>
+          </section>
 
+          {/* ───────── done state : delivery card ───────── */}
           {state.kind === "done" && (
-            <motion.div
-              key="done"
+            <motion.section
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-              className="rounded-2xl border border-neutral-500/20 bg-neutral-800/20 p-6"
+              transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+              className="border-t border-hairline pt-14"
             >
-              <div className="flex flex-wrap items-center gap-4">
-                <span className="font-serif text-lg">{state.response.dxf_filename}</span>
-                <span className="font-mono text-xs text-neutral-300">
-                  {(state.response.dxf_bytes / 1024).toFixed(1)} KB · {state.response.sheet}
-                  {" · "}{state.response.scale} · {state.response.trace_length} ops
-                </span>
-              </div>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {state.response.layers.map((layer) => (
-                  <span
-                    key={layer}
-                    className="rounded-md border border-neutral-500/30 bg-neutral-900/40 px-2 py-1 font-mono text-[10px] uppercase tracking-widest text-neutral-300"
+              <p className="eyebrow-forest">Delivered</p>
+              <div className="mt-5 grid gap-10 lg:grid-cols-[minmax(0,1.4fr),minmax(0,1fr)]">
+                <div>
+                  <h3
+                    className="font-display text-[1.75rem] leading-tight text-ink"
+                    style={{ fontVariationSettings: '"opsz" 96, "wght" 540, "SOFT" 100' }}
                   >
-                    {layer}
-                  </span>
-                ))}
+                    {state.response.dxf_filename}
+                  </h3>
+                  <p className="mt-2 font-mono text-[11px] uppercase tracking-label text-ink-muted">
+                    {(state.response.dxf_bytes / 1024).toFixed(1)} KB · {state.response.sheet} ·{" "}
+                    {state.response.scale} · {state.response.trace_length} ops
+                  </p>
+                  <div className="mt-6 flex flex-wrap gap-2">
+                    {state.response.layers.map((layer) => (
+                      <span
+                        key={layer}
+                        className="rounded-md border border-hairline bg-raised px-2.5 py-1 font-mono text-[10px] uppercase tracking-label text-ink-soft"
+                      >
+                        {layer}
+                      </span>
+                    ))}
+                  </div>
+                  <p className="mt-6 max-w-xl text-[13.5px] leading-relaxed text-ink-soft">
+                    {state.response.plot_pdf_available ? (
+                      <>
+                        <span className="text-forest">AutoCAD is live</span> — a printable A1 PDF
+                        was plotted alongside the DXF, following the cartouche spec.
+                      </>
+                    ) : (
+                      <>
+                        Generated via <span className="text-ink">ezdxf</span> headless. Opens
+                        natively in AutoCAD, BricsCAD, or Adobe Illustrator. Launch AutoCAD with{" "}
+                        <span className="font-mono text-[12px]">mcp_dispatch.lsp</span> loaded to
+                        enable the live A1 PDF plot.
+                      </>
+                    )}
+                  </p>
+                </div>
+                <aside className="lg:border-l lg:border-hairline lg:pl-8">
+                  <p className="label-xs text-ink-muted">Backend pipeline</p>
+                  <ul className="mt-5 space-y-5 text-[13px] leading-relaxed text-ink-soft">
+                    <li className="flex items-start gap-3">
+                      <DotStatus tone="ok" className="mt-1.5" />
+                      <span>
+                        <span className="text-ink">ezdxf headless</span> — default path, produces a
+                        real DXF on disk, layers with colours by AIA index.
+                      </span>
+                    </li>
+                    <li className="flex items-start gap-3">
+                      <DotStatus
+                        tone={state.response.plot_pdf_available ? "ok" : "idle"}
+                        className="mt-1.5"
+                      />
+                      <span>
+                        <span className="text-ink">File IPC live</span> — triggered when AutoCAD
+                        is running with <span className="font-mono text-[11.5px]">mcp_dispatch.lsp</span>{" "}
+                        loaded and <span className="font-mono text-[11.5px]">AUTOCAD_MCP_WATCH_DIR</span>{" "}
+                        is set.
+                      </span>
+                    </li>
+                    <li className="flex items-start gap-3">
+                      <DotStatus tone="ok" className="mt-1.5" />
+                      <span>
+                        Every export lands as{" "}
+                        <span className="font-mono text-[11.5px]">
+                          backend/app/out/export/{"<id>"}.dxf
+                        </span>{" "}
+                        with a manifest JSON alongside for audit.
+                      </span>
+                    </li>
+                  </ul>
+                </aside>
               </div>
-              {state.response.plot_pdf_available ? (
-                <p className="mt-3 text-xs text-neutral-300">
-                  AutoCAD is live — a printable A1 PDF was generated alongside the DXF.
-                </p>
-              ) : (
-                <p className="mt-3 text-xs text-neutral-400">
-                  Generated via ezdxf headless backend — opens in AutoCAD / BricsCAD / Adobe
-                  Illustrator. Switch to the File-IPC backend (AutoCAD running + watch folder set)
-                  for a live A1 PDF plot.
-                </p>
-              )}
-            </motion.div>
+            </motion.section>
           )}
-
-          <div className="rounded-2xl border border-dashed border-neutral-500/30 bg-neutral-800/10 p-6 text-xs text-neutral-400">
-            <p className="font-mono uppercase tracking-widest">How it works</p>
-            <ul className="mt-2 space-y-1 leading-relaxed">
-              <li>
-                • <span className="text-bone-text">ezdxf headless</span> — default, produces a
-                real DXF on disk, opens natively in AutoCAD.
-              </li>
-              <li>
-                • <span className="text-bone-text">File IPC live</span> — auto-selected when
-                AutoCAD is running with <code>mcp_dispatch.lsp</code> loaded and{" "}
-                <code>AUTOCAD_MCP_WATCH_DIR</code> is set. Generates an A1 PDF plot in addition
-                to the DXF.
-              </li>
-              <li>
-                • Every export lands as{" "}
-                <code>backend/app/out/export/&lt;export_id&gt;.dxf</code> with a manifest JSON
-                alongside for audit.
-              </li>
-            </ul>
-          </div>
-        </section>
-      </div>
-    </div>
-  );
-}
-
-function Metric({ label, value }: { label: string; value: string | number }) {
-  return (
-    <div className="rounded-lg border border-neutral-500/20 bg-neutral-800/40 px-3 py-2">
-      <p className="text-[10px] uppercase tracking-widest text-neutral-400">{label}</p>
-      <p className="text-sm text-bone-text">{value}</p>
+        </>
+      )}
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
 import { fetchIntegrationStatus, type IntegrationStatus } from "../../lib/api";
+import DotStatus from "./DotStatus";
 
 const POLL_INTERVAL_MS = 20_000;
 
@@ -11,17 +12,11 @@ export default function IntegrationBadge() {
   useEffect(() => {
     const ac = new AbortController();
     let cancelled = false;
-
     const poll = () => {
       fetchIntegrationStatus(ac.signal)
-        .then((s) => {
-          if (!cancelled) setStatus(s);
-        })
-        .catch(() => {
-          if (!cancelled) setStatus(null);
-        });
+        .then((s) => !cancelled && setStatus(s))
+        .catch(() => !cancelled && setStatus(null));
     };
-
     poll();
     const id = window.setInterval(poll, POLL_INTERVAL_MS);
     return () => {
@@ -34,7 +29,6 @@ export default function IntegrationBadge() {
   const sketchup = status?.sketchup.reachable ?? false;
   const autocadLive = status?.autocad.mode === "file_ipc_live";
   const opusReady = status?.anthropic.api_key_loaded ?? false;
-  const anyLive = sketchup || autocadLive;
 
   return (
     <div
@@ -43,54 +37,47 @@ export default function IntegrationBadge() {
       onMouseLeave={() => setExpanded(false)}
     >
       <button
-        className={[
-          "flex items-center gap-2 rounded-lg border px-2.5 py-1 font-mono text-[10px] uppercase tracking-widest transition-colors",
-          anyLive
-            ? "border-terracotta/50 bg-neutral-800/40 text-bone-text"
-            : "border-neutral-500/30 bg-neutral-800/20 text-neutral-400",
-        ].join(" ")}
         aria-label="Integration status"
+        className="flex items-center gap-2 rounded-full border border-hairline bg-raised px-3 py-1.5 font-mono text-[10px] uppercase tracking-label text-ink-soft transition-colors duration-200 ease-out-gentle hover:border-mist-300"
       >
-        <Dot live={sketchup} />
+        <DotStatus tone={sketchup ? "ok" : "idle"} />
         <span>SU</span>
-        <Dot live={autocadLive} />
+        <span className="text-ink-muted/60">·</span>
+        <DotStatus tone={autocadLive ? "ok" : "idle"} />
         <span>AC</span>
-        <Dot live={opusReady} />
+        <span className="text-ink-muted/60">·</span>
+        <DotStatus tone={opusReady ? "ok" : "idle"} />
         <span>Opus</span>
       </button>
       {expanded && status && (
-        <div className="absolute right-0 top-full z-20 mt-2 w-72 rounded-xl border border-neutral-500/30 bg-ink/95 p-4 shadow-soft-lg backdrop-blur">
-          <p className="font-mono text-[10px] uppercase tracking-widest text-neutral-400">
+        <div className="absolute right-0 top-full z-30 mt-2 w-80 overflow-hidden rounded-lg border border-hairline bg-raised shadow-lift">
+          <p className="border-b border-hairline px-4 pb-2 pt-3 font-mono text-[10px] uppercase tracking-eyebrow text-ink-muted">
             Integration status
           </p>
-          <ul className="mt-3 space-y-2 text-xs">
+          <ul className="space-y-3 px-4 py-3 text-[13px]">
             <Row
               label="SketchUp MCP"
               live={sketchup}
               detail={
                 sketchup
-                  ? `${status.sketchup.host}:${status.sketchup.port} (SU_MCP v1.5.0)`
-                  : "server not reachable — Extensions → MCP Server → Start Server"
+                  ? `${status.sketchup.host}:${status.sketchup.port} · SU_MCP v1.5.0`
+                  : "not running — Extensions → MCP Server → Start Server"
               }
             />
             <Row
               label="AutoCAD"
               live={autocadLive}
+              warn={!autocadLive}
               detail={
                 autocadLive
                   ? "File-IPC live (PDF plot available)"
-                  : "ezdxf headless (DXF generation works without AutoCAD)"
+                  : "ezdxf headless — DXF works, PDF plot needs AutoCAD"
               }
-              warn={!autocadLive}
             />
             <Row
               label="Opus 4.7"
               live={opusReady}
-              detail={
-                opusReady
-                  ? `API key loaded · ${status.anthropic.model}`
-                  : "API key missing — check .env at repo root"
-              }
+              detail={opusReady ? `API key loaded · ${status.anthropic.model}` : ".env missing at repo root"}
             />
           </ul>
         </div>
@@ -99,30 +86,13 @@ export default function IntegrationBadge() {
   );
 }
 
-function Dot({ live }: { live: boolean }) {
-  return (
-    <span
-      className={[
-        "inline-block h-1.5 w-1.5 rounded-full",
-        live ? "bg-terracotta" : "bg-neutral-500/60",
-        live ? "animate-pulse" : "",
-      ].join(" ")}
-    />
-  );
-}
-
 function Row({ label, live, detail, warn }: { label: string; live: boolean; detail: string; warn?: boolean }) {
   return (
-    <li className="flex items-start gap-2">
-      <span
-        className={[
-          "mt-1 inline-block h-2 w-2 shrink-0 rounded-full",
-          live ? "bg-terracotta" : warn ? "bg-ochre" : "bg-neutral-500/60",
-        ].join(" ")}
-      />
+    <li className="flex items-start gap-2.5">
+      <DotStatus tone={live ? "ok" : warn ? "warn" : "idle"} className="mt-1.5" />
       <div className="flex-1">
-        <p className="text-bone-text">{label}</p>
-        <p className="font-mono text-[10px] text-neutral-400">{detail}</p>
+        <p className="font-sans text-ink">{label}</p>
+        <p className="mt-0.5 font-mono text-[10px] text-ink-muted">{detail}</p>
       </div>
     </li>
   );

@@ -3,6 +3,8 @@ import { useEffect, useMemo, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
+import DotStatus from "../components/ui/DotStatus";
+import TypewriterText from "../components/ui/TypewriterText";
 import VariantViewer from "../components/viewer/VariantViewer";
 import { useLiveScreenshots } from "../hooks/useLiveScreenshots";
 import {
@@ -29,6 +31,12 @@ const STYLE_LABEL: Record<VariantOutput["style"], string> = {
   hybride_flex: "Hybride flex",
 };
 
+const STYLE_DOT: Record<VariantOutput["style"], string> = {
+  villageois: "bg-forest",
+  atelier: "bg-sand-deep",
+  hybride_flex: "bg-sun",
+};
+
 const DEFAULT_BRIEF = `Lumen, startup fintech, 120 personnes aujourd'hui, 170 projetées d'ici 24 mois.
 Politique de présence : 3 jours au bureau, 2 télétravail, équipes tech largement en pair programming.
 Culture plat, transparente, forte identité par équipe (produit, tech, data, growth, ops).
@@ -53,6 +61,14 @@ type State =
   | { kind: "running" }
   | { kind: "done"; response: JustifyResponse }
   | { kind: "error"; message: string };
+
+const AGENT_TYPING: Record<string, string> = {
+  Acoustic: "Reading NF S 31-080 and open-office absorption studies…",
+  Biophilic: "Weaving Browning's 14 biophilic patterns into the argument…",
+  Regulatory: "Cross-checking arrêté 25 juin 1980 and code du travail…",
+  Programming: "Benchmarking against Leesman & Gensler Workplace Survey…",
+  Consolidator: "Folding the four voices into a single argumentaire…",
+};
 
 export default function Justify() {
   const [stored] = useState<PersistedTestFit | null>(() => {
@@ -84,7 +100,6 @@ export default function Justify() {
   const verdicts = stored?.verdicts ?? [];
   const floorPlan = stored?.floor_plan ?? floorPlanFallback;
 
-  // Default selection: first approved_with_notes or approved variant ; else first one.
   useEffect(() => {
     if (selected || variants.length === 0) return;
     const preferred =
@@ -142,214 +157,345 @@ export default function Justify() {
   };
 
   return (
-    <div className="space-y-6">
-      <header>
-        <h1 className="font-serif text-4xl">Justify — sourced argumentaire</h1>
-        <p className="mt-3 max-w-2xl text-neutral-300">
-          Four research agents (Acoustic, Biophilic & neuroarchitecture, Regulatory, Programming)
-          run in parallel over the retained variant. A consolidator merges them into a single
-          client-facing argumentaire, with a downloadable A4 PDF.
+    <div className="space-y-14">
+      <header className="max-w-3xl">
+        <p className="eyebrow-forest">III · Justify</p>
+        <h1
+          className="mt-5 font-display text-display-sm leading-[1.02] text-ink"
+          style={{ fontVariationSettings: '"opsz" 144, "wght" 620, "SOFT" 100' }}
+        >
+          A sourced <em className="italic">argumentaire</em>, in the client's language.
+        </h1>
+        <p className="mt-4 text-[15px] leading-relaxed text-ink-soft">
+          Four research agents — Acoustic, Biophilic &amp; neuroarchitecture, Regulatory,
+          Programming — run in parallel over the retained variant. A consolidator weaves
+          them into a single document you can hand to the client.
         </p>
       </header>
 
-      <div className="grid gap-6 lg:grid-cols-[380px,1fr]">
-        <aside className="space-y-4">
-          <div className="rounded-2xl border border-neutral-500/20 bg-neutral-800/20 p-6">
-            <h2 className="font-serif text-lg">Retained variant</h2>
+      {/* ───────── variant selector + viewer (editorial masthead) ───────── */}
+      <section className="grid gap-10 lg:grid-cols-[minmax(0,320px),minmax(0,1fr)]">
+        <aside className="min-w-0 space-y-8">
+          <div>
+            <p className="label-xs text-ink-muted">Retained variant</p>
             {variants.length === 0 ? (
-              <p className="mt-3 text-sm text-neutral-300">
+              <p className="mt-4 text-[13.5px] leading-relaxed text-ink-soft">
                 No Test Fit result in this session. Go to{" "}
-                <a className="text-terracotta hover:underline" href="/testfit">
+                <a className="text-forest underline-offset-2 hover:underline" href="/testfit">
                   Test Fit
                 </a>{" "}
-                first to generate the three variants.
+                first to generate three variants.
               </p>
             ) : (
-              <ul className="mt-3 space-y-2">
+              <ol className="mt-5 space-y-1">
                 {variants.map((v) => {
                   const verdict = verdicts.find((r) => r.style === v.style);
-                  const dot =
-                    verdict?.verdict === "approved"
-                      ? "bg-green-400/80"
-                      : verdict?.verdict === "approved_with_notes"
-                        ? "bg-ochre"
-                        : verdict?.verdict === "rejected"
-                          ? "bg-terracotta"
-                          : "bg-neutral-500/50";
                   const active = selected === v.style;
                   return (
                     <li key={v.style}>
                       <button
                         onClick={() => setSelected(v.style)}
                         className={[
-                          "flex w-full items-center gap-3 rounded-xl border px-4 py-3 text-left transition-colors",
-                          active
-                            ? "border-terracotta/60 bg-neutral-700/40"
-                            : "border-neutral-500/30 hover:border-neutral-300/50",
+                          "group flex w-full items-start gap-3 border-t border-hairline py-4 text-left transition-colors duration-200",
+                          active ? "text-ink" : "text-ink-soft hover:text-ink",
                         ].join(" ")}
                       >
-                        <span className={`inline-block h-2 w-2 rounded-full ${dot}`} />
+                        <span
+                          className={[
+                            "mt-[10px] inline-block h-[7px] w-[7px] shrink-0 rounded-full",
+                            STYLE_DOT[v.style],
+                            active ? "scale-125" : "",
+                          ].join(" ")}
+                        />
                         <div className="flex-1">
-                          <p className="text-sm text-bone-text">{STYLE_LABEL[v.style]}</p>
-                          <p className="font-mono text-[11px] text-neutral-400">
+                          <span
+                            className={[
+                              "block font-display transition-transform duration-200 ease-out-gentle",
+                              active
+                                ? "text-[1.5rem] translate-x-1"
+                                : "text-[1.35rem] group-hover:translate-x-1",
+                            ].join(" ")}
+                            style={{
+                              fontVariationSettings: '"opsz" 96, "wght" 540, "SOFT" 100',
+                            }}
+                          >
+                            {STYLE_LABEL[v.style]}
+                          </span>
+                          <p className="mt-1 font-mono text-[10px] uppercase tracking-label text-ink-muted">
                             {v.metrics.workstation_count} postes · flex{" "}
-                            {v.metrics.flex_ratio_applied.toFixed(2)} · {verdict?.verdict ?? "—"}
+                            {v.metrics.flex_ratio_applied.toFixed(2)}
+                            {verdict && (
+                              <>
+                                {" · "}
+                                <span
+                                  className={
+                                    verdict.verdict === "approved"
+                                      ? "text-forest"
+                                      : verdict.verdict === "approved_with_notes"
+                                        ? "text-sand-deep"
+                                        : verdict.verdict === "rejected"
+                                          ? "text-clay"
+                                          : "text-ink-muted"
+                                  }
+                                >
+                                  {verdict.verdict.replace(/_/g, " ")}
+                                </span>
+                              </>
+                            )}
                           </p>
                         </div>
                       </button>
                     </li>
                   );
                 })}
-              </ul>
+              </ol>
             )}
           </div>
 
-          <div className="rounded-2xl border border-neutral-500/20 bg-neutral-800/20 p-6">
-            <h2 className="font-serif text-lg">Brief & programme</h2>
-            <label className="mt-3 block font-mono text-[11px] uppercase tracking-widest text-neutral-400">
-              Brief
-            </label>
-            <textarea
-              value={brief}
-              onChange={(e) => setBrief(e.target.value)}
-              className="mt-1 h-28 w-full resize-none rounded-xl border border-neutral-500/30 bg-neutral-800/40 p-2 font-mono text-[11px] text-bone-text focus:border-terracotta/50 focus:outline-none"
-            />
-            <label className="mt-3 block font-mono text-[11px] uppercase tracking-widest text-neutral-400">
-              Programme (Markdown)
-            </label>
-            <textarea
-              value={programme}
-              onChange={(e) => setProgramme(e.target.value)}
-              className="mt-1 h-28 w-full resize-none rounded-xl border border-neutral-500/30 bg-neutral-800/40 p-2 font-mono text-[11px] text-bone-text focus:border-terracotta/50 focus:outline-none"
-            />
+          <details className="group">
+            <summary className="flex cursor-pointer list-none items-center justify-between border-b border-hairline pb-3 text-left transition-colors hover:border-forest">
+              <span className="label-xs text-ink-muted">Brief &amp; programme</span>
+              <span className="font-mono text-[10px] uppercase tracking-label text-forest">
+                Edit
+              </span>
+            </summary>
+            <div className="mt-4 space-y-4">
+              <div>
+                <p className="font-mono text-[10px] uppercase tracking-label text-ink-muted">
+                  Brief
+                </p>
+                <textarea
+                  value={brief}
+                  onChange={(e) => setBrief(e.target.value)}
+                  className="mt-2 h-28 w-full resize-none rounded-md border border-hairline bg-raised px-3 py-2 font-mono text-[11px] text-ink focus:border-forest focus:outline-none"
+                />
+              </div>
+              <div>
+                <p className="font-mono text-[10px] uppercase tracking-label text-ink-muted">
+                  Programme (Markdown)
+                </p>
+                <textarea
+                  value={programme}
+                  onChange={(e) => setProgramme(e.target.value)}
+                  className="mt-2 h-28 w-full resize-none rounded-md border border-hairline bg-raised px-3 py-2 font-mono text-[11px] text-ink focus:border-forest focus:outline-none"
+                />
+              </div>
+            </div>
+          </details>
+
+          <div className="space-y-3 border-t border-hairline pt-8">
+            <button
+              className="btn-primary w-full"
+              disabled={!chosenVariant || !floorPlan || state.kind === "running"}
+              onClick={onGenerate}
+            >
+              {state.kind === "running" ? "Researching…" : "Generate argumentaire"}
+            </button>
+
+            {state.kind === "done" && state.response.pdf_id && (
+              <a
+                className="btn-ghost block w-full text-center"
+                href={justifyPdfUrl(state.response.pdf_id)}
+                target="_blank"
+                rel="noreferrer"
+              >
+                Client PDF ↗
+              </a>
+            )}
+            {state.kind === "done" && state.response.pptx_id && (
+              <a
+                className="btn-ghost block w-full text-center"
+                href={justifyPptxUrl(state.response.pptx_id)}
+                target="_blank"
+                rel="noreferrer"
+                download
+              >
+                Pitch deck PPTX ↗
+              </a>
+            )}
+            {state.kind === "error" && (
+              <p className="font-mono text-[11px] text-clay">{state.message}</p>
+            )}
           </div>
-
-          <button
-            className="btn-primary w-full"
-            disabled={!chosenVariant || !floorPlan || state.kind === "running"}
-            onClick={onGenerate}
-          >
-            {state.kind === "running"
-              ? "Research in progress…"
-              : "Generate sourced argumentaire"}
-          </button>
-
-          {state.kind === "done" && state.response.pdf_id && (
-            <a
-              className="btn-ghost block w-full text-center"
-              href={justifyPdfUrl(state.response.pdf_id)}
-              target="_blank"
-              rel="noreferrer"
-            >
-              Download client PDF
-            </a>
-          )}
-          {state.kind === "done" && state.response.pptx_id && (
-            <a
-              className="btn-ghost block w-full text-center"
-              href={justifyPptxUrl(state.response.pptx_id)}
-              target="_blank"
-              rel="noreferrer"
-              download
-            >
-              Download pitch deck (PPTX)
-            </a>
-          )}
-          {state.kind === "error" && (
-            <p className="font-mono text-xs text-terracotta">{state.message}</p>
-          )}
         </aside>
 
-        <section className="min-w-0 space-y-4">
-          <div className="grid gap-4 lg:grid-cols-[1fr,1.3fr]">
-            <div className="aspect-[3/2] min-w-0 rounded-2xl border border-neutral-500/20 bg-neutral-800/20 p-3">
-              <VariantViewer
-                plan={floorPlan}
-                variant={chosenVariant}
-                style={selected ?? null}
-                zones={zones}
-                liveScreenshotUrl={selected ? liveScreenshots[selected] ?? null : null}
-              />
-            </div>
-            <div className="min-w-0 space-y-3">
-              {chosenVariant ? (
-                <>
-                  <p className="font-mono text-xs uppercase tracking-widest text-neutral-400">
-                    {STYLE_LABEL[chosenVariant.style]}
+        <div className="min-w-0 space-y-8">
+          <motion.div
+            key={selected ?? "none"}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.4 }}
+            className="aspect-[16/10] w-full min-w-0 overflow-hidden rounded-lg border border-hairline bg-raised"
+          >
+            <VariantViewer
+              plan={floorPlan}
+              variant={chosenVariant}
+              style={selected ?? null}
+              zones={zones}
+              liveScreenshotUrl={selected ? liveScreenshots[selected] ?? null : null}
+            />
+          </motion.div>
+
+          {chosenVariant && (
+            <div className="grid gap-10 lg:grid-cols-[minmax(0,1.4fr),minmax(0,1fr)]">
+              <div className="min-w-0">
+                <div className="flex items-baseline gap-4">
+                  <span
+                    className={`inline-block h-[9px] w-[9px] rounded-full ${STYLE_DOT[chosenVariant.style]}`}
+                  />
+                  <p className="font-mono text-[10px] uppercase tracking-label text-ink-muted">
+                    {STYLE_LABEL[chosenVariant.style]} · retenu
                   </p>
-                  <h2 className="font-serif text-2xl">{chosenVariant.title}</h2>
-                  <div className="grid grid-cols-2 gap-2 text-xs text-neutral-300">
-                    <Metric label="Postes" value={chosenVariant.metrics.workstation_count} />
-                    <Metric label="Réunions" value={chosenVariant.metrics.meeting_room_count} />
-                    <Metric label="Phone booths" value={chosenVariant.metrics.phone_booth_count} />
-                    <Metric
-                      label="Flex ratio"
-                      value={chosenVariant.metrics.flex_ratio_applied.toFixed(2)}
-                    />
-                  </div>
-                  {chosenVerdict && (
-                    <div className="rounded-xl border border-neutral-500/20 bg-neutral-800/40 p-3 text-xs text-neutral-300">
-                      <p className="font-mono text-[11px] uppercase tracking-widest text-neutral-400">
+                </div>
+                <h2
+                  className="mt-3 font-display text-[2rem] leading-tight text-ink"
+                  style={{ fontVariationSettings: '"opsz" 96, "wght" 560, "SOFT" 100' }}
+                >
+                  {chosenVariant.title}
+                </h2>
+              </div>
+              <aside className="min-w-0 lg:border-l lg:border-hairline lg:pl-8">
+                <dl className="grid grid-cols-2 gap-x-6 gap-y-4">
+                  <EditorialMetric
+                    label="Postes"
+                    value={chosenVariant.metrics.workstation_count}
+                  />
+                  <EditorialMetric
+                    label="Rooms"
+                    value={chosenVariant.metrics.meeting_room_count}
+                  />
+                  <EditorialMetric
+                    label="Booths"
+                    value={chosenVariant.metrics.phone_booth_count}
+                  />
+                  <EditorialMetric
+                    label="Flex"
+                    value={chosenVariant.metrics.flex_ratio_applied.toFixed(2)}
+                  />
+                </dl>
+                {chosenVerdict && (
+                  <div className="mt-6 border-t border-hairline pt-4">
+                    <div className="flex items-center gap-2">
+                      <DotStatus
+                        tone={
+                          chosenVerdict.verdict === "approved"
+                            ? "ok"
+                            : chosenVerdict.verdict === "approved_with_notes"
+                              ? "warn"
+                              : "error"
+                        }
+                      />
+                      <p className="font-mono text-[10px] uppercase tracking-label text-ink-muted">
                         Reviewer · {chosenVerdict.verdict.replace(/_/g, " ")}
                       </p>
-                      <ul className="mt-1 space-y-0.5">
-                        <li>PMR : {chosenVerdict.pmr_ok ? "ok" : "à revoir"}</li>
-                        <li>ERP : {chosenVerdict.erp_ok ? "ok" : "à revoir"}</li>
-                        <li>
-                          Programme :{" "}
-                          {chosenVerdict.programme_coverage_ok ? "couvert" : "écart à combler"}
-                        </li>
-                      </ul>
                     </div>
-                  )}
-                </>
-              ) : (
-                <p className="text-sm text-neutral-400">Pick a variant on the left.</p>
-              )}
-            </div>
-          </div>
-
-          <AnimatePresence>
-            {state.kind === "done" && (
-              <motion.article
-                key="argumentaire"
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-                className="prose prose-invert max-w-none rounded-2xl border border-neutral-500/20 bg-neutral-800/20 p-8"
-              >
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                  {state.response.argumentaire}
-                </ReactMarkdown>
-                <hr />
-                <p className="font-mono text-[11px] text-neutral-400">
-                  {state.response.tokens.input.toLocaleString()} in ·{" "}
-                  {state.response.tokens.output.toLocaleString()} out · {state.response.sub_outputs.length} agents
-                </p>
-              </motion.article>
-            )}
-          </AnimatePresence>
-
-          {state.kind === "done" && (
-            <div className="grid gap-3 md:grid-cols-2">
-              {state.response.sub_outputs
-                .filter((s) => s.name !== "Consolidator")
-                .map((s) => (
-                  <TraceCard key={s.name} sub={s} />
-                ))}
+                  </div>
+                )}
+              </aside>
             </div>
           )}
-        </section>
-      </div>
+        </div>
+      </section>
+
+      {/* ───────── argumentaire spread (Kinfolk-style) ───────── */}
+      <AnimatePresence mode="wait">
+        {state.kind === "running" && (
+          <motion.section
+            key="running"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+            className="border-t border-hairline pt-14"
+          >
+            <p className="eyebrow-forest">Opus 4.7 · parallel research</p>
+            <h2
+              className="mt-4 font-display text-[2.25rem] leading-tight text-ink"
+              style={{ fontVariationSettings: '"opsz" 96, "wght" 560, "SOFT" 100' }}
+            >
+              Four researchers, one voice…
+            </h2>
+            <ul className="mt-10 grid gap-6 md:grid-cols-2">
+              {Object.entries(AGENT_TYPING)
+                .filter(([name]) => name !== "Consolidator")
+                .map(([name, typing], i) => (
+                  <li key={name} className="flex items-start gap-3">
+                    <span
+                      className="mt-[10px] inline-block h-[6px] w-[6px] rounded-full bg-forest"
+                      style={{
+                        animation: `dot-pulse 1.4s ease-in-out ${i * 0.16}s infinite`,
+                      }}
+                    />
+                    <div>
+                      <p
+                        className="font-display text-[1.15rem] text-ink"
+                        style={{ fontVariationSettings: '"opsz" 72, "wght" 520, "SOFT" 100' }}
+                      >
+                        {name}
+                      </p>
+                      <p className="mt-1 font-mono text-[11px] uppercase tracking-label text-forest">
+                        <TypewriterText text={typing} startDelay={i * 320} speed={22} caret />
+                      </p>
+                    </div>
+                  </li>
+                ))}
+            </ul>
+          </motion.section>
+        )}
+
+        {state.kind === "done" && (
+          <motion.section
+            key="argumentaire"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+            className="border-t border-hairline pt-14"
+          >
+            <div className="grid gap-16 lg:grid-cols-[minmax(0,1.6fr),minmax(0,1fr)]">
+              <article className="min-w-0">
+                <p className="eyebrow-forest">Argumentaire</p>
+                <div className="mt-4 prose prose-lg max-w-none prose-headings:font-display prose-headings:text-ink prose-h1:text-[2.75rem] prose-h1:leading-tight prose-h2:text-[1.75rem] prose-p:text-ink-soft prose-p:leading-relaxed prose-strong:text-ink prose-a:text-forest prose-a:no-underline hover:prose-a:underline prose-blockquote:border-l-forest prose-blockquote:bg-mist-50/70 prose-blockquote:px-6 prose-blockquote:py-4 prose-blockquote:italic prose-blockquote:font-display prose-blockquote:text-ink prose-blockquote:text-[1.25rem] prose-blockquote:leading-snug">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {state.response.argumentaire}
+                  </ReactMarkdown>
+                </div>
+                <hr className="my-10 border-hairline" />
+                <p className="font-mono text-[10px] uppercase tracking-label text-ink-muted">
+                  {state.response.tokens.input.toLocaleString()} in ·{" "}
+                  {state.response.tokens.output.toLocaleString()} out ·{" "}
+                  {state.response.sub_outputs.length} agents
+                </p>
+              </article>
+
+              <aside className="min-w-0 lg:border-l lg:border-hairline lg:pl-10">
+                <p className="eyebrow-forest">Research trace</p>
+                <div className="mt-5 space-y-3">
+                  {state.response.sub_outputs
+                    .filter((s) => s.name !== "Consolidator")
+                    .map((s) => (
+                      <TraceCard key={s.name} sub={s} />
+                    ))}
+                </div>
+              </aside>
+            </div>
+          </motion.section>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
 
-function Metric({ label, value }: { label: string; value: string | number }) {
+function EditorialMetric({ label, value }: { label: string; value: string | number }) {
   return (
-    <div className="rounded-lg border border-neutral-500/20 bg-neutral-800/40 px-3 py-2">
-      <p className="text-[10px] uppercase tracking-widest text-neutral-400">{label}</p>
-      <p className="text-sm text-bone-text">{value}</p>
+    <div>
+      <dt className="font-mono text-[10px] uppercase tracking-label text-ink-muted">{label}</dt>
+      <dd
+        className="mt-1 font-display text-[1.6rem] leading-none text-ink"
+        style={{ fontVariationSettings: '"opsz" 96, "wght" 520, "SOFT" 100' }}
+      >
+        {value}
+      </dd>
     </div>
   );
 }
@@ -357,19 +503,32 @@ function Metric({ label, value }: { label: string; value: string | number }) {
 function TraceCard({ sub }: { sub: JustifySubOutput }) {
   const [open, setOpen] = useState(false);
   return (
-    <div className="rounded-xl border border-neutral-500/20 bg-neutral-800/30 p-4">
+    <div className="rounded-md border border-hairline bg-raised transition-colors hover:border-mist-300">
       <button
-        className="flex w-full items-center justify-between text-left"
+        className="flex w-full items-start justify-between gap-4 px-5 py-4 text-left"
         onClick={() => setOpen((v) => !v)}
       >
-        <span className="font-serif text-lg">{sub.name}</span>
-        <span className="font-mono text-[11px] text-neutral-400">
-          {sub.tokens.input + sub.tokens.output} tok · {(sub.duration_ms / 1000).toFixed(1)} s
+        <div>
+          <p
+            className="font-display text-[1.05rem] text-ink"
+            style={{ fontVariationSettings: '"opsz" 72, "wght" 520, "SOFT" 100' }}
+          >
+            {sub.name}
+          </p>
+          <p className="mt-1 font-mono text-[10px] uppercase tracking-label text-ink-muted">
+            {(sub.tokens.input + sub.tokens.output).toLocaleString()} tok ·{" "}
+            {(sub.duration_ms / 1000).toFixed(1)}s
+          </p>
+        </div>
+        <span className="mt-1 font-mono text-[10px] uppercase tracking-label text-forest">
+          {open ? "close" : "read"}
         </span>
       </button>
       {open && (
-        <div className="prose prose-invert mt-4 max-w-none text-sm">
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>{sub.text}</ReactMarkdown>
+        <div className="border-t border-hairline px-5 pb-5 pt-4">
+          <div className="prose prose-sm max-w-none prose-p:text-ink-soft prose-strong:text-ink">
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{sub.text}</ReactMarkdown>
+          </div>
         </div>
       )}
     </div>
