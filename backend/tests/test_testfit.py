@@ -11,7 +11,7 @@ def test_testfit_catalog_lists_40_plus_items() -> None:
     response = client.get("/api/testfit/catalog")
     assert response.status_code == 200
     payload = response.json()
-    assert payload["version"] == "2026-04-22"
+    assert payload["version"].startswith("2026-04-22")
     assert payload["count"] >= 40
 
 

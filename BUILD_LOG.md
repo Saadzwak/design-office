@@ -309,9 +309,151 @@ Ready for Phase 4 (Surface 3 Justify). Commit + schedule in flight.
 
 ---
 
-## Phase 4 — Surface 3 Justify — queued
+## Phase 4 — Surface 3 Justify — in progress (see Iter 05)
 
-Next iteration picks up Justify (Research & Cite Level 3 orchestration). ETA
-2 h per CLAUDE.md §13. Requires no new infrastructure — reuses the
-orchestrator + MCP resources + consolidator pattern against the selected
-variant's narrative.
+## Saad-facing live connection checklist (SketchUp + AutoCAD)
+
+Once both applications are installed, follow this in order. Every step has a
+verification command so we know it landed.
+
+### A. SketchUp Pro
+
+1. **Install SketchUp Pro** (trial 7 days : https://www.sketchup.com/try-sketchup).
+2. **Locate the plugins folder**. On Windows it is typically :
+   `C:\Users\<you>\AppData\Roaming\SketchUp\SketchUp 2024\SketchUp\Plugins\`
+3. **Copy the mhyrr plugin** (from `vendor/sketchup-mcp/`) :
+   - Copy `su_mcp.rb` (the bootstrap file) into the Plugins folder.
+   - Copy the entire `su_mcp/` **directory** into the Plugins folder (alongside `su_mcp.rb`).
+4. **Copy the Design Office extensions** : copy
+   `sketchup-plugin/design_office_extensions.rb` into the Plugins folder as well.
+5. **Restart SketchUp**. Look for `SU MCP Server running on port 9876` in the
+   Ruby console (Window → Ruby Console).
+6. **Verify from the backend** : with the backend venv active, run
+   `python -c "from app.mcp.sketchup_client import try_connect_tcp; print(try_connect_tcp('127.0.0.1', 9876))"`. Expect `True`.
+7. **Verify Design Office tools** : in the Ruby Console, call
+   `DesignOffice.create_phone_booth(position_mm: [5000, 5000], product_id: 'framery_one_compact')`. A pod-shaped block should appear at (5, 5 m) in the current SketchUp model.
+8. **No code changes needed backend-side** — `get_backend()` in
+   `backend/app/mcp/sketchup_client.py` auto-detects the open TCP port and
+   switches from `RecordingMockBackend` to `TcpJsonBackend`. The
+   `SketchUpFacade` wrapper is backend-agnostic, so every existing surface
+   keeps working.
+
+### B. AutoCAD (LT 2024 or full)
+
+1. **Install AutoCAD** (trial 30 days : https://www.autodesk.com/products/autocad-lt/free-trial).
+2. **Choose a watch folder** (e.g. create `autocad_watch/` at the repo root —
+   the .gitignore already protects the `out/` and temp patterns ; if you want
+   a different location, set `AUTOCAD_MCP_WATCH_DIR` in `.env`).
+3. **Load the LISP dispatcher** : in AutoCAD's command line, run
+   `APPLOAD`, then select `vendor/autocad-mcp/lisp-code/mcp_dispatch.lsp`.
+4. **Add the LISP to Startup Suite** so it auto-loads every session.
+5. **Configure the LISP's watch folder** : follow the puran-water README
+   (the LISP exposes a `(setq mcp-watch-dir "…/autocad_watch")` or similar
+   command) — set it to the same folder as the `AUTOCAD_MCP_WATCH_DIR`
+   above.
+6. **Verify** :
+   - In AutoCAD's command line, run `MCP-PING`. Expect `MCP ready` printed.
+   - From the backend : `python -c "from app.mcp.autocad_client import get_backend, AutoCadFacade; f = AutoCadFacade(get_backend(force='file_ipc')); print(f.backend.__class__.__name__)"` should print `FileIpcBackend`.
+7. **No code changes needed backend-side** — `get_backend()` in
+   `backend/app/mcp/autocad_client.py` returns `FileIpcBackend` as soon as
+   the watch folder exists and is writable. The `EzdxfHeadlessBackend` stays
+   available for automated tests via `get_backend(force='ezdxf')`.
+
+### C. Fallback if either tool is unavailable
+
+- **No SketchUp** : the `RecordingMockBackend` records every intended
+  SketchUp operation. Variant generation and the Justify argumentaire work
+  end-to-end without it — only the 3D screenshots and live iteration are
+  unavailable.
+- **No AutoCAD** : the `EzdxfHeadlessBackend` generates a real DXF file on
+  disk that opens natively in AutoCAD (or Adobe Illustrator, BricsCAD, etc.).
+  Only `plot_pdf` is emulated — for a real A1 PDF plot, route through the
+  File IPC backend with AutoCAD running.
+
+### D. Environment variables to set in `.env`
+
+- `ANTHROPIC_API_KEY=<rotated key>` — once B0 is resolved, replace the leaked
+  key.
+- `AUTOCAD_MCP_WATCH_DIR=<absolute path>` — optional, only if the watch
+  folder is outside the repo root.
+- `SKETCHUP_MCP_HOST` / `SKETCHUP_MCP_PORT` — only if the SketchUp plugin is
+  configured for a non-default host/port.
+
+### Iter 05 — Quality pass (2026-04-22T15:48Z)
+
+Triggered by Saad's 4-point directive (tokens unlimited, SketchUp/AutoCAD
+ready, richer resources/code, Vision HD always-on).
+
+**Shipped this iteration** :
+
+- **Live round-trip on Lumen** : `scripts/run_lumen_full.py` runs the
+  full hybrid parser (Vision HD forced) + 3-variant + 3-reviewer pipeline.
+  First run = 126 k / 19 k tokens, 93 s, 2 variants hit max_tokens and
+  failed JSON parsing.
+- **Fix** : raised variant `max_tokens` 6 000 → 16 000. Second run = 142 k
+  / 22 k tokens, 108 s, **all 3 variants parsed cleanly**, 130 / 130 /
+  112 postes ; verdicts rejected / approved_with_notes / rejected. Saved
+  `backend/tests/fixtures/generate_output_sample.json` (133 k bytes) for
+  client-side inspection.
+- **Parser upgrades** (`backend/app/pdf/parser.py`) :
+  - Enriched Vision HD schema — now requests text labels, orientation
+    arrow, door swings, stair direction, architectural symbols
+    (WC / sink / compass / title block), uncertainties.
+  - Fixed window fusion regression — PyMuPDF line detection always runs,
+    Vision HD overlays facade semantics.
+  - `max_tokens` on Vision raised to 8 192.
+- **ClaudeClient robustness** (`backend/app/claude_client.py`) :
+  exponential retries (up to 4 attempts, 1.5 – 20 s back-off, jittered),
+  structured JSONL logs including attempts + outcome + error class,
+  `_is_retryable` classifier for `APIConnectionError`, `APIStatusError`
+  (5xx / 429), `APITimeoutError`, `RateLimitError`, and overloaded-error
+  markers. `stderr` gets human-readable log lines for live demos.
+- **MCP resource enrichment** (total : 1 500 → 2 700 lines sourced) :
+  - `neuroarchitecture.md` : 517 lines. Full 14-pattern table, Kellert
+    24 attributes, Nieuwenhuis 2014 +15 %, Ulrich 1984 surgery study,
+    Kaplan ART with empirical caveat, Taylor fractals 1.3-1.5,
+    Heerwagen Savanna Hypothesis, Hongisto STI link, 10 peer-reviewed
+    URLs.
+  - `acoustic-standards.md` : 480 lines. NF S 31-080 three levels, full
+    DnT,A / L50 / TR60 tables with values by space type, NF S 31-199
+    open-plan dedicated standard (D2,S ≥ 7 dB, Lp,A,S,4m ≤ 48 dB, rD
+    ≤ 5 m, rC 3 – 30 m), ISO 3382-3:2022 metrics, Hongisto 2005 +
+    Haapakangas 2020 revised model, masking playbook with spectrum
+    guidance, WELL v2 Sound features.
+  - `biophilic-office.md` : 430 lines. Density tiers, species library
+    by light environment (direct / bright-indirect / medium / low
+    light / green-wall), PPFD requirements, irrigation types, cost
+    envelopes, acoustic absorption contribution, water-feature
+    Legionella risk, Lumen worked example.
+  - `flex-ratios.md` : 355 lines. Leesman 2019-2024 trend, Gensler
+    2020/2022/2023/2024 comparison, sector medians (tech / finance /
+    legal / pharma / public), Lumen-specific neighbourhood split.
+  - `benchmarks/ratios.json` : v `2026-04-22b`. Leesman history
+    object, Gensler multi-year with sample sizes and fieldwork
+    windows, ISO 3382-3 target table, Hongisto model parameters,
+    Browning 14-pattern enumeration, key-studies citation index.
+- **AutoCAD MCP** (`backend/app/mcp/autocad_client.py`) : dual-backend
+  client with identical facade.
+  - `EzdxfHeadlessBackend` materialises a real DXF with Design Office
+    layers (AGENCEMENT / MOBILIER / COTATIONS / CLOISONS /
+    CIRCULATIONS) — unit-tested against a 60 × 40 m Lumen envelope.
+  - `FileIpcBackend` talks to the puran-water LISP dispatcher via a
+    shared watch folder, uuid-keyed JSON request/response, 15 s
+    timeout with descriptive failure message.
+  - `get_backend()` auto-picks based on watch-folder presence ;
+    `force='ezdxf'` / `force='file_ipc'` override for tests and
+    surgical debugging.
+  - 2 new tests in `test_autocad_client.py`, all green.
+- **`AUTOCAD_MCP_WATCH_DIR`** added to `.env.example` and to the Settings.
+- **SketchUp + AutoCAD live-connection checklist** (this section) added so
+  the live switch is zero-code once the apps are installed.
+
+**Token usage for this iteration** : ~380 k input (most of it the 2 live
+round-trips), ~41 k output. Budget no longer a constraint per Saad's
+directive.
+
+---
+
+## Iter 06 — Phase 4 Justify
+
+_In progress after this log entry._

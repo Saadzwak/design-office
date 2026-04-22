@@ -34,6 +34,7 @@ class Settings(BaseSettings):
     sketchup_mcp_port: int = Field(default=9876, alias="SKETCHUP_MCP_PORT")
     autocad_mcp_host: str = Field(default="127.0.0.1", alias="AUTOCAD_MCP_HOST")
     autocad_mcp_port: int = Field(default=9877, alias="AUTOCAD_MCP_PORT")
+    autocad_mcp_watch_dir: str | None = Field(default=None, alias="AUTOCAD_MCP_WATCH_DIR")
 
     nightly_input_tokens_budget: int = Field(
         default=300_000, alias="NIGHTLY_INPUT_TOKENS_BUDGET"

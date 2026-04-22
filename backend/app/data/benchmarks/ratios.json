@@ -1,24 +1,24 @@
 {
-  "version": "2026-04-22",
-  "description": "Planning ratios distilled from MCP Resources. Machine-readable companion to design://office-programming, design://flex-ratios and design://collaboration-spaces.",
+  "version": "2026-04-22b",
+  "description": "Planning ratios distilled from MCP Resources. Machine-readable companion to design://office-programming, design://flex-ratios, design://collaboration-spaces, design://acoustic-standards, design://neuroarchitecture, design://biophilic-office. Every figure is cited or flagged [À VÉRIFIER].",
   "nia_per_workstation_m2": {
-    "dense_pre_covid": { "min": 8, "max": 10, "note": "Historically common, degraded Leesman noise scores." },
-    "french_cat_b_typical": { "min": 10, "max": 12, "note": "[À VÉRIFIER] bench local Saguez / Ubiq / JLL 2024." },
-    "activity_based_hybrid_2024": { "min": 12, "max": 15, "note": "Post-COVID baseline with collab emphasis." },
-    "premium_hq": { "min": 15, "max": 18, "note": "Heavy amenity and event programme." }
+    "dense_pre_covid": {"min": 8, "max": 10, "note": "Historically common, degraded Leesman noise scores."},
+    "french_cat_b_typical": {"min": 10, "max": 12, "note": "[À VÉRIFIER] local bench Saguez / Ubiq / JLL 2024."},
+    "activity_based_hybrid_2024": {"min": 12, "max": 15, "note": "Post-COVID baseline with collab emphasis."},
+    "premium_hq": {"min": 15, "max": 18, "note": "Heavy amenity and event programme."}
   },
   "program_split_percent_of_nia": {
-    "individual_work": { "min": 45, "max": 55 },
-    "collaboration": { "min": 20, "max": 30 },
-    "support_amenity": { "min": 15, "max": 25 },
-    "circulation": { "min": 10, "max": 15 }
+    "individual_work": {"min": 45, "max": 55},
+    "collaboration": {"min": 20, "max": 30},
+    "support_amenity": {"min": 15, "max": 25},
+    "circulation": {"min": 10, "max": 15}
   },
   "flex_ratio_by_policy": {
-    "5_0_full_onsite": { "seats_per_fte_min": 1.0, "seats_per_fte_max": 1.0 },
-    "4_1_hybrid_light": { "seats_per_fte_min": 0.90, "seats_per_fte_max": 0.95 },
-    "3_2_hybrid_standard": { "seats_per_fte_min": 0.70, "seats_per_fte_max": 0.80 },
-    "2_3_hybrid_heavy": { "seats_per_fte_min": 0.55, "seats_per_fte_max": 0.65 },
-    "1_4_flex_first": { "seats_per_fte_min": 0.40, "seats_per_fte_max": 0.55 }
+    "5_0_full_onsite": {"seats_per_fte_min": 1.0, "seats_per_fte_max": 1.0, "avg_presence": 0.95},
+    "4_1_hybrid_light": {"seats_per_fte_min": 0.90, "seats_per_fte_max": 0.95, "avg_presence": 0.80},
+    "3_2_hybrid_standard": {"seats_per_fte_min": 0.70, "seats_per_fte_max": 0.80, "avg_presence": 0.60},
+    "2_3_hybrid_heavy": {"seats_per_fte_min": 0.55, "seats_per_fte_max": 0.65, "avg_presence": 0.40},
+    "1_4_flex_first": {"seats_per_fte_min": 0.40, "seats_per_fte_max": 0.55, "avg_presence": 0.25}
   },
   "peak_day_factor": {
     "5_0_full_onsite": 1.0,
@@ -28,43 +28,79 @@
     "1_4_flex_first": 1.40
   },
   "meeting_room_mix_per_100_fte": {
-    "phone_booth_1p": { "count_min": 6, "count_max": 10, "footprint_m2_min": 1.0, "footprint_m2_max": 1.5 },
-    "huddle_2_to_4p": { "count_min": 3, "count_max": 5, "footprint_m2_min": 6, "footprint_m2_max": 10 },
-    "medium_6_to_8p": { "count_min": 2, "count_max": 4, "footprint_m2_min": 18, "footprint_m2_max": 25 },
-    "large_10_to_14p": { "count_min": 1, "count_max": 2, "footprint_m2_min": 30, "footprint_m2_max": 45 },
-    "town_hall_40p_plus": { "count_min": 0, "count_max": 1, "footprint_m2_min": 80, "footprint_m2_max": 150 },
-    "focus_room_1_to_2p": { "count_min": 2, "count_max": 4, "footprint_m2_min": 3, "footprint_m2_max": 6 }
+    "phone_booth_1p": {"count_min": 6, "count_max": 10, "footprint_m2_min": 1.0, "footprint_m2_max": 1.5},
+    "huddle_2_to_4p": {"count_min": 3, "count_max": 5, "footprint_m2_min": 6, "footprint_m2_max": 10},
+    "medium_6_to_8p": {"count_min": 2, "count_max": 4, "footprint_m2_min": 18, "footprint_m2_max": 25},
+    "large_10_to_14p": {"count_min": 1, "count_max": 2, "footprint_m2_min": 30, "footprint_m2_max": 45},
+    "town_hall_40p_plus": {"count_min": 0, "count_max": 1, "footprint_m2_min": 80, "footprint_m2_max": 150},
+    "focus_room_1_to_2p": {"count_min": 2, "count_max": 4, "footprint_m2_min": 3, "footprint_m2_max": 6}
   },
-  "leesman_2024": {
-    "lmi_average": 69.5,
-    "h_lmi_average": 79.5,
-    "leesman_plus_excellent": 70.0,
-    "leesman_plus_outstanding": 80.0,
-    "satisfaction_percent": {
+  "leesman_history": {
+    "lmi_office_2019": 64.3,
+    "lmi_office_2024": 69.5,
+    "h_lmi_home_2024": 79.5,
+    "home_vs_office_gap_points_2024": 10.0,
+    "leesman_plus_excellent_threshold": 70.0,
+    "leesman_plus_outstanding_threshold": 80.0,
+    "respondents_cumulative_2024": 500000,
+    "satisfaction_percent_2024": {
       "noise_levels": 35,
       "quiet_rooms": 40,
       "temperature_control": 41,
       "plants_and_greenery": 47,
+      "leisure_facilities_nearby": 35,
+      "movement_of_people_past_workstation": 33,
       "informal_unplanned_meetings_valued": 52,
       "office_supports_idea_sharing": 73
     },
     "source": "https://www.leesmanindex.com/articles/redefining-the-workplace-why-employee-experience-matters/"
   },
+  "gensler_history": {
+    "2020_us": {"respondents": "US office workers", "theme": "Pre-pandemic baseline", "source": "https://www.gensler.com/uploads/document/677/file/Gensler_US_WPS_Report_2020.pdf"},
+    "2022_us": {"respondents": 2000, "window": "Jun-Aug 2022", "theme": "Return-to-office window", "source": "https://www.gensler.com/gri/us-workplace-survey-2022"},
+    "2023_global_comparison": {"theme": "10+ countries benchmark", "source": "https://www.gensler.com/doc/global-workplace-survey-comparison-2023"},
+    "2024_global": {
+      "respondents": 16040,
+      "countries": 15,
+      "industries": 10,
+      "fieldwork_window": "2023-10-31 to 2024-01-29",
+      "key_finding_choice_in_exceptional_workplaces_percent": 94,
+      "key_finding_premier_building_percent": 66,
+      "source": "https://www.gensler.com/gri/global-workplace-survey-2024"
+    }
+  },
   "flex_industry_2024_2025": {
-    "clients_over_40pct_desk_sharing": { "percent": 69, "source_year": 2024 },
-    "target_ratio_1p01_to_1p49_percent": { "percent": 48, "source_year": 2025, "prior_year_percent": 21, "prior_year": 2024 },
+    "clients_over_40pct_desk_sharing": {"percent": 69, "source_year": 2024, "source": "FlexOS 2024"},
+    "target_ratio_1p01_to_1p49_percent": {"percent": 48, "source_year": 2025, "prior_year_percent": 21, "prior_year": 2024, "source": "FlexOS / Ronspot 2026"},
     "ratio_1p5_plus_growth_since_2023_percent": 93,
-    "dedicated_desks_percent": { "2021": 51, "2024": 40 },
-    "global_occupancy_rate_percent": { "2024": 101, "2025": 111 },
-    "global_office_utilisation_percent": { "2023": 41, "2024": 49, "2025": 54, "pre_pandemic_baseline": 61 }
+    "dedicated_desks_percent": {"2021": 51, "2024": 40},
+    "global_occupancy_rate_percent": {"2024": 101, "2025": 111, "note": "Allocation rate; over 100 % means over-allocation in flex regime"},
+    "global_office_utilisation_percent": {"2023": 41, "2024": 49, "2025": 54, "pre_pandemic_baseline": 61},
+    "employees_full_time_on_site_percent": 22,
+    "firms_offering_flexibility_percent": 67,
+    "peak_day_multiplier_on_average": {"min": 1.20, "max": 1.35, "note": "Tuesday / Wednesday / Thursday peaks"}
+  },
+  "sector_flex_ratio_medians": {
+    "tech_software": {"min": 0.50, "max": 0.70},
+    "financial_services_front_office": {"min": 0.80, "max": 0.90},
+    "financial_services_support": {"min": 0.70, "max": 0.80},
+    "legal_consulting": {"min": 0.50, "max": 0.65, "note": "Associates and below ; partners assigned"},
+    "pharma_rd": {"min": 0.70, "max": 0.80, "note": "Office/admin only ; labs assigned"},
+    "public_sector": {"min": 0.80, "max": 0.95}
   },
   "pmr_critical_widths_m": {
     "principal_door_over_100_persons": 1.40,
     "principal_door_under_100_persons": 0.90,
+    "non_adapted_sanitary_door_nominal": 0.80,
     "non_adapted_sanitary_door_useful": 0.77,
     "main_circulation": 1.40,
     "secondary_circulation": 0.90,
     "wheelchair_turning_circle_diameter": 1.50,
+    "adapted_wc_internal_min_m": {"width": 1.50, "depth": 2.10},
+    "adapted_wc_lateral_transfer": {"width": 0.80, "length": 1.30},
+    "adapted_reception_counter_height_m": 0.80,
+    "adapted_reception_knee_clearance_depth_m": 0.60,
+    "adapted_parking_stall_m": {"width": 3.30, "length": 5.00},
     "source": "Arrêté du 20 avril 2017 (JORFTEXT000034485459)"
   },
   "erp_w_effectif_default_person_per_m2": {
@@ -72,21 +108,155 @@
     "non_arranged_floor": 0.01,
     "note": "Declared headcount supersedes defaults. Source: règlement sécurité ERP type W."
   },
-  "acoustic_targets_placeholder": {
-    "note": "Exact values must be read from NF S 31-080. See design://acoustic-standards. DnT,A office-to-office: ~35 dB Courant, ~45 dB Très Performant. TR60 individual office: ≤0.6 s Courant, ≤0.4 s Très Performant. Background noise phone booth: ≤30 dB(A) industry target."
+  "erp_w_category_thresholds": {
+    "category_1_above": 1500,
+    "category_2_range": [701, 1500],
+    "category_3_range": [301, 700],
+    "category_4_below": 300,
+    "note": "Effectif = total public + staff"
+  },
+  "erp_w_fire_alarm_by_category": {
+    "category_1_2": "type 2b",
+    "category_3": "type 3",
+    "category_4": "type 4",
+    "note": "Type 2b requires centralised panel + auto detection ; type 4 = manual call point + sounder only"
+  },
+  "erp_w_evacuation_envelope": {
+    "min_exits_per_storey": 2,
+    "travel_distance_single_direction_max_m": 40,
+    "travel_distance_dead_end_max_m": 30,
+    "unit_of_passage_min_m": 0.90,
+    "extinguishers_min_per_200m2": 1,
+    "extinguisher_max_travel_distance_m": 15,
+    "note": "[À VÉRIFIER seuils exacts CO 35 à CO 50]"
+  },
+  "acoustic_nf_s_31_080_dnta_db": {
+    "two_enclosed_individual_offices": {"courant": 35, "performant": 40, "tres_performant": 45},
+    "enclosed_office_to_open_plan": {"courant": 30, "performant": 35, "tres_performant": 40, "confidence": "[À VÉRIFIER exact norme]"},
+    "meeting_room_to_corridor": {"courant": 35, "performant": 40, "tres_performant": 45, "confidence": "[À VÉRIFIER]"},
+    "meeting_to_meeting": {"courant": 40, "performant": 45, "tres_performant": 50, "confidence": "[À VÉRIFIER]"},
+    "office_to_break_area": {"courant": 35, "performant": 40, "tres_performant": 45, "confidence": "[À VÉRIFIER]"},
+    "source": "NF S 31-080 — AFNOR FA142103, summary cross-checked against Acoucibe and INRS"
+  },
+  "acoustic_nf_s_31_080_l50_dba": {
+    "individual_office": {"courant": 38, "performant": 35, "tres_performant": 32},
+    "open_plan": {"courant": 45, "performant": 42, "tres_performant": 40},
+    "meeting_room": {"courant": 35, "performant": 32, "tres_performant": 30},
+    "board_executive_meeting": {"courant": 32, "performant": 30, "tres_performant": 28},
+    "phone_booth_interior": {"industry_target": 30},
+    "confidence": "[À VÉRIFIER ligne par ligne contre bound standard]"
+  },
+  "acoustic_nf_s_31_080_tr60_s": {
+    "individual_office": {"courant": 0.8, "performant": 0.6, "tres_performant": 0.5},
+    "meeting_room_le_50m3": {"courant": 0.6, "performant": 0.5, "tres_performant": 0.4},
+    "meeting_room_50_to_200m3": {"courant": 0.8, "performant": 0.6, "tres_performant": 0.5},
+    "board_lecture_ge_200m3": {"courant": 1.0, "performant": 0.8, "tres_performant": 0.6},
+    "restaurant_cafe": {"courant": 0.8, "performant": 0.6, "tres_performant": 0.5},
+    "circulation_corridor": {"courant": 0.8, "performant": 0.6, "tres_performant": 0.5},
+    "open_plan_office": "Volume-dependent — compute via NF S 31-080 formulas tied to room volume V"
+  },
+  "iso_3382_3_open_plan_targets": {
+    "d2s_db_good": 7,
+    "d2s_db_poor_below": 5,
+    "lp_a_s_4m_db_good": 48,
+    "lp_a_s_4m_db_poor_above": 52,
+    "rd_m_good_max": 5,
+    "rd_m_poor_above": 10,
+    "rc_m_published_range_min": 3,
+    "rc_m_published_range_max": 30,
+    "source": "ISO 3382-3:2022 — measurement of open-plan office acoustic parameters"
+  },
+  "hongisto_performance_loss": {
+    "sti_threshold_original_2005": 0.20,
+    "sti_threshold_revised_2020": 0.21,
+    "sti_plateau_original_2005": 0.60,
+    "sti_plateau_revised_2020": 0.44,
+    "performance_loss_range_percent": [4, 45],
+    "worst_affected_task": "verbal short-term memory",
+    "industry_rollup_productivity_loss_percent": 16,
+    "sources": [
+      "Hongisto 2005 Indoor Air 15(6) 458-468",
+      "Haapakangas et al. 2020 Indoor Air, revised model"
+    ]
   },
   "lighting_targets_lux": {
     "code_du_travail_min_general": 120,
     "code_du_travail_min_office_no_daylight": 200,
+    "code_du_travail_min_circulation_permanent": 60,
     "en12464_office_task": 500,
     "en12464_modifier_over_50yo_or_fine": 750,
     "en12464_archive": 200,
-    "en12464_conference_meeting": 500
+    "en12464_conference_meeting": 500,
+    "en12464_technical_drawing": 750,
+    "en12464_reception_cashier": 300,
+    "en12464_ugr_max_office": 19,
+    "en12464_cri_min_office": 80,
+    "en12464_uniformity_min": 0.60,
+    "well_v2_melanopic_edi_lux_at_eye_min": 250
+  },
+  "ventilation_office_envelope": {
+    "code_travail_min_m3_per_hour_per_occupant": 25,
+    "co2_target_ppm_max": 1000,
+    "co2_investigate_ppm": 1500,
+    "pm25_who_2021_guideline_ug_m3": 10,
+    "confidence": "[À VÉRIFIER code du travail R. 4222 dernière version 2026]"
   },
   "biophilic_planting_density_percent_floor": {
-    "discrete": { "min": 1, "max": 2 },
-    "moderate": { "min": 3, "max": 5 },
-    "generous": { "min": 5, "max": 8 },
-    "immersive": { "min": 8, "max": 12, "note": "Anchor atrium or green wall scale" }
+    "discrete": {"min": 1, "max": 2, "density_per_m2": 0.12, "note": "Reception and café accents only"},
+    "moderate": {"min": 3, "max": 5, "density_per_m2": 0.33, "note": "Industry standard, every seat sees plants"},
+    "generous": {"min": 5, "max": 8, "density_per_m2": 0.50, "note": "Strong identity + green wall anchor"},
+    "immersive": {"min": 8, "max": 12, "density_per_m2": 0.80, "note": "Atrium, mature trees, hero anchor"}
+  },
+  "biophilic_cost_envelope_eur": {
+    "distributed_moderate_install_per_m2": {"min": 8, "max": 20, "currency": "EUR", "source": "[À VÉRIFIER]"},
+    "green_wall_install_per_m2_of_wall": {"min": 800, "max": 1800, "currency": "EUR", "source": "[À VÉRIFIER]"},
+    "atrium_anchor_install_per_m2_of_floor": {"min": 40, "max": 80, "currency": "EUR", "source": "[À VÉRIFIER]"},
+    "annual_maintenance_percent_of_install": {"distributed": [10, 20], "green_wall": [20, 30], "atrium": [15, 25]}
+  },
+  "browning_14_patterns": {
+    "nature_in_the_space": [
+      "1. Visual connection with nature",
+      "2. Non-visual connection with nature",
+      "3. Non-rhythmic sensory stimuli",
+      "4. Thermal and airflow variability",
+      "5. Presence of water",
+      "6. Dynamic and diffuse light",
+      "7. Connection with natural systems"
+    ],
+    "natural_analogues": [
+      "8. Biomorphic forms and patterns",
+      "9. Material connection with nature",
+      "10. Complexity and order"
+    ],
+    "nature_of_the_space": [
+      "11. Prospect",
+      "12. Refuge",
+      "13. Mystery",
+      "14. Risk / peril"
+    ],
+    "very_good_quality_min_patterns_expressed": 8,
+    "source": "Browning, Ryan & Clancy 2014 — 14 Patterns of Biophilic Design, Terrapin Bright Green ; 10th anniv 2024"
+  },
+  "key_studies_productivity": {
+    "plants_plus_15_percent_productivity": {
+      "paper": "Nieuwenhuis, Knight, Postmes & Haslam 2014",
+      "journal": "Journal of Experimental Psychology: Applied, 20(3), 199-214",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/25068481/",
+      "note": "NOT Knight & Haslam 2010 — the 2010 paper is the lab precursor ; 2014 is the field replication and origin of the +15 % figure."
+    },
+    "window_view_surgery_recovery": {
+      "paper": "Ulrich 1984",
+      "journal": "Science 224(4647) 420-421",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/6143402/",
+      "note": "Foundational evidence-based design paper ; reduced hospital stay and analgesics for patients with natural view."
+    },
+    "fractal_stress_reduction": {
+      "lead_author": "Richard P. Taylor",
+      "key_finding": "Mid-range fractal dimension D ≈ 1.3 – 1.5 triggers strongest physiological stress response reduction (up to ~60 % in lab)",
+      "url": "https://blogs.uoregon.edu/richardtaylor/2016/02/03/human-physiological-responses-to-fractals-in-nature-and-art/"
+    },
+    "biophilic_absenteeism_15_productivity_6": {
+      "note": "Industry summaries report 15 % absenteeism decrease and 6 % productivity increase in biophilic workplaces [À VÉRIFIER source primaire]"
+    }
   }
 }

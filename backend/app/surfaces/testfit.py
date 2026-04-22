@@ -147,7 +147,9 @@ class TestFitSurface:
                 name=style.value,
                 system_prompt=system,
                 user_template=_VARIANT_USER,
-                max_tokens=6000,
+                # Variant JSON with narrative + 30-60 zones + metrics runs 7-10 k
+                # tokens. Keep comfortable headroom; Opus 4.7 supports 32 k output.
+                max_tokens=16000,
             )
             for style in VariantStyle
         ]
@@ -157,7 +159,7 @@ class TestFitSurface:
             name="Reviewer",
             system_prompt=_read(PROMPTS_DIR / "testfit_reviewer.md"),
             user_template=_REVIEWER_USER,
-            max_tokens=1200,
+            max_tokens=2000,
         )
 
     def generate(
@@ -181,7 +183,7 @@ class TestFitSurface:
                     name=style.value,
                     system_prompt=system,
                     user_template=_VARIANT_USER,
-                    max_tokens=6000,
+                    max_tokens=16000,
                 ),
             )
             for style in styles

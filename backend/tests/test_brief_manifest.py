@@ -8,7 +8,7 @@ def test_brief_manifest_lists_ten_resources() -> None:
     response = client.get("/api/brief/manifest")
     assert response.status_code == 200
     payload = response.json()
-    assert payload["benchmarks_version"] == "2026-04-22"
+    assert payload["benchmarks_version"].startswith("2026-04-22")
     assert len(payload["files"]) == 10
     expected = {
         "acoustic-standards.md",
