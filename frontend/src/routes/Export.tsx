@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
 
-import PlanSvg from "../components/viewer/PlanSvg";
+import VariantViewer from "../components/viewer/VariantViewer";
 import {
   exportDxfUrl,
   fetchLumenFixture,
@@ -225,14 +225,13 @@ export default function ExportRoute() {
 
         <section className="space-y-4">
           <div className="grid gap-4 lg:grid-cols-[1fr,1fr]">
-            <div className="aspect-[3/2] overflow-hidden rounded-2xl border border-neutral-500/20 bg-neutral-900/60 p-2">
-              {floorPlan ? (
-                <PlanSvg plan={floorPlan} highlightedVariant={selected ?? null} zones={zones} />
-              ) : (
-                <div className="grid h-full place-items-center text-sm text-neutral-400">
-                  Loading plan…
-                </div>
-              )}
+            <div className="aspect-[3/2] rounded-2xl border border-neutral-500/20 bg-neutral-800/20 p-3">
+              <VariantViewer
+                plan={floorPlan}
+                variant={chosenVariant}
+                style={selected ?? null}
+                zones={zones}
+              />
             </div>
             <div className="space-y-3">
               {chosenVariant ? (

@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
-import PlanSvg from "../components/viewer/PlanSvg";
+import VariantViewer from "../components/viewer/VariantViewer";
 import {
   fetchCatalogPreview,
   fetchLumenFixture,
@@ -305,15 +305,15 @@ export default function TestFit() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.35 }}
-              className="aspect-[3/2] overflow-hidden rounded-2xl border border-neutral-500/20 bg-neutral-900/60 p-2"
+              className="aspect-[3/2] rounded-2xl border border-neutral-500/20 bg-neutral-800/20 p-3"
             >
-              {plan ? (
-                <PlanSvg plan={plan} highlightedVariant={active} zones={activeZones} />
-              ) : (
-                <div className="grid h-full place-items-center text-sm text-neutral-400">
-                  Loading plan…
-                </div>
-              )}
+              <VariantViewer
+                plan={plan}
+                variant={activeVariant}
+                style={active}
+                zones={activeZones}
+                defaultView={state.kind === "done" ? "3d" : "2d"}
+              />
             </motion.div>
 
             <div className="space-y-4">
