@@ -1,14 +1,24 @@
 """Runtime configuration loaded from .env / environment."""
 
 from functools import lru_cache
+from pathlib import Path
 
+from dotenv import load_dotenv
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+ENV_PATH = REPO_ROOT / ".env"
+
+# Claude Code sessions may export an empty ANTHROPIC_API_KEY that would
+# otherwise shadow the value in .env. Force the .env file to win.
+if ENV_PATH.exists():
+    load_dotenv(ENV_PATH, override=True)
 
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=str(ENV_PATH),
         env_file_encoding="utf-8",
         extra="ignore",
     )

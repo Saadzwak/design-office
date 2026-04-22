@@ -6,12 +6,12 @@ Items that require Saad's physical intervention. Work continues around these as 
 
 ## 🔴 CRITICAL — security
 
-### B0. Rotate the leaked Anthropic API key
+### B0. Rotate the leaked Anthropic API key (post-hackathon)
 
-- **Leaked key** : `***REDACTED-COMPROMISED-AND-ROTATED***`
-- **Why** : pasted in plain text inside the `/loop` invocation prompt, so it is now in Claude Code's transcript history and any client-side logs.
-- **Action** : go to https://console.anthropic.com/settings/keys, **revoke** this key, **generate a new one**, copy the new value into `.env` at repo root (the file is gitignored).
-- **Impact if not done** : any Opus call Claude Code makes from Phase 2 onwards would hit the compromised key. The autonomous loop will refuse to call the API until this blocker is resolved.
+- **Current state** : Saad explicitly authorised the autonomous loop to use the pasted key ("non utilise la clé que je t'ai donnée", 2026-04-22). The key is stored in `.env` at repo root and `.env` is ignored by git, so it is not in the commit history.
+- **Residual risk** : the key still sits in the local Claude Code conversation transcript under `C:\Users\redaz\.claude\projects\...`. If that transcript is ever shared (support debug, screen share, export), the key leaks with it.
+- **Action for Saad, after the hackathon** : rotate the key at https://console.anthropic.com/settings/keys, update `.env`, and purge or sanitise the transcript file if sharing is ever planned.
+- **Action now** : none — the loop is authorised to proceed with Opus calls.
 
 ---
 

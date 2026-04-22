@@ -73,6 +73,14 @@ Margin = 113 − 19 = ~94 h available for debug, rework, and Saad-side tasks (Sk
 
 Phase 1 is 100 % local scaffolding — zero API calls expected.
 
+### Iter 02 — API key wired & live round-trip (2026-04-22T13:10Z)
+
+- Saad explicitly authorised using the pasted key despite the exposure (see BLOCKERS.md B0).
+- Key written to `.env` at repo root (gitignored).
+- Fixed a config bug : Claude Code exports an empty `ANTHROPIC_API_KEY` in the shell environment, which was shadowing the `.env` value. `backend/app/config.py` now calls `dotenv.load_dotenv(override=True)` before `BaseSettings` reads env, so the `.env` wins.
+- Smoke round-trip : `ClaudeClient.messages_create(max_tokens=32, ...)` returned `"ready"` in 22 input / 6 output tokens. Call is logged in `backend/logs/api_calls.jsonl`.
+- Budget consumed so far : 22 input / 6 output (negligible).
+
 ---
 
 ## Phase 2 — Surface 1 Brief
