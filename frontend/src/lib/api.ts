@@ -30,6 +30,22 @@ export async function fetchBriefManifest(signal?: AbortSignal): Promise<BriefMan
   return r.json();
 }
 
+// ---------------------------------------------------------------------------
+// Integration status (live MCP connectivity)
+// ---------------------------------------------------------------------------
+
+export type IntegrationStatus = {
+  sketchup: { reachable: boolean; host: string; port: number };
+  autocad: { mode: "ezdxf_headless" | "file_ipc_live" };
+  anthropic: { api_key_loaded: boolean; model: string };
+};
+
+export async function fetchIntegrationStatus(signal?: AbortSignal): Promise<IntegrationStatus> {
+  const r = await fetch("/api/integrations/status", { signal });
+  if (!r.ok) throw new Error(`Status fetch failed: ${r.status}`);
+  return r.json();
+}
+
 export async function synthesizeBrief(
   req: BriefRequest,
   signal?: AbortSignal,

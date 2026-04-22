@@ -72,6 +72,39 @@ def health() -> dict[str, str | bool]:
     }
 
 
+@app.get("/api/integrations/status")
+def integrations_status() -> dict:
+    """Snapshot of every external integration state. Polled by the frontend
+    nav to show a live 'MCP connected' indicator.
+    """
+
+    from app.mcp.autocad_client import FileIpcBackend, get_backend as get_autocad_backend
+    from app.mcp.sketchup_client import try_connect_tcp
+
+    sketchup_live = try_connect_tcp(
+        settings.sketchup_mcp_host, settings.sketchup_mcp_port, timeout_s=0.35
+    )
+    autocad_backend = get_autocad_backend()
+    autocad_mode = (
+        "file_ipc_live"
+        if isinstance(autocad_backend, FileIpcBackend)
+        else "ezdxf_headless"
+    )
+
+    return {
+        "sketchup": {
+            "reachable": sketchup_live,
+            "host": settings.sketchup_mcp_host,
+            "port": settings.sketchup_mcp_port,
+        },
+        "autocad": {"mode": autocad_mode},
+        "anthropic": {
+            "api_key_loaded": bool(settings.anthropic_api_key),
+            "model": settings.anthropic_model,
+        },
+    }
+
+
 @app.get("/api/brief/manifest")
 def brief_manifest() -> dict:
     return preview_resources_manifest()

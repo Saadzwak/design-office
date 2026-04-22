@@ -1,5 +1,7 @@
 import { NavLink, Outlet } from "react-router-dom";
 
+import IntegrationBadge from "./components/ui/IntegrationBadge";
+
 const NAV = [
   { to: "/brief", label: "Brief" },
   { to: "/testfit", label: "Test Fit" },
@@ -16,24 +18,27 @@ export default function App() {
             <span className="inline-block h-2 w-2 rounded-full bg-terracotta" />
             Design Office
           </NavLink>
-          <nav className="flex items-center gap-1">
-            {NAV.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                className={({ isActive }) =>
-                  [
-                    "rounded-lg px-3 py-1.5 text-sm transition-colors duration-200 ease-out-expo",
-                    isActive
-                      ? "bg-neutral-700/50 text-bone-text"
-                      : "text-neutral-300 hover:bg-neutral-700/30 hover:text-bone-text",
-                  ].join(" ")
-                }
-              >
-                {item.label}
-              </NavLink>
-            ))}
-          </nav>
+          <div className="flex items-center gap-4">
+            <nav className="flex items-center gap-1">
+              {NAV.map((item) => (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  className={({ isActive }) =>
+                    [
+                      "rounded-lg px-3 py-1.5 text-sm transition-colors duration-200 ease-out-expo",
+                      isActive
+                        ? "bg-neutral-700/50 text-bone-text"
+                        : "text-neutral-300 hover:bg-neutral-700/30 hover:text-bone-text",
+                    ].join(" ")
+                  }
+                >
+                  {item.label}
+                </NavLink>
+              ))}
+            </nav>
+            <IntegrationBadge />
+          </div>
         </div>
       </header>
       <main className="mx-auto max-w-7xl px-6 py-10">
