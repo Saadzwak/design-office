@@ -85,15 +85,89 @@ Phase 1 is 100 % local scaffolding — zero API calls expected.
 
 ## Phase 2 — Surface 1 Brief
 
-**Status** : queued (entered in next `/loop` iteration)
-**Target duration** : 3 h
+**Status** : ✅ done
+**Started** : 2026-04-22T13:10Z (immediately after Phase 1, at Saad's request,
+cancelled the 25 min wake-up)
+**Finished** : 2026-04-22T13:22Z
+**Target duration** : 3 h (nominal) — delivered well under budget thanks to
+web-search batching and the key already rotated in .env.
 
-### Planned order (section 13.2)
+### What landed
 
-1. `backend/app/claude_client.py` — hook up real wrapper (already stubbed) + wire token budget guardrails.
-2. `backend/app/data/resources/` — 10 MCP Resources Markdown, each 50–200 lines with real sources. Local-only, **no Opus calls needed**.
-3. `backend/app/data/benchmarks/` — JSON ratios (Leesman, Gensler, HOK).
-4. `backend/app/agents/orchestrator.py` — `run_parallel_agents(agents, context)` helper.
-5. Three sub-agents (Effectifs, Benchmarks, Contraintes) + consolidateur — real Opus calls. **Gated on Saad rotating the leaked API key (BLOCKERS.md B0).** Until rotation is confirmed, work will pause on this step and move to Phase 3 step 1 (pipeline PDF scaffolding, still Opus-free) to avoid idle time.
-6. `POST /api/brief/synthesize` endpoint.
-7. `frontend/src/routes/Brief.tsx` — wire to endpoint, stream sub-agent trace.
+**10 MCP Resources** in `backend/app/data/resources/` (real-sourced, each 100 –
+220 lines, `[À VÉRIFIER]` markers for anything not web-verified) :
+
+1. `office-programming.md` — NIA ratios, program splits, meeting mix, Leesman 2024
+2. `acoustic-standards.md` — NF S 31-080 levels, DnT,A, TR60, Sabine, WELL
+3. `pmr-requirements.md` — Arrêté 20 avril 2017, widths, adapted WC
+4. `erp-safety.md` — ERP type W, effectif, exits, alarm by category, extinguishers
+5. `ergonomic-workstation.md` — NF EN 527-1, EN 12464-1, R. 4223, ventilation
+6. `neuroarchitecture.md` — Browning 14 patterns, Kellert, Nieuwenhuis 2014, ART, SRT
+7. `flex-ratios.md` — 2024-2025 industry data, policy → ratio, pitfalls
+8. `furniture-brands.md` — Steelcase Migration SE, Jarvis, Framery One dimensions
+9. `collaboration-spaces.md` — phone booth → town hall, footprints, adjacency
+10. `biophilic-office.md` — plant density, species by light, NASA-study caveat
+
+**Machine-readable ratios** : `backend/app/data/benchmarks/ratios.json`
+(policy→flex ratio, peak factor, meeting mix / 100 FTE, Leesman %, PMR widths,
+lighting, planting density).
+
+**Agent orchestration** :
+- `backend/app/agents/orchestrator.py` — `Orchestration.run_with_consolidator`
+  runs sub-agents in parallel via `ThreadPoolExecutor`, pipes aggregated output
+  into a consolidator prompt. `OrchestrationResult` exposes full trace + totals.
+- 4 prompts in `backend/app/prompts/agents/` : Effectifs, Benchmarks,
+  Contraintes, Consolidator — each with hard "no fabrication, cite or flag
+  `[À VÉRIFIER]`" rules.
+- `backend/app/surfaces/brief.py` — wires the 3 sub-agents + consolidator with
+  the right MCP resources injected per agent (tight context).
+
+**HTTP surface** :
+- `GET /api/brief/manifest` — lists the 10 resources and ratios version
+- `POST /api/brief/synthesize` — runs the full orchestration
+- `backend/tests/test_brief_manifest.py` — integration test for manifest +
+  422 on too-short brief. `pytest` : **3 passed**.
+
+**Frontend** :
+- `frontend/src/lib/api.ts` — typed client
+- `frontend/src/routes/Brief.tsx` — full UI : brief textarea (Lumen pre-filled),
+  client name, 4-agent trace with live status dots, expandable per-agent trace
+  cards, consolidated programme rendered via `react-markdown` + `remark-gfm` +
+  `@tailwindcss/typography`. `tsc` : clean.
+
+### Live end-to-end round-trip on Lumen brief
+
+| Agent         | Tokens in | Tokens out | Duration |
+|---------------|-----------|------------|----------|
+| Effectifs     | 12 308    | 3 864      | 68.3 s   |
+| Benchmarks    | 16 718    | 2 548      | 47.2 s   |
+| Contraintes   | 12 743    | 4 000      | 75.4 s   |
+| Consolidator  | 11 659    | 4 787      | 89.1 s   |
+| **Total**     | **53 428**| **15 199** | 164.5 s  |
+
+Output quality: the consolidator produced a full programme (130 postes,
+0.75 flex ratio, 12.3 m²/FTE, split 30 / 26 / 25 / 19 %), inline citations to
+`design://` URIs and `ratios_json` paths, and correctly flagged the two
+regulatory red flags (escalier central encloisonnement + ascenseur PMR
+existence) plus the café/town hall désenfumage threshold.
+
+### Gotcha fixed
+
+- `temperature=` is **deprecated for `claude-opus-4-7`** — the SDK returns
+  `BadRequestError` : `` `temperature` is deprecated for this model. ``.
+  Orchestrator now omits it.
+
+### Token budget to date
+
+| Bucket     | Budget  | Used (smoke + Lumen) | Remaining |
+|------------|---------|----------------------|-----------|
+| Input      | 300 000 | 53 450               | 246 550   |
+| Output     | 100 000 | 15 205               | 84 795    |
+
+Phase 3 (Test Fit) uses Vision HD on plans → heavier input per call. The
+remaining budget supports ≈ 5 – 7 full Brief runs or ~ 3 – 4 Vision-heavy
+Test Fit runs.
+
+### Iter 03 — Phase 2 wrap (2026-04-22T13:22Z)
+
+Commit incoming with all the above. Phase 3 scheduled immediately.

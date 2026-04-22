@@ -36,6 +36,7 @@ vendor/**/.venv
 *.swp
 .DS_Store
 Thumbs.db
+.claude/
 
 # --- Build artefacts ---
 *.dwg.tmp

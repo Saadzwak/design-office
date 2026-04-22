@@ -1,0 +1,92 @@
+{
+  "version": "2026-04-22",
+  "description": "Planning ratios distilled from MCP Resources. Machine-readable companion to design://office-programming, design://flex-ratios and design://collaboration-spaces.",
+  "nia_per_workstation_m2": {
+    "dense_pre_covid": { "min": 8, "max": 10, "note": "Historically common, degraded Leesman noise scores." },
+    "french_cat_b_typical": { "min": 10, "max": 12, "note": "[À VÉRIFIER] bench local Saguez / Ubiq / JLL 2024." },
+    "activity_based_hybrid_2024": { "min": 12, "max": 15, "note": "Post-COVID baseline with collab emphasis." },
+    "premium_hq": { "min": 15, "max": 18, "note": "Heavy amenity and event programme." }
+  },
+  "program_split_percent_of_nia": {
+    "individual_work": { "min": 45, "max": 55 },
+    "collaboration": { "min": 20, "max": 30 },
+    "support_amenity": { "min": 15, "max": 25 },
+    "circulation": { "min": 10, "max": 15 }
+  },
+  "flex_ratio_by_policy": {
+    "5_0_full_onsite": { "seats_per_fte_min": 1.0, "seats_per_fte_max": 1.0 },
+    "4_1_hybrid_light": { "seats_per_fte_min": 0.90, "seats_per_fte_max": 0.95 },
+    "3_2_hybrid_standard": { "seats_per_fte_min": 0.70, "seats_per_fte_max": 0.80 },
+    "2_3_hybrid_heavy": { "seats_per_fte_min": 0.55, "seats_per_fte_max": 0.65 },
+    "1_4_flex_first": { "seats_per_fte_min": 0.40, "seats_per_fte_max": 0.55 }
+  },
+  "peak_day_factor": {
+    "5_0_full_onsite": 1.0,
+    "4_1_hybrid_light": 1.15,
+    "3_2_hybrid_standard": 1.25,
+    "2_3_hybrid_heavy": 1.30,
+    "1_4_flex_first": 1.40
+  },
+  "meeting_room_mix_per_100_fte": {
+    "phone_booth_1p": { "count_min": 6, "count_max": 10, "footprint_m2_min": 1.0, "footprint_m2_max": 1.5 },
+    "huddle_2_to_4p": { "count_min": 3, "count_max": 5, "footprint_m2_min": 6, "footprint_m2_max": 10 },
+    "medium_6_to_8p": { "count_min": 2, "count_max": 4, "footprint_m2_min": 18, "footprint_m2_max": 25 },
+    "large_10_to_14p": { "count_min": 1, "count_max": 2, "footprint_m2_min": 30, "footprint_m2_max": 45 },
+    "town_hall_40p_plus": { "count_min": 0, "count_max": 1, "footprint_m2_min": 80, "footprint_m2_max": 150 },
+    "focus_room_1_to_2p": { "count_min": 2, "count_max": 4, "footprint_m2_min": 3, "footprint_m2_max": 6 }
+  },
+  "leesman_2024": {
+    "lmi_average": 69.5,
+    "h_lmi_average": 79.5,
+    "leesman_plus_excellent": 70.0,
+    "leesman_plus_outstanding": 80.0,
+    "satisfaction_percent": {
+      "noise_levels": 35,
+      "quiet_rooms": 40,
+      "temperature_control": 41,
+      "plants_and_greenery": 47,
+      "informal_unplanned_meetings_valued": 52,
+      "office_supports_idea_sharing": 73
+    },
+    "source": "https://www.leesmanindex.com/articles/redefining-the-workplace-why-employee-experience-matters/"
+  },
+  "flex_industry_2024_2025": {
+    "clients_over_40pct_desk_sharing": { "percent": 69, "source_year": 2024 },
+    "target_ratio_1p01_to_1p49_percent": { "percent": 48, "source_year": 2025, "prior_year_percent": 21, "prior_year": 2024 },
+    "ratio_1p5_plus_growth_since_2023_percent": 93,
+    "dedicated_desks_percent": { "2021": 51, "2024": 40 },
+    "global_occupancy_rate_percent": { "2024": 101, "2025": 111 },
+    "global_office_utilisation_percent": { "2023": 41, "2024": 49, "2025": 54, "pre_pandemic_baseline": 61 }
+  },
+  "pmr_critical_widths_m": {
+    "principal_door_over_100_persons": 1.40,
+    "principal_door_under_100_persons": 0.90,
+    "non_adapted_sanitary_door_useful": 0.77,
+    "main_circulation": 1.40,
+    "secondary_circulation": 0.90,
+    "wheelchair_turning_circle_diameter": 1.50,
+    "source": "Arrêté du 20 avril 2017 (JORFTEXT000034485459)"
+  },
+  "erp_w_effectif_default_person_per_m2": {
+    "arranged_interior_areas": 0.10,
+    "non_arranged_floor": 0.01,
+    "note": "Declared headcount supersedes defaults. Source: règlement sécurité ERP type W."
+  },
+  "acoustic_targets_placeholder": {
+    "note": "Exact values must be read from NF S 31-080. See design://acoustic-standards. DnT,A office-to-office: ~35 dB Courant, ~45 dB Très Performant. TR60 individual office: ≤0.6 s Courant, ≤0.4 s Très Performant. Background noise phone booth: ≤30 dB(A) industry target."
+  },
+  "lighting_targets_lux": {
+    "code_du_travail_min_general": 120,
+    "code_du_travail_min_office_no_daylight": 200,
+    "en12464_office_task": 500,
+    "en12464_modifier_over_50yo_or_fine": 750,
+    "en12464_archive": 200,
+    "en12464_conference_meeting": 500
+  },
+  "biophilic_planting_density_percent_floor": {
+    "discrete": { "min": 1, "max": 2 },
+    "moderate": { "min": 3, "max": 5 },
+    "generous": { "min": 5, "max": 8 },
+    "immersive": { "min": 8, "max": 12, "note": "Anchor atrium or green wall scale" }
+  }
+}
