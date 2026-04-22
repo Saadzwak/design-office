@@ -150,6 +150,33 @@ def testfit_fixture(use_vision: bool | None = None) -> FloorPlan:
     return parse_pdf(FIXTURE_PDF, use_vision=resolved_use_vision)
 
 
+_SAMPLE_RESULT_PATH = (
+    Path(__file__).resolve().parent.parent / "tests" / "fixtures" / "generate_output_sample.json"
+)
+
+
+@app.get("/api/testfit/sample")
+def testfit_sample() -> TestFitResponse:
+    """Return the saved live Lumen Test Fit run (3 variants + 3 reviewers).
+
+    Useful as a demo-mode fallback : a judge landing on /justify or /export
+    without going Brief → Test Fit first gets a populated page rather than
+    an empty state. Payload is identical in shape to what POST
+    /api/testfit/generate produces, so the client can feed it straight into
+    localStorage.
+    """
+
+    if not _SAMPLE_RESULT_PATH.exists():
+        raise HTTPException(
+            status_code=404,
+            detail="Sample fixture not found. Run scripts/run_lumen_full.py first.",
+        )
+    import json
+
+    data = json.loads(_SAMPLE_RESULT_PATH.read_text(encoding="utf-8"))
+    return TestFitResponse.model_validate(data)
+
+
 @app.post("/api/testfit/parse")
 async def testfit_parse(
     file: UploadFile = File(...),

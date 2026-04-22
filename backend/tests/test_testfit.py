@@ -38,3 +38,22 @@ def test_fixture_pdf_is_generated() -> None:
     client.get("/api/testfit/fixture?use_vision=false")
     assert fixture.exists()
     assert fixture.stat().st_size > 1000
+
+
+def test_testfit_sample_returns_saved_lumen_run() -> None:
+    """Cold-start demo fallback: /api/testfit/sample must return the saved
+    3-variant + 3-reviewer fixture so Justify + Export have content even if
+    the judge hasn't run Test Fit first.
+    """
+
+    client = TestClient(app)
+    response = client.get("/api/testfit/sample")
+    assert response.status_code == 200
+    payload = response.json()
+    assert "floor_plan" in payload
+    assert "variants" in payload
+    assert "verdicts" in payload
+    assert len(payload["variants"]) == 3
+    assert len(payload["verdicts"]) == 3
+    styles = {v["style"] for v in payload["variants"]}
+    assert styles == {"villageois", "atelier", "hybride_flex"}

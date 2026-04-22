@@ -157,6 +157,12 @@ export async function fetchLumenFixture(signal?: AbortSignal): Promise<FloorPlan
   return r.json();
 }
 
+export async function fetchTestFitSample(signal?: AbortSignal): Promise<TestFitResponse> {
+  const r = await fetch("/api/testfit/sample", { signal });
+  if (!r.ok) throw new Error(`Sample fetch failed: ${r.status}`);
+  return r.json();
+}
+
 export async function uploadPlanPdf(file: File, useVision: boolean): Promise<FloorPlan> {
   const form = new FormData();
   form.append("file", file);

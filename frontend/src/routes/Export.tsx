@@ -7,7 +7,7 @@ import VariantViewer from "../components/viewer/VariantViewer";
 import { useLiveScreenshots } from "../hooks/useLiveScreenshots";
 import {
   exportDxfUrl,
-  fetchLumenFixture,
+  fetchTestFitSample,
   generateExport,
   type ExportResponse,
   type FloorPlan,
@@ -40,7 +40,7 @@ type State =
   | { kind: "error"; message: string };
 
 export default function ExportRoute() {
-  const [stored] = useState<PersistedTestFit | null>(() => {
+  const [stored, setStored] = useState<PersistedTestFit | null>(() => {
     try {
       const raw = localStorage.getItem("design-office.testfit.result");
       return raw ? JSON.parse(raw) : null;
@@ -48,22 +48,33 @@ export default function ExportRoute() {
       return null;
     }
   });
-  const [fallbackPlan, setFallbackPlan] = useState<FloorPlan | null>(null);
+  const [isSample, setIsSample] = useState(false);
   const [selected, setSelected] = useState<VariantOutput["style"] | null>(null);
   const [scale, setScale] = useState<number>(100);
   const [projectRef, setProjectRef] = useState<string>("LUMEN-CAT-B");
   const [state, setState] = useState<State>({ kind: "idle" });
 
+  // Cold-start demo mode : load the saved Lumen fixture if the user
+  // landed here without running Test Fit first.
   useEffect(() => {
     if (stored) return;
     const ac = new AbortController();
-    fetchLumenFixture(ac.signal).then(setFallbackPlan).catch(() => null);
+    fetchTestFitSample(ac.signal)
+      .then((sample) => {
+        setStored({
+          floor_plan: sample.floor_plan,
+          variants: sample.variants,
+          verdicts: sample.verdicts,
+        });
+        setIsSample(true);
+      })
+      .catch(() => null);
     return () => ac.abort();
   }, [stored]);
 
   const variants = stored?.variants ?? [];
   const verdicts = stored?.verdicts ?? [];
-  const floorPlan = stored?.floor_plan ?? fallbackPlan;
+  const floorPlan = stored?.floor_plan ?? null;
 
   useEffect(() => {
     if (selected || variants.length === 0) return;
@@ -121,7 +132,14 @@ export default function ExportRoute() {
   return (
     <div className="space-y-20">
       <header className="max-w-3xl">
-        <p className="eyebrow-forest">IV · Export</p>
+        <p className="eyebrow-forest">
+          IV · Export
+          {isSample && (
+            <span className="ml-3 text-ink-muted normal-case tracking-normal">
+              · demo data
+            </span>
+          )}
+        </p>
         <h1
           className="mt-5 font-display text-display-sm leading-[1.02] text-ink"
           style={{ fontVariationSettings: '"opsz" 144, "wght" 620, "SOFT" 100' }}

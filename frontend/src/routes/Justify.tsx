@@ -8,7 +8,7 @@ import TypewriterText from "../components/ui/TypewriterText";
 import VariantViewer from "../components/viewer/VariantViewer";
 import { useLiveScreenshots } from "../hooks/useLiveScreenshots";
 import {
-  fetchLumenFixture,
+  fetchTestFitSample,
   generateJustify,
   justifyPdfUrl,
   justifyPptxUrl,
@@ -71,7 +71,7 @@ const AGENT_TYPING: Record<string, string> = {
 };
 
 export default function Justify() {
-  const [stored] = useState<PersistedTestFit | null>(() => {
+  const [stored, setStored] = useState<PersistedTestFit | null>(() => {
     try {
       const raw = localStorage.getItem("design-office.testfit.result");
       return raw ? JSON.parse(raw) : null;
@@ -79,7 +79,7 @@ export default function Justify() {
       return null;
     }
   });
-  const [floorPlanFallback, setFloorPlanFallback] = useState<FloorPlan | null>(null);
+  const [isSample, setIsSample] = useState(false);
   const [selected, setSelected] = useState<VariantOutput["style"] | null>(null);
   const [state, setState] = useState<State>({ kind: "idle" });
   const [brief, setBrief] = useState(() =>
@@ -89,16 +89,27 @@ export default function Justify() {
     localStorage.getItem("design-office.programme") ?? FALLBACK_PROGRAMME,
   );
 
+  // Cold-start demo mode : if the user lands here without running Test Fit
+  // first, auto-load the saved Lumen fixture (3 variants + reviewers).
   useEffect(() => {
     if (stored) return;
     const ac = new AbortController();
-    fetchLumenFixture(ac.signal).then(setFloorPlanFallback).catch(() => null);
+    fetchTestFitSample(ac.signal)
+      .then((sample) => {
+        setStored({
+          floor_plan: sample.floor_plan,
+          variants: sample.variants,
+          verdicts: sample.verdicts,
+        });
+        setIsSample(true);
+      })
+      .catch(() => null);
     return () => ac.abort();
   }, [stored]);
 
   const variants = stored?.variants ?? [];
   const verdicts = stored?.verdicts ?? [];
-  const floorPlan = stored?.floor_plan ?? floorPlanFallback;
+  const floorPlan = stored?.floor_plan ?? null;
 
   useEffect(() => {
     if (selected || variants.length === 0) return;
@@ -159,7 +170,14 @@ export default function Justify() {
   return (
     <div className="space-y-14">
       <header className="max-w-3xl">
-        <p className="eyebrow-forest">III · Justify</p>
+        <p className="eyebrow-forest">
+          III · Justify
+          {isSample && (
+            <span className="ml-3 text-ink-muted normal-case tracking-normal">
+              · demo data
+            </span>
+          )}
+        </p>
         <h1
           className="mt-5 font-display text-display-sm leading-[1.02] text-ink"
           style={{ fontVariationSettings: '"opsz" 144, "wght" 620, "SOFT" 100' }}
