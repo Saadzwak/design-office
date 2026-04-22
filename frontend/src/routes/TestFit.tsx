@@ -617,6 +617,10 @@ export default function TestFit() {
                 </button>
               </div>
 
+              {iterating && (
+                <IteratingPanel variant={STYLE_LABEL[active]} instruction={instruction} />
+              )}
+
               {history.length > 0 && (
                 <ul className="mt-6 space-y-1">
                   {history.slice(0, 5).map((entry, i) => (
@@ -652,6 +656,47 @@ export default function TestFit() {
         </section>
       </div>
     </div>
+  );
+}
+
+function IteratingPanel({ variant, instruction }: { variant: string; instruction: string }) {
+  const lines = [
+    `Reading the current ${variant.toLowerCase()} variant…`,
+    `Interpreting "${instruction.slice(0, 80)}${instruction.length > 80 ? "…" : ""}"`,
+    "Generating the modified structured plan…",
+    "Replaying against the SketchUp MCP backend…",
+    "Re-validating PMR circulations and programme coverage…",
+  ];
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35 }}
+      className="mt-6 rounded-md border border-hairline bg-raised/70 px-6 py-5"
+    >
+      <p className="eyebrow-forest">Opus 4.7 · iterating</p>
+      <p
+        className="mt-3 font-display text-[1.2rem] leading-tight text-ink"
+        style={{ fontVariationSettings: '"opsz" 72, "wght" 540, "SOFT" 100' }}
+      >
+        <TypewriterText
+          text={`Rewriting the ${variant} variant…`}
+          speed={22}
+          caret
+        />
+      </p>
+      <ul className="mt-6 space-y-2.5 font-mono text-[11px] uppercase tracking-label text-ink-muted">
+        {lines.map((line, i) => (
+          <li key={i} className="flex items-center gap-3">
+            <span
+              className="inline-block h-[6px] w-[6px] rounded-full bg-forest"
+              style={{ animation: `dot-pulse 1.4s ease-in-out ${i * 0.18}s infinite` }}
+            />
+            <TypewriterText text={line} startDelay={i * 450} speed={20} />
+          </li>
+        ))}
+      </ul>
+    </motion.div>
   );
 }
 

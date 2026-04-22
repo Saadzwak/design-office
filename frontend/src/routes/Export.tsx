@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
 
 import DotStatus from "../components/ui/DotStatus";
+import TypewriterText from "../components/ui/TypewriterText";
 import VariantViewer from "../components/viewer/VariantViewer";
 import { useLiveScreenshots } from "../hooks/useLiveScreenshots";
 import {
@@ -225,6 +226,10 @@ export default function ExportRoute() {
                     )}
                   </div>
 
+                  {state.kind === "generating" && (
+                    <GeneratingPanel variant={STYLE_LABEL[chosenVariant.style]} scale={scale} />
+                  )}
+
                   {/* ───────── knobs (kept discreet) ───────── */}
                   <div className="mt-10 flex flex-wrap items-end gap-8 border-t border-hairline pt-6">
                     <div>
@@ -369,5 +374,47 @@ export default function ExportRoute() {
         </>
       )}
     </div>
+  );
+}
+
+function GeneratingPanel({ variant, scale }: { variant: string; scale: number }) {
+  const lines = [
+    `Opening the A1 sheet at 1:${scale}…`,
+    "Drawing the envelope, columns, cores, stairs…",
+    "Replaying the variant trace — workstations, rooms, booths…",
+    "Placing dimensions on the COTATIONS layer…",
+    "Composing the title-block cartouche…",
+    "Saving DXF + manifest to disk…",
+  ];
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35 }}
+      className="mt-8 rounded-md border border-hairline bg-raised/70 px-6 py-5"
+    >
+      <p className="eyebrow-forest">ezdxf · writing</p>
+      <p
+        className="mt-3 font-display text-[1.2rem] leading-tight text-ink"
+        style={{ fontVariationSettings: '"opsz" 72, "wght" 540, "SOFT" 100' }}
+      >
+        <TypewriterText
+          text={`Composing the ${variant.toLowerCase()} DXF…`}
+          speed={22}
+          caret
+        />
+      </p>
+      <ul className="mt-6 space-y-2.5 font-mono text-[11px] uppercase tracking-label text-ink-muted">
+        {lines.map((line, i) => (
+          <li key={i} className="flex items-center gap-3">
+            <span
+              className="inline-block h-[6px] w-[6px] rounded-full bg-forest"
+              style={{ animation: `dot-pulse 1.4s ease-in-out ${i * 0.15}s infinite` }}
+            />
+            <TypewriterText text={line} startDelay={i * 400} speed={18} />
+          </li>
+        ))}
+      </ul>
+    </motion.div>
   );
 }
