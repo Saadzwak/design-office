@@ -1,0 +1,26 @@
+{
+  "variants": [
+    {
+      "style": "villageois",
+      "status": "ok",
+      "zones_played": 120,
+      "screenshot": "C:\\Users\\redaz\\Desktop\\Design Office\\backend\\tests\\fixtures\\sketchup_variant_villageois.png",
+      "duration_s": 25.2
+    },
+    {
+      "style": "atelier",
+      "status": "ok",
+      "zones_played": 122,
+      "screenshot": "C:\\Users\\redaz\\Desktop\\Design Office\\backend\\tests\\fixtures\\sketchup_variant_atelier.png",
+      "duration_s": 25.2
+    },
+    {
+      "style": "hybride_flex",
+      "status": "ok",
+      "zones_played": 118,
+      "screenshot": "C:\\Users\\redaz\\Desktop\\Design Office\\backend\\tests\\fixtures\\sketchup_variant_hybride_flex.png",
+      "duration_s": 24.0
+    }
+  ],
+  "source": "C:\\Users\\redaz\\Desktop\\Design Office\\backend\\tests\\fixtures\\generate_output_sample.json"
+}

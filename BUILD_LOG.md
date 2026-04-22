@@ -878,10 +878,132 @@ needed during the demo.
 13 commits. All CLAUDE.md deliverables + Phase 8 bonus + previously-
 queued iterate endpoint shipped.
 
-**Still parallel** : SketchUp live branch. The TCP backend and plugins
-are ready ; cube smoke + Lumen replay scripts pre-staged. The live
-switch remains a 1-minute human action (Extensions → MCP Server →
-Start Server) away.
+---
+
+## Iter 12 — Live SketchUp connection fixed (2026-04-22T19:25Z)
+
+**Status** : setback resolved. Saad reported on startup :
+
+> Extension : Sketchup MCP (0.1.0) — Failed to load file (Could not
+> find included file 'su_mcp/main')
+
+### Root cause
+
+The mhyrr fork has a **double-nested layout** :
+
+```
+vendor/sketchup-mcp/
+├── su_mcp.rb                       ← OUTER bootstrap v0.1.0 (still valid code
+│                                     but expects main.rb one level up)
+└── su_mcp/
+    ├── extension.json
+    ├── package.rb
+    ├── su_mcp.rb                   ← INNER bootstrap v1.5.0 "Sketchup MCP Server"
+    └── su_mcp/
+        └── main.rb                 ← the real Server code
+```
+
+The original `vendor/sketchup-mcp/su_mcp.rb` registers the extension
+with `SketchupExtension.new('Sketchup MCP', 'su_mcp/main')`. That
+resolves to `Plugins/su_mcp/main.rb`. But the only `main.rb` in the
+vendor sits at `vendor/sketchup-mcp/su_mcp/su_mcp/main.rb` —
+one level deeper than expected.
+
+**Fix** : use the INNER bootstrap + a flattened `su_mcp/main.rb`.
+
+### Deployment applied
+
+- `Plugins/su_mcp.rb` ← `vendor/sketchup-mcp/su_mcp/su_mcp.rb` (v1.5.0)
+- `Plugins/su_mcp/main.rb` ← `vendor/sketchup-mcp/su_mcp/su_mcp/main.rb`
+- `Plugins/su_mcp/extension.json` ← `vendor/sketchup-mcp/su_mcp/extension.json`
+- `Plugins/design_office_extensions.rb` ← `sketchup-plugin/design_office_extensions.rb`
+
+### Verification sequence after restart
+
+Saad ran :
+
+```ruby
+defined?(SU_MCP)            # → "constant"
+defined?(DesignOffice)      # → "constant"
+DesignOffice.methods.grep(/^create/)
+# → [:create_workstation_cluster, :create_collab_zone,
+#    :create_meeting_room, :create_phone_booth, :create_partition_wall]
+```
+
+Both plugins loaded cleanly. Server started via Ruby Console :
+
+```ruby
+SU_MCP::Server.new.start
+# MCP: Starting server on localhost:9876...
+# MCP: Server created on port 9876
+# MCP: Server started and listening
+```
+
+### Smoke test
+
+`python scripts/sketchup_smoke_cube.py` :
+
+- Probe 127.0.0.1:9876 → reachable
+- `create_component` cube 1 m × 1 m × 1 m at origin → resource_id
+  30127, Success
+- `eval_ruby "defined?(DesignOffice)"` → "constant"
+- Cube visible in SketchUp viewport ✅
+
+### Live Lumen round-trip
+
+`python scripts/run_lumen_sketchup.py` — replays each of the 3 saved
+Lumen variants in SketchUp and captures an iso screenshot :
+
+| Variant       | Zones played | Duration | Screenshot |
+|---------------|-------------:|---------:|------------|
+| villageois    | 120          | 25.2 s   | 101 KB ✅  |
+| atelier       | 122          | 25.2 s   | 87 KB ✅   |
+| hybride_flex  | 118          | 24.0 s   | 84 KB ✅   |
+
+~360 TCP round-trips across the three variants. All 3 succeeded (the
+TCP retry loop added in `13e29b5` absorbed at least one initial
+connection hiccup at server startup).
+
+Artefacts persisted :
+
+- `backend/tests/fixtures/generate_live_sketchup.json` — per-variant
+  run metadata
+- `backend/tests/fixtures/sketchup_variant_villageois.png`
+- `backend/tests/fixtures/sketchup_variant_atelier.png`
+- `backend/tests/fixtures/sketchup_variant_hybride_flex.png`
+
+### What the screenshots show
+
+Each render is an iso-axis view of the 60 × 40 m plate at origin :
+
+- **Villageois** : multi-row workstation quartiers on both long sides,
+  collab island with meeting rooms central, distributed phone booths.
+- **Atelier** : single long row of workstations hugging the north
+  façade (confirming the parti pris declared by the agent), collab
+  rooms inside, deeper meeting rooms inward.
+- **Hybride flex** : colored collab zones are materialised — terracotta
+  town hall, ochre café, green biophilic zone, grey / blue partitions.
+  Brand-identity visible in 3D via the typed `create_collab_zone
+  style:` calls mapping to different Sketchup::Color materials.
+
+### Delta vs the original checklist in BUILD_LOG
+
+The original Saad-facing checklist was updated in iter-12 (commit
+`8d61d84`) to reflect the correct plugin layout. The relevant edit
+lives in **BLOCKERS.md B3** and the **Saad-facing live connection
+checklist — A. SketchUp Pro** section above.
+
+### Iter 12 — wrap (2026-04-22T19:40Z)
+
+SketchUp live integration **proven end-to-end**. Three variant 3D
+renders now exist on disk, ready for the demo video.
+
+The Justify argumentaire the Opus agents wrote ("postes en façade
+nord", "café sud de 260 m²") is now visually defensible — the
+atelier screenshot shows exactly that layout.
+
+**Next** : commit the live artefacts + script, then idle until the
+next Saad directive or until AutoCAD comes online.
 
 | Artefact | Format | Size | Path |
 |----------|--------|------|------|
