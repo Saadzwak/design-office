@@ -30,6 +30,7 @@ from app.surfaces.justify import (
     compile_default_surface as compile_justify_surface,
     pdf_path_for,
 )
+from app.surfaces.justify_pptx import pptx_path_for
 from app.surfaces.testfit import catalog_preview
 from app.surfaces.testfit import compile_default_surface as compile_testfit_surface
 from pydantic import BaseModel
@@ -172,6 +173,18 @@ def justify_pdf(pdf_id: str) -> FileResponse:
         path,
         media_type="application/pdf",
         filename=f"design-office-{pdf_id}.pdf",
+    )
+
+
+@app.get("/api/justify/pptx/{pptx_id}")
+def justify_pptx(pptx_id: str) -> FileResponse:
+    path = pptx_path_for(pptx_id)
+    if path is None:
+        raise HTTPException(status_code=404, detail=f"PPTX {pptx_id} not found.")
+    return FileResponse(
+        path,
+        media_type="application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        filename=f"design-office-{pptx_id}.pptx",
     )
 
 

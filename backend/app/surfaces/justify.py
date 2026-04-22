@@ -74,6 +74,7 @@ class JustifyResponse(BaseModel):
     sub_outputs: list[JustifySubOutput]
     tokens: dict[str, int]
     pdf_id: str | None = None
+    pptx_id: str | None = None
 
 
 _SUB_USER_TEMPLATE = """Client : {client_name} — language : {language}
@@ -197,12 +198,28 @@ class JustifySurface:
             variant=req.variant,
             argumentaire_markdown=cons_out.text,
         )
+        pptx_id: str | None = None
+        try:
+            from app.surfaces.justify_pptx import render_pitch_deck
+
+            pptx = render_pitch_deck(
+                client_name=req.client_name,
+                variant=req.variant,
+                argumentaire_markdown=cons_out.text,
+            )
+            pptx_id = pptx.pptx_id
+        except Exception:  # noqa: BLE001
+            # PowerPoint is a bonus artefact — if python-pptx is missing or the
+            # renderer hiccups on a weird input, leave `pptx_id` None so the
+            # PDF path still succeeds.
+            pptx_id = None
 
         return JustifyResponse(
             argumentaire=cons_out.text,
             sub_outputs=sub_outputs,
             tokens={"input": total_in, "output": total_out},
             pdf_id=pdf_id,
+            pptx_id=pptx_id,
         )
 
 

@@ -8,6 +8,7 @@ import {
   fetchLumenFixture,
   generateJustify,
   justifyPdfUrl,
+  justifyPptxUrl,
   type FloorPlan,
   type JustifyResponse,
   type JustifySubOutput,
@@ -239,6 +240,17 @@ export default function Justify() {
               rel="noreferrer"
             >
               Download client PDF
+            </a>
+          )}
+          {state.kind === "done" && state.response.pptx_id && (
+            <a
+              className="btn-ghost block w-full text-center"
+              href={justifyPptxUrl(state.response.pptx_id)}
+              target="_blank"
+              rel="noreferrer"
+              download
+            >
+              Download pitch deck (PPTX)
             </a>
           )}
           {state.kind === "error" && (

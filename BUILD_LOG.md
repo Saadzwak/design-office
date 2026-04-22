@@ -732,3 +732,75 @@ live switch if Saad returns.
 Parallel branch : SketchUp MCP still unreachable (server not started
 from the Extensions menu). All connection plumbing + smoke test +
 live replay script are pre-staged.
+
+---
+
+## Iter 10 — Phase 8 bonus: PowerPoint pitch deck (2026-04-22T18:42Z)
+
+**Status** : ✅ done, 6-slide deck rendered from the saved Lumen
+argumentaire and persisted as a demo fixture.
+
+### What landed
+
+**PPTX renderer** (`backend/app/surfaces/justify_pptx.py`, 355 lines)
+- 16:9 deck (13.333 × 7.5 in) with Design Office palette (ink
+  background, terracotta eyebrows, ochre rules, bone text)
+- 6 slides :
+  1. **Cover** — client name + variant title, 4-metric strapline,
+     date + MIT footer
+  2. **Le pari** — Section 1 of the argumentaire condensed to 1 100 chars
+  3. **Programme retenu** — 6 metric cards (postes / réunions / booths
+     / flex / collab m² / total) in rounded rectangles
+  4. **Ce que dit la recherche** — Section 2 digest + key sources
+     footer (Browning 2014, Nieuwenhuis 2014, Ulrich 1984, NF S 31-080,
+     Leesman 2024)
+  5. **Ce que dit la réglementation** — Section 3 digest + French
+     sources footer (arrêté 20 avril 2017, règlement sécurité ERP W,
+     R. 4222 / R. 4223, EN 12464-1)
+  6. **Prochaines étapes & KPIs** — Sections 5 + 6 in a 2-column
+     layout with project reference footer
+- `_split_argumentaire` parses the Markdown by numbered `## N.
+  Title` headings into a dict ; `_condense` strips bold/italic/code/
+  bullet markers and truncates with ellipsis
+- Resilient wiring : `JustifySurface.generate` catches any renderer
+  exception so a PPTX bug never breaks the PDF or the API response
+
+**JustifyResponse** : now carries `pptx_id: str | None` alongside
+`pdf_id`. Frontend surfaces a "Download pitch deck (PPTX)" button
+underneath the existing PDF button as soon as a `pptx_id` comes back.
+
+**HTTP**
+- `GET /api/justify/pptx/{pptx_id}` → streams the `.pptx` file with
+  `application/vnd.openxmlformats-officedocument.presentationml.presentation`
+
+**Tests** (21 passed total, +6 in `test_justify_pptx.py`) :
+- `_split_argumentaire` structure check (7 numbered sections parsed)
+- `_condense` strips Markdown + preserves bullet glyphs
+- Full 6-slide render with file ≥ 10 KB on disk, reopens as a valid
+  python-pptx Presentation with correct slide dimensions
+- `/api/justify/pptx/{id}` 404 path
+- `/api/justify/pptx/{id}` streams an existing file with the right
+  content-type
+- `PPTX_OUT_DIR` created on first render
+
+**Live artefact** : `scripts/run_lumen_pptx.py` re-runs the renderer
+against the saved Justify fixture without any Opus calls. Result :
+`backend/tests/fixtures/lumen_justify_pitch_deck.pptx` — **39 454
+bytes**, 6 slides, opens in PowerPoint / Keynote / Google Slides.
+
+### Iter 10 — wrap (2026-04-22T18:42Z)
+
+Phase 8 bonus in pocket. Full CLAUDE.md mission (Phases 1-7 + Phase 8
+item 2) now committed. Total hackathon deliverables stand at :
+
+| Artefact | Format | Size | Path |
+|----------|--------|------|------|
+| Brief | Markdown | 10 k chars | (consolidator output, shown in /brief) |
+| Test Fit variants | JSON | 133 KB | tests/fixtures/generate_output_sample.json |
+| Justify argumentaire | Markdown + JSON | 65 KB | tests/fixtures/justify_output_sample.json |
+| Justify PDF | A4 5-page PDF | 24 KB | app/out/justify/148727235162bc34.pdf |
+| **Justify pitch deck** | PPTX 6-slide 16:9 | **39 KB** | **tests/fixtures/lumen_justify_pitch_deck.pptx** |
+| Technical Export | A1 DXF | 168 KB | tests/fixtures/lumen_export_atelier.dxf |
+
+Still parallel : SketchUp live branch, waiting for `Extensions →
+MCP Server → Start Server`.

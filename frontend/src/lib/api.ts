@@ -183,6 +183,7 @@ export type JustifyResponse = {
   sub_outputs: JustifySubOutput[];
   tokens: { input: number; output: number };
   pdf_id: string | null;
+  pptx_id: string | null;
 };
 
 export type JustifyRequest = {
@@ -206,6 +207,10 @@ export async function generateJustify(req: JustifyRequest): Promise<JustifyRespo
 
 export function justifyPdfUrl(pdfId: string): string {
   return `/api/justify/pdf/${pdfId}`;
+}
+
+export function justifyPptxUrl(pptxId: string): string {
+  return `/api/justify/pptx/${pptxId}`;
 }
 
 // ---------------------------------------------------------------------------
