@@ -45,6 +45,20 @@ const config: Config = {
       transitionTimingFunction: {
         "out-expo": "cubic-bezier(0.16, 1, 0.3, 1)",
       },
+      keyframes: {
+        marquee: {
+          "0%": { transform: "translateX(0%)" },
+          "100%": { transform: "translateX(-50%)" },
+        },
+        shimmer: {
+          "0%": { backgroundPosition: "-200% 0" },
+          "100%": { backgroundPosition: "200% 0" },
+        },
+      },
+      animation: {
+        marquee: "marquee 40s linear infinite",
+        shimmer: "shimmer 2.2s ease-in-out infinite",
+      },
     },
   },
   plugins: [typography],

@@ -40,12 +40,18 @@
   .btn-primary {
     @apply inline-flex items-center gap-2 rounded-lg bg-terracotta px-5 py-2.5
            text-sm font-medium text-bone transition-colors duration-200 ease-out-expo
-           hover:bg-terracotta/90 focus:outline-none focus:ring-1 focus:ring-terracotta/60;
+           hover:bg-terracotta/90 focus:outline-none focus:ring-1 focus:ring-terracotta/60
+           disabled:cursor-not-allowed disabled:opacity-60;
   }
 
   .btn-ghost {
     @apply inline-flex items-center gap-2 rounded-lg border border-neutral-500/40
            px-5 py-2.5 text-sm font-medium text-bone-text transition-colors duration-200
            ease-out-expo hover:border-neutral-300/60 hover:bg-neutral-700/40;
+  }
+
+  .skeleton {
+    @apply rounded-md bg-gradient-to-r from-neutral-700/40 via-neutral-500/30
+           to-neutral-700/40 bg-[length:200%_100%] animate-shimmer;
   }
 }

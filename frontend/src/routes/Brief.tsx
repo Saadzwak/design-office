@@ -142,6 +142,40 @@ export default function Brief() {
       </aside>
 
       <AnimatePresence>
+        {run.kind === "running" && (
+          <motion.section
+            key="skeleton"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="lg:col-span-2"
+          >
+            <div className="mt-4 grid gap-6 lg:grid-cols-[1.6fr,1fr]">
+              <div className="space-y-3 rounded-2xl border border-neutral-500/20 bg-neutral-800/20 p-8">
+                <div className="skeleton h-7 w-1/2" />
+                <div className="skeleton h-4 w-4/5" />
+                <div className="skeleton h-4 w-3/4" />
+                <div className="h-2" />
+                <div className="skeleton h-5 w-1/3" />
+                <div className="skeleton h-4 w-full" />
+                <div className="skeleton h-4 w-full" />
+                <div className="skeleton h-4 w-2/3" />
+                <div className="h-2" />
+                <div className="skeleton h-5 w-1/3" />
+                <div className="skeleton h-4 w-full" />
+                <div className="skeleton h-4 w-5/6" />
+                <div className="skeleton h-4 w-4/5" />
+              </div>
+              <div className="space-y-3">
+                <div className="skeleton h-24 w-full rounded-xl" />
+                <div className="skeleton h-24 w-full rounded-xl" />
+                <div className="skeleton h-24 w-full rounded-xl" />
+                <div className="skeleton h-24 w-full rounded-xl" />
+              </div>
+            </div>
+          </motion.section>
+        )}
         {run.kind === "done" && (
           <motion.section
             key="programme"

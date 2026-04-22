@@ -683,3 +683,52 @@ the live fixtures and the MCP resources.
 Docs committed. Phase 6 (UI polish) is the only remaining phase per
 CLAUDE.md §13. Parallel SketchUp live branch still waiting on server
 start.
+
+---
+
+## Iter 09 — Phase 6 Polish (2026-04-22T18:20Z)
+
+**Status** : ✅ done.
+
+### What landed
+
+**Landing redesign** (`frontend/src/routes/Landing.tsx`)
+- Editorial hero with a 3-line Fraunces block at 84 px on desktop,
+  terracotta eyebrow in caps, 2-sentence pitch weighted on the
+  pain-point numbers.
+- **Live status rotator** — 5 messages cycling every 2.8 s
+  ("Vision HD reads your plans" → "Four researchers cite every
+  claim" → "One click, A1 DWG, five layers"), with a pulsing
+  terracotta dot.
+- **Stats strip** — 4 numbers with Fraunces display : 10 min end-to-
+  end, 2 700 lines sourced resources, 3 × 3 agents, 41 SKUs.
+- **How-it-works grid** — 4 step cards with Lucide icons, hover
+  colour-shift, soft terracotta glow on hover.
+- **Cited-not-invented marquee** — 14 sources auto-scroll with an
+  ink fade on each side, explainer paragraph on `[À VÉRIFIER]`
+  discipline.
+- **CTA strip** — terracotta + ochre blur backgrounds, dual CTA.
+
+**Tailwind keyframes** (`tailwind.config.ts`) — added `marquee` (40 s
+linear infinite) and `shimmer` (2.2 s ease-in-out) animations.
+
+**Loading skeletons** (`frontend/src/styles/globals.css`) — `.skeleton`
+utility class with shimmer gradient. Applied to the Brief page while
+agents run — 13 skeleton bars showing programme structure + 4 trace
+card placeholders. Per CLAUDE.md §11 : "états loading élégants
+(skeleton, pas spinners génériques)".
+
+**Disabled button polish** — `.btn-primary` now `disabled:opacity-60
+disabled:cursor-not-allowed`.
+
+**TS strict** — still clean.
+
+### Iter 09 — wrap (2026-04-22T18:20Z)
+
+Phase 6 committed. All seven phases per CLAUDE.md §13 are done. Phase
+8 (bonus) untouched by design — time is better spent on the SketchUp
+live switch if Saad returns.
+
+Parallel branch : SketchUp MCP still unreachable (server not started
+from the Extensions menu). All connection plumbing + smoke test +
+live replay script are pre-staged.
