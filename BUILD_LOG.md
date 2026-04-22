@@ -630,3 +630,56 @@ TCP backend has been upgraded from raw JSON to JSON-RPC 2.0 with
 `eval_ruby` dispatch into the DesignOffice module. Waiting for the
 server to be started from the Extensions menu to run the cube smoke
 test.
+
+---
+
+## Iter 08 — Phase 7 Documentation (2026-04-22T18:05Z)
+
+**Status** : ✅ done, shipped while waiting on the SketchUp live switch.
+
+### What landed
+
+- **`README.md`** — rewritten as the repo landing page (280 lines) :
+  pitch, 4-surface table, architecture diagram, 3-level orchestration
+  table, creative Opus 4.7 usage, repo layout, quick-start
+  (prerequisites → env → backend → frontend → launch), optional live
+  SketchUp + AutoCAD wiring, replay-without-GUI against the saved
+  fixtures.
+- **`docs/ARCHITECTURE.md`** — 11 sections, 383 lines : system
+  overview, three orchestration levels with sub-agent tables, Vision
+  HD fusion, MCP Resources index, Claude client retries + audit,
+  SketchUp and AutoCAD integrations, data contract, frontend
+  architecture, deployment posture, tests.
+- **`docs/DEMO_SCRIPT.md`** — 163 lines : 3-minute video shot-by-shot
+  with timestamps, recording notes, contingencies if a surface breaks
+  mid-take, written-submission checklist.
+- **`docs/USE_CASE.md`** — 307 lines : full Lumen walkthrough with
+  **real numbers** from the live fixtures (53 k / 15 k tokens for
+  Brief, 142 k / 22 k for Test Fit, 148 k / 22 k for Justify, 168 KB
+  DXF for Export). Reviewer issues captured verbatim, consolidator
+  excerpts quoted.
+- **`docs/HACKATHON_SUMMARY.md`** — 181 lines : written submission
+  summary per the format hint in CLAUDE.md §18. Problem / solution /
+  creative Opus usage / business impact / tech / artefacts / status
+  at day-0 / future work / acknowledgements.
+
+Total documentation : **1 314 lines** of Markdown, all cross-linked to
+the live fixtures and the MCP resources.
+
+### Coverage check against CLAUDE.md §18
+
+| Required section | Addressed |
+|------------------|-----------|
+| Problem | ✓ — Problem section in HACKATHON_SUMMARY + use case in USE_CASE |
+| Solution | ✓ — 4-surface breakdown in HACKATHON_SUMMARY and README |
+| Creative Opus 4.7 | ✓ — dedicated section in both summary and architecture |
+| MCP | ✓ — SketchUp + AutoCAD dual integration documented in architecture |
+| Tech | ✓ — stack list in summary, deep dive in architecture |
+| Business impact | ✓ — GTM path, WTP per segment, TAM in summary |
+| Future | ✓ — Revit + IFC + occupancy integration enumerated |
+
+### Iter 08 — wrap (2026-04-22T18:05Z)
+
+Docs committed. Phase 6 (UI polish) is the only remaining phase per
+CLAUDE.md §13. Parallel SketchUp live branch still waiting on server
+start.
