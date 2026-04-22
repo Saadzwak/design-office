@@ -1,12 +1,11 @@
 """FastAPI entrypoint for the Design Office backend."""
 
-import json
 import tempfile
 from pathlib import Path
 
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from fastapi.responses import FileResponse
 
 from app import __version__
 from app.config import get_settings
@@ -19,8 +18,15 @@ from app.surfaces.brief import (
     compile_default_surface,
     preview_resources_manifest,
 )
+from app.surfaces.justify import (
+    JustifyRequest,
+    JustifyResponse,
+    compile_default_surface as compile_justify_surface,
+    pdf_path_for,
+)
 from app.surfaces.testfit import catalog_preview
 from app.surfaces.testfit import compile_default_surface as compile_testfit_surface
+from pydantic import BaseModel
 
 FIXTURE_PDF = Path(__file__).resolve().parent / "data" / "fixtures" / "lumen_plan.pdf"
 
@@ -132,4 +138,32 @@ def testfit_generate(payload: TestFitGenerateRequest) -> TestFitResponse:
         programme_markdown=payload.programme_markdown,
         client_name=payload.client_name,
         styles=styles,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Surface 3 — Justify
+# ---------------------------------------------------------------------------
+
+
+@app.post("/api/justify/generate", response_model=JustifyResponse)
+def justify_generate(payload: JustifyRequest) -> JustifyResponse:
+    if not settings.anthropic_api_key:
+        raise HTTPException(
+            status_code=503,
+            detail="ANTHROPIC_API_KEY is not loaded.",
+        )
+    surface = compile_justify_surface()
+    return surface.generate(payload)
+
+
+@app.get("/api/justify/pdf/{pdf_id}")
+def justify_pdf(pdf_id: str) -> FileResponse:
+    path = pdf_path_for(pdf_id)
+    if path is None:
+        raise HTTPException(status_code=404, detail=f"PDF {pdf_id} not found.")
+    return FileResponse(
+        path,
+        media_type="application/pdf",
+        filename=f"design-office-{pdf_id}.pdf",
     )

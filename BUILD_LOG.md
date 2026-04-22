@@ -454,6 +454,103 @@ directive.
 
 ---
 
-## Iter 06 — Phase 4 Justify
+## Iter 06 — Phase 4 Justify (2026-04-22T16:55Z)
 
-_In progress after this log entry._
+**Status** : ✅ done, live round-trip validated, ReportLab PDF shipped.
+
+### What landed
+
+**Level-3 orchestration — Research & Cite** (`backend/app/surfaces/justify.py`)
+- Four research agents run in parallel, each with a specialty prompt and a
+  curated subset of MCP resources :
+  - **Acoustic** → `acoustic-standards.md` + `collaboration-spaces.md` +
+    `neuroarchitecture.md` (Hongisto STI cost is cross-cutting)
+  - **Biophilic** → `neuroarchitecture.md` + `biophilic-office.md` +
+    `ergonomic-workstation.md`
+  - **Regulatory** → `pmr-requirements.md` + `erp-safety.md` +
+    `ergonomic-workstation.md`
+  - **Programming** → `office-programming.md` + `flex-ratios.md` +
+    `collaboration-spaces.md`
+- Each agent emits a structured Markdown block matching a strict
+  system-prompt template (enjeu / cibles / moves / évidence / KPIs /
+  sources).
+- A **Consolidator** merges the 4 memos into a single 900 – 1 500-word
+  client-facing argumentaire with 7 fixed sections (`1. Le pari` →
+  `7. Sources`).
+- **Hard rules** enforced in every prompt : no fabrication, `[À VÉRIFIER]`
+  markers carry through, match brief language, single Markdown output.
+- Default sub-agent `max_tokens = 6000`, consolidator `max_tokens = 8000`.
+
+**Prompts** (`backend/app/prompts/agents/justify_*.md`) : 5 new files
+covering Acoustic / Biophilic / Regulatory / Programming / Consolidator.
+
+**ReportLab client PDF**
+- `_render_client_pdf()` in `surfaces/justify.py` : A4, 2 cm margins,
+  section 11 palette (terracotta accent, ochre rules), custom paragraph
+  styles, minimal Markdown parser (`_markdown_blocks` + `_inline_md_to_rl`)
+  covering headings, bullets, bold / italic / code / links, rules, page
+  breaks.
+- Output path : `backend/app/out/justify/<pdf_id>.pdf` — hash-derived ID,
+  directory gitignored.
+
+**HTTP**
+- `POST /api/justify/generate` → JustifyResponse with argumentaire,
+  sub-outputs, tokens, pdf_id
+- `GET /api/justify/pdf/{pdf_id}` → streams the rendered PDF back
+
+**Frontend** `/justify` (`frontend/src/routes/Justify.tsx`)
+- Reads the retained Test Fit result from `localStorage`
+  (persisted by `/testfit` on each generation) OR falls back to the
+  Lumen fixture.
+- Variant selector (3 options, coloured dot per reviewer verdict).
+- Brief + programme textareas with localStorage persistence for cross-page
+  continuity.
+- "Generate sourced argumentaire" button → calls the endpoint.
+- Consolidated argumentaire rendered with `react-markdown` inside a
+  prose-styled panel ; per-agent trace cards expand on demand.
+- "Download client PDF" button (ghost style) once `pdf_id` is available.
+
+### Live round-trip results
+
+Selected variant : **atelier** (reviewer verdict `approved_with_notes`)
+
+| Agent        | Tokens in | Tokens out | Duration |
+|--------------|-----------|------------|----------|
+| Acoustic     | 40 243    | 3 138      | 65.3 s   |
+| Biophilic    | 38 483    | 3 898      | 82.6 s   |
+| Regulatory   | 24 647    | 4 500 *    | 86.0 s   |
+| Programming  | 28 492    | 3 919      | 71.3 s   |
+| Consolidator | 16 733    | 7 038      | 139.7 s  |
+| **Total**    | **148 598** | **22 493** | 229 s   |
+
+`*` Regulatory hit the original 4500 max ; raised default to 6000 for
+safety. Output was still usable (cleanly terminated before max).
+
+**Output** :
+- `backend/tests/fixtures/justify_output_sample.json` — 65 KB, 14 242
+  chars consolidated argumentaire, all 7 sections present, every
+  sub-agent memo preserved.
+- `backend/app/out/justify/148727235162bc34.pdf` — 24 KB, 5-page A4
+  document, confirmed valid PDF 1.4.
+
+### Tests (12 passed total)
+
+Added `backend/tests/test_justify.py` — 4 tests covering :
+- Markdown-block parser structure (headings / bullets / rules)
+- PDF rendering round-trip (hash-derived filename, non-empty file)
+- `/api/justify/pdf/{pdf_id}` 404 on missing id
+- Shape check on the saved Lumen justify fixture (5 agents, consolidator
+  present)
+
+`tsc -b --noEmit` : clean on frontend.
+
+### Budget for this iter
+
+148 598 input + 22 493 output = ~170 k tokens for one full client-ready
+argumentaire with a 5-page PDF.
+
+### Iter 06 — Phase 4 wrap (2026-04-22T16:55Z)
+
+Committed and Phase 5 queued for the next wake (Export — Surface 4,
+AutoCAD DWG A1, 2 h target ; backend helper already exists, needs wiring
+into a surface + endpoint + frontend).

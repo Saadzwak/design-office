@@ -1,0 +1,429 @@
+"""Surface 3 — Justify (Research & Cite Level-3 orchestration)."""
+
+from __future__ import annotations
+
+import hashlib
+import json
+from concurrent.futures import ThreadPoolExecutor
+from dataclasses import dataclass
+from pathlib import Path
+
+from pydantic import BaseModel, Field
+
+from app.agents.orchestrator import Orchestration, SubAgent
+from app.claude_client import ClaudeClient
+from app.models import FloorPlan, VariantOutput, VariantStyle
+
+BACKEND_ROOT = Path(__file__).resolve().parent.parent
+PROMPTS_DIR = BACKEND_ROOT / "prompts" / "agents"
+RESOURCES_DIR = BACKEND_ROOT / "data" / "resources"
+BENCHMARKS_DIR = BACKEND_ROOT / "data" / "benchmarks"
+OUT_DIR = BACKEND_ROOT / "out" / "justify"
+
+RESOURCES_FOR_ACOUSTIC = [
+    "acoustic-standards.md",
+    "collaboration-spaces.md",
+    "neuroarchitecture.md",  # Hongisto cognitive cost
+]
+RESOURCES_FOR_BIOPHILIC = [
+    "neuroarchitecture.md",
+    "biophilic-office.md",
+    "ergonomic-workstation.md",
+]
+RESOURCES_FOR_REGULATORY = [
+    "pmr-requirements.md",
+    "erp-safety.md",
+    "ergonomic-workstation.md",
+]
+RESOURCES_FOR_PROGRAMMING = [
+    "office-programming.md",
+    "flex-ratios.md",
+    "collaboration-spaces.md",
+]
+
+
+def _read(path: Path) -> str:
+    return path.read_text(encoding="utf-8")
+
+
+def _load_resources(filenames: list[str]) -> str:
+    return "\n\n---\n\n".join(
+        f"# FILE: design://{(RESOURCES_DIR / n).stem}\n\n{_read(RESOURCES_DIR / n)}"
+        for n in filenames
+    )
+
+
+class JustifyRequest(BaseModel):
+    client_name: str = Field(default="Client")
+    brief: str = Field(..., min_length=50)
+    programme_markdown: str = Field(..., min_length=50)
+    floor_plan: FloorPlan
+    variant: VariantOutput
+    language: str = "fr"
+
+
+class JustifySubOutput(BaseModel):
+    name: str
+    text: str
+    tokens: dict[str, int]
+    duration_ms: int
+
+
+class JustifyResponse(BaseModel):
+    argumentaire: str
+    sub_outputs: list[JustifySubOutput]
+    tokens: dict[str, int]
+    pdf_id: str | None = None
+
+
+_SUB_USER_TEMPLATE = """Client : {client_name} — language : {language}
+
+<brief>
+{brief}
+</brief>
+
+<programme>
+{programme_markdown}
+</programme>
+
+<floor_plan>
+{floor_plan_json}
+</floor_plan>
+
+<variant>
+{variant_json}
+</variant>
+
+<resources_excerpts>
+{resources}
+</resources_excerpts>
+
+Respond per your system instructions. Return only the Markdown block."""
+
+
+_CONSOLIDATOR_USER = """Client : {client_name} — language : {language}
+
+Sub-agent memos (concatenated in order Acoustic / Biophilic / Regulatory /
+Programming) :
+
+<sub_outputs>
+{sub_outputs}
+</sub_outputs>
+
+Produce the consolidated argumentaire per your system instructions."""
+
+
+@dataclass
+class JustifySurface:
+    orchestration: Orchestration
+
+    def _sub_agent(self, name: str, prompt_file: str, max_tokens: int = 6000) -> SubAgent:
+        return SubAgent(
+            name=name,
+            system_prompt=_read(PROMPTS_DIR / prompt_file),
+            user_template=_SUB_USER_TEMPLATE,
+            max_tokens=max_tokens,
+        )
+
+    def _consolidator_agent(self) -> SubAgent:
+        return SubAgent(
+            name="Consolidator",
+            system_prompt=_read(PROMPTS_DIR / "justify_consolidator.md"),
+            user_template=_CONSOLIDATOR_USER,
+            max_tokens=8000,
+        )
+
+    def generate(self, req: JustifyRequest) -> JustifyResponse:
+        agents = [
+            ("Acoustic", self._sub_agent("Acoustic", "justify_acoustic.md"), RESOURCES_FOR_ACOUSTIC),
+            ("Biophilic", self._sub_agent("Biophilic", "justify_biophilic.md"), RESOURCES_FOR_BIOPHILIC),
+            ("Regulatory", self._sub_agent("Regulatory", "justify_regulatory.md"), RESOURCES_FOR_REGULATORY),
+            ("Programming", self._sub_agent("Programming", "justify_programming.md"), RESOURCES_FOR_PROGRAMMING),
+        ]
+
+        floor_plan_json = req.floor_plan.model_dump_json()
+        variant_json = req.variant.model_dump_json()
+        base_ctx = {
+            "client_name": req.client_name,
+            "language": req.language,
+            "brief": req.brief,
+            "programme_markdown": req.programme_markdown,
+            "floor_plan_json": floor_plan_json,
+            "variant_json": variant_json,
+        }
+
+        def _run(name: str, agent: SubAgent, resource_files: list[str]) -> tuple[str, object]:
+            ctx = dict(base_ctx)
+            ctx["resources"] = _load_resources(resource_files)
+            return name, self.orchestration.run_subagent(agent, ctx, tag="justify.research")
+
+        with ThreadPoolExecutor(max_workers=len(agents)) as pool:
+            futures = [pool.submit(_run, n, a, r) for n, a, r in agents]
+            results = [f.result() for f in futures]
+
+        sub_outputs = [
+            JustifySubOutput(
+                name=name,
+                text=out.text,
+                tokens={"input": out.input_tokens, "output": out.output_tokens},
+                duration_ms=out.duration_ms,
+            )
+            for name, out in results
+        ]
+
+        consolidator = self._consolidator_agent()
+        consolidator_ctx = dict(base_ctx)
+        consolidator_ctx["sub_outputs"] = "\n\n---\n\n".join(
+            f"# {s.name}\n\n{s.text}" for s in sub_outputs
+        )
+        cons_out = self.orchestration.run_subagent(
+            consolidator, consolidator_ctx, tag="justify.consolidate"
+        )
+
+        sub_outputs.append(
+            JustifySubOutput(
+                name=cons_out.name,
+                text=cons_out.text,
+                tokens={"input": cons_out.input_tokens, "output": cons_out.output_tokens},
+                duration_ms=cons_out.duration_ms,
+            )
+        )
+
+        total_in = sum(s.tokens["input"] for s in sub_outputs)
+        total_out = sum(s.tokens["output"] for s in sub_outputs)
+
+        pdf_id = _render_client_pdf(
+            client_name=req.client_name,
+            variant=req.variant,
+            argumentaire_markdown=cons_out.text,
+        )
+
+        return JustifyResponse(
+            argumentaire=cons_out.text,
+            sub_outputs=sub_outputs,
+            tokens={"input": total_in, "output": total_out},
+            pdf_id=pdf_id,
+        )
+
+
+def compile_default_surface() -> JustifySurface:
+    return JustifySurface(orchestration=Orchestration(client=ClaudeClient()))
+
+
+# ---------------------------------------------------------------------------
+# PDF generation — ReportLab
+# ---------------------------------------------------------------------------
+
+
+def _render_client_pdf(
+    *, client_name: str, variant: VariantOutput, argumentaire_markdown: str
+) -> str:
+    """Render the consolidated argumentaire to an A4 PDF. Returns the `pdf_id`
+    used to retrieve it via GET /api/justify/pdf/{pdf_id}.
+    """
+
+    from reportlab.lib.enums import TA_JUSTIFY, TA_LEFT
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+    from reportlab.lib.units import cm
+    from reportlab.platypus import (
+        HRFlowable,
+        PageBreak,
+        Paragraph,
+        SimpleDocTemplate,
+        Spacer,
+    )
+
+    OUT_DIR.mkdir(parents=True, exist_ok=True)
+    pdf_id = hashlib.sha1(
+        f"{client_name}:{variant.style.value}:{argumentaire_markdown[:500]}".encode("utf-8")
+    ).hexdigest()[:16]
+    pdf_path = OUT_DIR / f"{pdf_id}.pdf"
+
+    styles = getSampleStyleSheet()
+    base_font = "Helvetica"
+
+    hero_style = ParagraphStyle(
+        "DOHero",
+        parent=styles["Title"],
+        fontName="Helvetica-Bold",
+        fontSize=24,
+        leading=30,
+        textColor="#181816",
+        spaceAfter=6,
+    )
+    eyebrow_style = ParagraphStyle(
+        "DOEyebrow",
+        parent=styles["Normal"],
+        fontName="Courier-Bold",
+        fontSize=9,
+        leading=11,
+        textColor="#C9694E",
+        spaceAfter=12,
+    )
+    h2_style = ParagraphStyle(
+        "DOH2",
+        parent=styles["Heading2"],
+        fontName="Helvetica-Bold",
+        fontSize=15,
+        leading=19,
+        textColor="#22211E",
+        spaceBefore=14,
+        spaceAfter=6,
+    )
+    h3_style = ParagraphStyle(
+        "DOH3",
+        parent=styles["Heading3"],
+        fontName="Helvetica-Bold",
+        fontSize=12,
+        leading=15,
+        textColor="#34332F",
+        spaceBefore=10,
+        spaceAfter=4,
+    )
+    body_style = ParagraphStyle(
+        "DOBody",
+        parent=styles["BodyText"],
+        fontName=base_font,
+        fontSize=10.5,
+        leading=14.5,
+        textColor="#181816",
+        alignment=TA_JUSTIFY,
+        spaceAfter=6,
+    )
+    bullet_style = ParagraphStyle(
+        "DOBullet",
+        parent=body_style,
+        leftIndent=14,
+        bulletIndent=0,
+        alignment=TA_LEFT,
+    )
+
+    doc = SimpleDocTemplate(
+        str(pdf_path),
+        pagesize=A4,
+        leftMargin=2 * cm,
+        rightMargin=2 * cm,
+        topMargin=2.2 * cm,
+        bottomMargin=2 * cm,
+        title=f"Design Office — {client_name}",
+        author="Design Office",
+    )
+
+    story: list = []
+    story.append(Paragraph("Design Office — argumentaire", eyebrow_style))
+    story.append(Paragraph(f"{client_name} · variante « {variant.title} »", hero_style))
+    story.append(
+        Paragraph(
+            f"Parti : {variant.style.value.replace('_', ' ')} · {variant.metrics.workstation_count} postes · "
+            f"flex ratio {variant.metrics.flex_ratio_applied:.2f} · "
+            f"total programmé ≈ {round(variant.metrics.total_programmed_m2)} m²",
+            body_style,
+        )
+    )
+    story.append(Spacer(1, 6))
+    story.append(HRFlowable(color="#A68A5B", thickness=0.7, width="100%"))
+    story.append(Spacer(1, 12))
+
+    for block in _markdown_blocks(argumentaire_markdown):
+        kind, text = block
+        if kind == "h1":
+            story.append(Paragraph(text, hero_style))
+        elif kind == "h2":
+            story.append(Paragraph(text, h2_style))
+        elif kind == "h3":
+            story.append(Paragraph(text, h3_style))
+        elif kind == "bullet":
+            story.append(Paragraph("• " + text, bullet_style))
+        elif kind == "rule":
+            story.append(HRFlowable(color="#A68A5B", thickness=0.4, width="100%"))
+            story.append(Spacer(1, 6))
+        elif kind == "pagebreak":
+            story.append(PageBreak())
+        else:
+            story.append(Paragraph(text, body_style))
+
+    doc.build(story)
+    return pdf_id
+
+
+def pdf_path_for(pdf_id: str) -> Path | None:
+    candidate = OUT_DIR / f"{pdf_id}.pdf"
+    return candidate if candidate.exists() else None
+
+
+def _markdown_blocks(md: str) -> list[tuple[str, str]]:
+    """Very small Markdown → block iterator : headings, bullets, paragraphs,
+    rules. No nested lists, no code blocks — the consolidator output is
+    clean.
+    """
+
+    blocks: list[tuple[str, str]] = []
+    buffer: list[str] = []
+
+    def flush_paragraph() -> None:
+        if buffer:
+            text = " ".join(b.strip() for b in buffer).strip()
+            if text:
+                blocks.append(("p", _inline_md_to_rl(text)))
+        buffer.clear()
+
+    for raw_line in md.splitlines():
+        line = raw_line.rstrip()
+        if not line.strip():
+            flush_paragraph()
+            continue
+        if line.startswith("# "):
+            flush_paragraph()
+            blocks.append(("h1", _inline_md_to_rl(line[2:].strip())))
+        elif line.startswith("## "):
+            flush_paragraph()
+            blocks.append(("h2", _inline_md_to_rl(line[3:].strip())))
+        elif line.startswith("### "):
+            flush_paragraph()
+            blocks.append(("h3", _inline_md_to_rl(line[4:].strip())))
+        elif line.startswith("- "):
+            flush_paragraph()
+            blocks.append(("bullet", _inline_md_to_rl(line[2:].strip())))
+        elif line.startswith("* "):
+            flush_paragraph()
+            blocks.append(("bullet", _inline_md_to_rl(line[2:].strip())))
+        elif line.strip() == "---":
+            flush_paragraph()
+            blocks.append(("rule", ""))
+        else:
+            buffer.append(line)
+    flush_paragraph()
+    return blocks
+
+
+def _inline_md_to_rl(text: str) -> str:
+    """Translate the subset of inline Markdown we emit into ReportLab HTML
+    tags. Bold **x** → <b>x</b>, italic *x* → <i>x</i>, links [t](u) →
+    <link href="u" color="#C9694E">t</link>, inline code `c` → <font
+    face="Courier">c</font>.
+    """
+
+    import re
+
+    def bold(m: re.Match[str]) -> str:
+        return f"<b>{m.group(1)}</b>"
+
+    def italic(m: re.Match[str]) -> str:
+        return f"<i>{m.group(1)}</i>"
+
+    def code(m: re.Match[str]) -> str:
+        return f'<font face="Courier">{m.group(1)}</font>'
+
+    def link(m: re.Match[str]) -> str:
+        label = m.group(1)
+        url = m.group(2).replace("&", "&amp;")
+        return f'<link href="{url}" color="#C9694E">{label}</link>'
+
+    # Escape XML-reserved before inserting tags, but preserve our own tags afterwards.
+    text = text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    text = re.sub(r"\*\*(.+?)\*\*", bold, text)
+    text = re.sub(r"(?<!\*)\*([^*\n]+?)\*(?!\*)", italic, text)
+    text = re.sub(r"`([^`]+)`", code, text)
+    text = re.sub(r"\[([^\]]+?)\]\(([^)]+?)\)", link, text)
+    return text

@@ -166,3 +166,44 @@ export async function generateTestFit(req: TestFitGenerateRequest): Promise<Test
   if (!r.ok) throw new Error(await r.text());
   return r.json();
 }
+
+// ---------------------------------------------------------------------------
+// Justify surface (Phase 4)
+// ---------------------------------------------------------------------------
+
+export type JustifySubOutput = {
+  name: string;
+  text: string;
+  tokens: { input: number; output: number };
+  duration_ms: number;
+};
+
+export type JustifyResponse = {
+  argumentaire: string;
+  sub_outputs: JustifySubOutput[];
+  tokens: { input: number; output: number };
+  pdf_id: string | null;
+};
+
+export type JustifyRequest = {
+  client_name: string;
+  brief: string;
+  programme_markdown: string;
+  floor_plan: FloorPlan;
+  variant: VariantOutput;
+  language?: "fr" | "en";
+};
+
+export async function generateJustify(req: JustifyRequest): Promise<JustifyResponse> {
+  const r = await fetch("/api/justify/generate", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(req),
+  });
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+
+export function justifyPdfUrl(pdfId: string): string {
+  return `/api/justify/pdf/${pdfId}`;
+}

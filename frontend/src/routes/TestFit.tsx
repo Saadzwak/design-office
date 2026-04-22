@@ -78,6 +78,18 @@ export default function TestFit() {
         styles: STYLES,
       });
       localStorage.setItem("design-office.programme", programme || FALLBACK_PROGRAMME);
+      try {
+        localStorage.setItem(
+          "design-office.testfit.result",
+          JSON.stringify({
+            floor_plan: result.floor_plan,
+            variants: result.variants,
+            verdicts: result.verdicts,
+          }),
+        );
+      } catch {
+        // LocalStorage may be full ; ignore, Justify falls back to the fixture.
+      }
       setState({ kind: "done", plan, result });
     } catch (err) {
       setState({ kind: "error", message: String(err) });
