@@ -312,6 +312,11 @@ export type TestFitGenerateRequest = {
   programme_markdown: string;
   client_name?: string;
   styles?: Array<"villageois" | "atelier" | "hybride_flex">;
+  // iter-21a (Saad, 2026-04-24) : raw brief + client industry feed the
+  // Parti Pris Proposer stage so the 3 variants reflect THIS project's
+  // use case and vocabulary — not the hardcoded tertiary-office moulds.
+  brief?: string;
+  client_industry?: string;
 };
 
 export async function generateTestFit(req: TestFitGenerateRequest): Promise<TestFitResponse> {

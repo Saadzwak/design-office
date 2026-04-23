@@ -286,6 +286,12 @@ class TestFitGenerateRequest(BaseModel):
     programme_markdown: str
     client_name: str = "Client"
     styles: list[VariantStyle] | None = None
+    # iter-21a (Saad, 2026-04-24) : the raw brief + client industry are
+    # now forwarded so the Parti Pris Proposer can tailor the 3 variants
+    # to THIS project. Optional for backward compat — empty strings fall
+    # back to the legacy hardcoded archetypes.
+    brief: str = ""
+    client_industry: str = ""
 
 
 @app.post("/api/testfit/generate", response_model=TestFitResponse)
@@ -306,6 +312,8 @@ def testfit_generate(payload: TestFitGenerateRequest) -> TestFitResponse:
         programme_markdown=payload.programme_markdown,
         client_name=payload.client_name,
         styles=styles,
+        brief=payload.brief,
+        client_industry=payload.client_industry,
     )
 
 

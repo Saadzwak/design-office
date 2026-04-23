@@ -75,6 +75,30 @@ class TestFitRequest(BaseModel):
     )
     programme_markdown: str = Field(..., description="Output of the Brief surface.")
     client_name: str = "Client"
+    # iter-21a (Saad, 2026-04-24) : project specificity was leaking out of
+    # the Test Fit pipeline because the raw brief + industry were never
+    # sent to the variant generator — only the distilled programme. With
+    # these two fields in the request, the new Parti Pris Proposer stage
+    # can tailor the 3 partis pris to THIS project (use case, vocabulary,
+    # building typology) instead of the hardcoded Villageois / Atelier /
+    # Hybride Flex archetypes.
+    brief: str = Field(
+        default="",
+        description=(
+            "The raw client brief (free-text). When supplied, the Parti "
+            "Pris Proposer uses it to tailor the 3 partis pris to this "
+            "project's use case and vocabulary. Empty string falls back "
+            "to the hardcoded tertiary-office archetypes."
+        ),
+    )
+    client_industry: str = Field(
+        default="",
+        description=(
+            "Client industry tag (tech_startup, law_firm, creative_agency, "
+            "bank_insurance, consulting, healthcare, public_sector, other). "
+            "Steers the Proposer away from generic bureau moulds."
+        ),
+    )
     use_vision: bool = Field(
         default=True, description="Route the plan through Opus Vision HD when parsing."
     )
@@ -91,10 +115,25 @@ class TestFitRequest(BaseModel):
     )
 
 
-_VARIANT_USER = """Client name : {client_name}
-Style directive : {style_value}
+_VARIANT_USER = """Client : {client_name}
+Industry : {client_industry}
+Style classification (for SketchUp routing, NOT for client narrative) : {style_value}
 
-Client brief and consolidated programme :
+Client brief (the source of truth — use its vocabulary, reference its
+constraints directly in your title + narrative) :
+
+<brief>
+{brief}
+</brief>
+
+Parti pris directive for THIS slot — tailored to this project by the
+Parti Pris Proposer (follow it ; your title must echo its title) :
+
+<parti_pris_directive>
+{parti_pris_directive}
+</parti_pris_directive>
+
+Consolidated programme (respect quantities ± 5 %) :
 
 <programme>
 {programme_markdown}
@@ -125,6 +164,38 @@ Relevant MCP resources :
 </resources_excerpts>
 
 Emit the JSON plan per your system instructions. Return only the JSON."""
+
+
+_PROPOSER_USER = """Client : {client_name}
+Industry : {client_industry}
+
+Raw brief :
+
+<brief>
+{brief}
+</brief>
+
+Consolidated programme :
+
+<programme>
+{programme_markdown}
+</programme>
+
+Floor plan envelope (for physical plausibility — plate shape, depth,
+column grid, cores, facade orientation) :
+
+<floor_plan_json>
+{floor_plan_json}
+</floor_plan_json>
+
+Furniture catalogue (for procurement hints) :
+
+<catalog_json>
+{catalog_json}
+</catalog_json>
+
+Propose exactly 3 partis pris per your system instructions. Return
+only the JSON."""
 
 
 _REVIEWER_USER = """Floor plan :
@@ -201,6 +272,87 @@ class TestFitSurface:
             max_tokens=2000,
         )
 
+    def _proposer_agent(self) -> SubAgent:
+        return SubAgent(
+            name="PartiPrisProposer",
+            system_prompt=_read(PROMPTS_DIR / "testfit_parti_pris_proposer.md"),
+            user_template=_PROPOSER_USER,
+            # 3 partis pris × ~600 tokens each + JSON overhead ≈ 2.5 k.
+            # Give 4 k to be safe on a chatty Opus.
+            max_tokens=4000,
+        )
+
+    def _propose_partis_pris(
+        self,
+        base_context: dict[str, str],
+        styles: list[VariantStyle],
+    ) -> dict[VariantStyle, str]:
+        """Run the Parti Pris Proposer and return a `{style: directive}`
+        map ready to splice into each variant generator's context.
+
+        iter-21a (Saad, 2026-04-24) : this is the fix for the "the 3
+        variants feel random, they don't reflect the project" bug. The
+        proposer sees the brief + industry + programme + envelope and
+        proposes 3 project-tailored partis pris. If it fails for any
+        reason — parse error, empty brief, API glitch — we log a note
+        and fall back to the hardcoded archetypes so the surface never
+        blocks on this new stage.
+        """
+
+        if not base_context.get("brief") or base_context["brief"].startswith(
+            "(no raw brief"
+        ):
+            # Without a brief the proposer has nothing project-specific
+            # to anchor on. Fall back cleanly to the legacy archetypes.
+            return {s: _fallback_parti_pris_directive(s) for s in styles}
+
+        try:
+            agent = self._proposer_agent()
+            ctx = dict(base_context)
+            ctx.pop("parti_pris_directive", None)
+            out = self.orchestration.run_subagent(
+                agent, ctx, tag="testfit.parti_pris_proposer"
+            )
+            payload = json.loads(_strip_json(out.text))
+            proposals = payload.get("partis_pris", [])
+            if not isinstance(proposals, list) or len(proposals) == 0:
+                return {s: _fallback_parti_pris_directive(s) for s in styles}
+
+            # Map each proposal to a style slot. Prefer the proposal's
+            # own `style_classification` when it matches a requested
+            # style ; otherwise assign in order (first proposal → first
+            # style) so every requested slot has a directive.
+            by_style: dict[VariantStyle, str] = {}
+            leftovers: list[dict] = []
+            for p in proposals:
+                if not isinstance(p, dict):
+                    continue
+                raw_cls = str(p.get("style_classification", "")).lower().strip()
+                target: VariantStyle | None = None
+                for s in styles:
+                    if s.value == raw_cls and s not in by_style:
+                        target = s
+                        break
+                if target is not None:
+                    by_style[target] = _parti_pris_to_directive_text(p)
+                else:
+                    leftovers.append(p)
+
+            # Assign any leftovers to any still-empty style slots.
+            for s in styles:
+                if s in by_style:
+                    continue
+                if leftovers:
+                    by_style[s] = _parti_pris_to_directive_text(leftovers.pop(0))
+                else:
+                    by_style[s] = _fallback_parti_pris_directive(s)
+            return by_style
+        except Exception:  # noqa: BLE001
+            # Any failure — parse error, network, JSON schema — falls
+            # back silently. The surface keeps working ; we lose the
+            # tailoring, not the whole Test Fit.
+            return {s: _fallback_parti_pris_directive(s) for s in styles}
+
     def _adjacency_agent(self) -> SubAgent:
         return SubAgent(
             name="AdjacencyValidator",
@@ -216,6 +368,8 @@ class TestFitSurface:
         programme_markdown: str,
         client_name: str,
         styles: list[VariantStyle],
+        brief: str = "",
+        client_industry: str = "",
     ) -> TestFitResponse:
         catalog_json = (FURNITURE_DIR / "catalog.json").read_text(encoding="utf-8")
         ratios_json = (BENCHMARKS_DIR / "ratios.json").read_text(encoding="utf-8")
@@ -240,6 +394,8 @@ class TestFitSurface:
 
         base_context = {
             "client_name": client_name,
+            "client_industry": client_industry or "unspecified",
+            "brief": brief or "(no raw brief supplied — rely on the programme)",
             "programme_markdown": programme_markdown,
             "floor_plan_json": floor_plan_json,
             "catalog_json": catalog_json,
@@ -248,6 +404,8 @@ class TestFitSurface:
             "reviewer_resources": reviewer_resources,
             "adjacency_resources": adjacency_resources,
             "variant_json": "",
+            # Placeholder — populated per-slot after the proposer runs.
+            "parti_pris_directive": "",
         }
 
         total_in = 0
@@ -255,10 +413,22 @@ class TestFitSurface:
         variants: list[VariantOutput] = []
         verdicts: list[ReviewerVerdict] = []
 
+        # iter-21a : the Parti Pris Proposer runs BEFORE the variant
+        # generators. It reads brief + industry + programme + floor plan
+        # and returns 3 project-tailored partis pris, each with a
+        # directive and a `style_classification` that routes it to one
+        # of the three variant generators. Falls back to the hardcoded
+        # style directives if the proposer fails — the surface keeps
+        # producing variants even if this extra agent hiccups.
+        partis_pris_by_style = self._propose_partis_pris(base_context, styles)
+
         # 1. Run variant generators in parallel.
         def _run(agent: SubAgent, style: VariantStyle) -> tuple[VariantStyle, SubAgentOutput]:
             ctx = dict(base_context)
             ctx["style_value"] = style.value
+            ctx["parti_pris_directive"] = partis_pris_by_style.get(
+                style, _fallback_parti_pris_directive(style)
+            )
             return style, self.orchestration.run_subagent(agent, ctx, tag="testfit.variant")
 
         with ThreadPoolExecutor(max_workers=len(agents)) as pool:
@@ -536,6 +706,101 @@ def _strip_json(text: str) -> str:
     if start != -1 and end != -1 and end > start:
         return stripped[start : end + 1]
     return stripped
+
+
+def _parti_pris_to_directive_text(p: dict) -> str:
+    """Render a single parti-pris JSON into the multi-line directive
+    string that gets spliced into `_VARIANT_USER` under
+    <parti_pris_directive>. iter-21a."""
+
+    title = str(p.get("title", "")).strip()
+    one_line = str(p.get("one_line", "")).strip()
+    directive = str(p.get("directive", "")).strip()
+    moves = p.get("signature_moves", [])
+    trade_off = str(p.get("trade_off", "")).strip()
+
+    lines: list[str] = []
+    if title:
+        lines.append(f"TITLE : {title}")
+    if one_line:
+        lines.append(f"ONE-LINE : {one_line}")
+    if directive:
+        lines.append("")
+        lines.append("DIRECTIVE :")
+        lines.append(directive)
+    if isinstance(moves, list) and moves:
+        lines.append("")
+        lines.append("SIGNATURE MOVES :")
+        for m in moves:
+            text = str(m).strip()
+            if text:
+                lines.append(f"- {text}")
+    if trade_off:
+        lines.append("")
+        lines.append(f"TRADE-OFF : {trade_off}")
+    return "\n".join(lines).strip() or "(no directive supplied)"
+
+
+# Legacy archetype directives — kept for the fallback path when the
+# Parti Pris Proposer doesn't run (no brief supplied, or its call
+# failed). Mirrors the block removed from `testfit_variant.md` so the
+# LLM still has SOMETHING actionable in that case.
+_FALLBACK_DIRECTIVES: dict[VariantStyle, str] = {
+    VariantStyle.VILLAGEOIS: """TITLE : Villageois (fallback archetype)
+ONE-LINE : Central collab heart with team neighbourhoods around it.
+
+DIRECTIVE :
+Central collab heart (café + town hall + lounge islands forming a
+"place"). Team neighbourhoods arranged as quartiers around the heart.
+Quiet / focus rings against the quieter façade. Phone booths
+distributed at neighbourhood junctions. Identity walls (materials,
+colour, artwork) delimiting quartiers.
+
+SIGNATURE MOVES :
+- Central collab "place"
+- Team quartiers around the heart
+- Quiet ring on the calmer façade
+
+TRADE-OFF : Less headline-grabbing concentration than the atelier.""",
+    VariantStyle.ATELIER: """TITLE : Atelier (fallback archetype)
+ONE-LINE : Workstations hug the luminous façade, meetings move deep inward.
+
+DIRECTIVE :
+Workstations hugging the most luminous façade for individual focus.
+Meeting rooms consolidated inward (use deeper plan zones). Fewer but
+larger collab zones. Library-like atmosphere : lots of absorbent
+surfaces, soft light. Biophilic accents inside the collab and break
+zones only.
+
+SIGNATURE MOVES :
+- Façade-lining desks
+- Inner-core meeting rooms
+- Library acoustics palette
+
+TRADE-OFF : Collab is less dense than the villageois ; social happens
+later, not on the way to your desk.""",
+    VariantStyle.HYBRIDE_FLEX: """TITLE : Hybride Flex (fallback archetype)
+ONE-LINE : Flex-first, reconfigurable rooms, strong brand wayfinding.
+
+DIRECTIVE :
+Flex ratio pushed to 0.65 (from the programme's 0.75 baseline). Mobile
+furniture, reconfigurable rooms (USM Haller, Vitra Joyn benches).
+Branded wayfinding strong, expression of the client's identity.
+Neutral base palette with 1 accent colour per zone. Bookable
+everything ; large town hall dominant.
+
+SIGNATURE MOVES :
+- Flex ratio 0.65
+- Reconfigurable rooms on wheels
+- Bookable everything + town hall hero
+
+TRADE-OFF : Individual ownership of a desk is gone ; you gain
+reconfigurability, you lose territoriality.""",
+}
+
+
+def _fallback_parti_pris_directive(style: VariantStyle) -> str:
+    return _FALLBACK_DIRECTIVES.get(style, f"(no directive for {style.value})")
 
 
 def compile_default_surface() -> TestFitSurface:

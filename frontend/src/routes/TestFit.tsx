@@ -176,11 +176,17 @@ export default function TestFit() {
     const plan = state.plan;
     setState({ kind: "generating", plan });
     try {
+      // iter-21a (Saad #21-04-24) : pass the raw brief + industry so
+      // the backend's new Parti Pris Proposer can tailor the 3
+      // variants to THIS project. Falls back cleanly to the legacy
+      // archetypes when brief is empty.
       const result = await generateTestFit({
         floor_plan: plan,
         programme_markdown: project.programme.markdown || FALLBACK_PROGRAMME,
         client_name: project.client.name || "Lumen",
         styles: STYLES,
+        brief: project.brief ?? "",
+        client_industry: project.client.industry ?? "",
       });
       persistProgramme({ markdown: project.programme.markdown || FALLBACK_PROGRAMME });
       setFloorPlan(result.floor_plan);

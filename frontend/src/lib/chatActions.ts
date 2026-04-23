@@ -137,6 +137,9 @@ async function doStartMacroZoning(): Promise<ActionOutcome> {
       programme_markdown: project.programme.markdown,
       client_name: project.client.name || "Lumen",
       styles: ["villageois", "atelier", "hybride_flex"],
+      // iter-21a : feed the proposer stage with real project context.
+      brief: project.brief ?? "",
+      client_industry: project.client.industry ?? "",
     });
     setTestFit({
       floor_plan: result.floor_plan,
