@@ -1368,3 +1368,92 @@ Still waiting on : AutoCAD install (optional — headless ezdxf already
 ships a real DXF), demo-video recording. The preflight script is
 green so Saad can hit Record whenever he's ready.
 
+---
+
+## Iter 18 — Demo hardening (2026-04-23T06:00Z–10:20Z)
+
+Six commits focused entirely on submission hardening — no new features,
+everything goes into reducing the risk that a judge hits a rough edge.
+
+### Commits
+
+1. `5bf3789 test(chat)` — three live chat transcripts committed as
+   fixtures (`enrichment_headcount`, `action_start_brief`,
+   `out_of_domain_tgbt`) with matching pytest regression guards. Locks
+   the three demo-critical chat behaviours so a future prompt drift
+   trips the test, not demo day.
+2. `7f1d450 docs` — staleness sweep across DEMO_SCRIPT, USE_CASE,
+   FLOW_WALKTHROUGH, HACKATHON_SUMMARY : renumbered Surface 1-4 to
+   I/II/IV/V, replaced residual `postes` with `desks`, fixed the
+   stale terracotta+ochre PDF-palette description in USE_CASE to the
+   Organic Modern identity it actually renders in now. Left the
+   French verbatim Opus quote untouched for authenticity.
+3. `a9fce11 test(brief)` — live Altamont & Rees (London law firm)
+   Brief synthesis run, 89 k in / 16 k out. Output proves the
+   orchestration adapts far more than the Mood Board : 1.0 seats/FTE
+   argued as a "deliberate counter-trend", 1 090 m² of private
+   offices, library + wine cellar + tasting kitchen, 3 deposition-
+   ready boardrooms, inverse phone-booth logic. Saved as
+   `altamont_brief_output.json` + regression test asserting the
+   identity + legal typologies + flex ratio + agent trace.
+4. `95c6b02 docs` — captured the `/chat` fullpage route as
+   `07-chat.png`, extended the README grid to 7 captures, added
+   `07-chat.png` to the preflight checklist. Preflight 28 → 29 items.
+5. `26eef9c docs` — `docs/CLIENT_AWARENESS.md`, a deep-dive index
+   indexing all three industry-adaptation proofs with concrete
+   numbers, fixture pointers, and regression-guard links. Closes
+   with "Why this matters" framing the system as substantive
+   orchestration, not template-fill.
+6. `2138cc4 fix(export)` — visual-sweep DOM-inspector turned up a
+   horizontal overflow on /export (1491 vs 1440 viewport). Variant
+   pill row was `flex-1 min-w-[200px]` but its 3 chips summed to
+   306 px with no wrap. Fixed with `basis-full sm:basis-auto` +
+   inner `flex-wrap`. All 7 routes now clean at 1440 px.
+7. `00970bd feat(view-mode)` — Engineering/Client toggle now
+   meaningfully differentiates the content, not just the nav labels.
+   TestFit in Client mode : eyebrow "III · Concept", title "Three
+   concepts, one space.", Macro/Micro pills hidden, metrics + verdict
+   hidden, grid collapses to single column. Justify in Client mode :
+   eyebrow "IV · Story", title "The story behind this space.",
+   research trace aside hidden, CTA "Generate argumentaire" →
+   "Compose the story". Visually verified both modes.
+
+### Token spend this iter
+
+- Three chat transcripts (live) : ~9.5 k in + ~0.5 k out
+- Altamont Brief : 89 k in + 16 k out
+
+**Total** : ~99 k in / ~16.5 k out ≈ $1.60. Running total across the
+whole build : well under $20 of the $300 runway.
+
+### Quality gates (end of iter)
+
+- `pytest -q` → **42 passed** (added 3 chat fixtures + 1 Altamont
+  Brief fixture over iter-17's 38)
+- `npx tsc -b --noEmit` → clean on all 7 routes
+- `scripts/demo_preflight.ps1` → **29 pass / 0 warn / 0 fail** (added
+  `07-chat.png` to the artefact checklist)
+- SketchUp MCP stayed reachable on 127.0.0.1:9876 throughout
+
+### Submission readiness
+
+Everything a judge needs to verify the claims is committed :
+
+- **6 surfaces** working end-to-end (Brief / TestFit macro + micro /
+  Mood Board / Justify / Export) + the cross-page /chat route
+- **Engineering / Client** view toggle actually differentiates
+  content on TestFit + Justify (not just the nav)
+- **Client-aware adaptation** proven at Brief + Mood Board surfaces,
+  across 3 industries (tech / law / creative), with regression tests
+- **Active chat** proven with 3 live transcripts covering
+  enrichment / action-dispatch / out-of-domain refusal
+- **7 UI screenshots** committed + README grid + preflight guard
+- **All docs** (README, ARCHITECTURE, DEMO_SCRIPT, USE_CASE,
+  HACKATHON_SUMMARY, FLOW_WALKTHROUGH, CLIENT_AWARENESS,
+  PRODUCT_VISION, CHAT_BEHAVIOR, PSEUDO_3D_VIEWER, UI_DESIGN,
+  FUTURE_WORK) consistent with the six-surface reality
+
+Still outside the code's control, per BLOCKERS.md :
+- AutoCAD install (optional — ezdxf already ships a real DXF)
+- Demo-video recording by Saad
+
