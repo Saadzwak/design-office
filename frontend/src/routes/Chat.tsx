@@ -1,51 +1,78 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
 
 import { Card, Eyebrow, Icon } from "../components/ui";
 import ChatPanel from "../components/chat/ChatPanel";
 import { useProjectState } from "../hooks/useProjectState";
 import { getActiveProject } from "../lib/adapters/projectsIndex";
+import {
+  createConversation,
+  deleteConversation,
+  getActiveConversationId,
+  listConversations,
+  onConversationsChange,
+  setActiveConversation,
+  type Conversation,
+} from "../lib/chat";
 
 /**
- * Chat fullpage — iter-18m. Conversations sidebar + embedded ChatPanel
- * (shared with the drawer mode). Bundle parity : 300 px left rail with
- * a "New conversation" CTA, timestamped conversation titles, active
- * highlight, active-project card at the bottom.
+ * Chat fullpage — iter-20b rewrite.
  *
- * Conversations are local only for now — the bundle showed 5 sample
- * entries ; wiring persistence is out of scope for this iteration.
+ * Conversations live in `lib/chat.ts` now (multi-convo persistence).
+ * The sidebar reflects the real list, clicking one switches the
+ * active conversation (ChatPanel re-renders against `loadConversation`
+ * which reads the active convo), "+ New conversation" mints a fresh
+ * empty convo and flips active to it. A per-row trash icon deletes.
  */
-
-type Convo = {
-  id: string;
-  label: string;
-  when: string;
-  active?: boolean;
-};
-
-const SAMPLE_CONVOS: Convo[] = [
-  { id: "now", label: "Atelier density debate", when: "Now", active: true },
-  { id: "hc", label: "Brief check — 120 vs 100 staff", when: "2h ago" },
-  { id: "mb", label: "Mood board pigment direction", when: "Yesterday" },
-  { id: "flex", label: "Flex policy Tuesday peak", when: "Yesterday" },
-  { id: "src", label: "Initial programme sourcing", when: "2d ago" },
-];
 
 export default function Chat() {
   const project = useProjectState();
   const active = getActiveProject();
-  const [convos, setConvos] = useState<Convo[]>(SAMPLE_CONVOS);
+  const [convos, setConvos] = useState<Conversation[]>(() => listConversations());
+  const [activeId, setActiveId] = useState<string | null>(() =>
+    getActiveConversationId(),
+  );
+  // Used to force-remount ChatPanel when the active convo changes so
+  // its internal `useState(() => loadConversation())` reads the new
+  // convo's messages instead of the previous one's.
+  const panelKey = activeId ?? "none";
+
+  useEffect(() => {
+    const unsub = onConversationsChange(({ convos: next, activeId: nextActive }) => {
+      setConvos(next);
+      setActiveId(nextActive);
+    });
+    return unsub;
+  }, []);
+
+  const pickConvo = (id: string) => {
+    if (id === activeId) return;
+    setActiveConversation(id);
+    setActiveId(id);
+  };
 
   const newConversation = () => {
-    setConvos([
-      {
-        id: `c-${Date.now()}`,
-        label: "New conversation",
-        when: "Now",
-        active: true,
-      },
-      ...convos.map((c) => ({ ...c, active: false })),
-    ]);
+    const created = createConversation();
+    setActiveId(created.id);
+  };
+
+  const removeConversation = (id: string) => {
+    const remaining = deleteConversation(id);
+    setConvos(remaining);
+    setActiveId(getActiveConversationId());
+  };
+
+  const formatWhen = (iso: string): string => {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return "—";
+    const diff = Date.now() - d.getTime();
+    const h = Math.floor(diff / 3_600_000);
+    if (h < 1) return "Now";
+    if (h < 24) return `${h}h ago`;
+    const days = Math.floor(h / 24);
+    if (days < 2) return "Yesterday";
+    if (days < 7) return `${days}d ago`;
+    return d.toISOString().slice(0, 10);
   };
 
   return (
@@ -73,29 +100,48 @@ export default function Chat() {
         </button>
 
         <div className="flex flex-col gap-1">
-          {convos.map((c) => (
-            <button
-              key={c.id}
-              onClick={() =>
-                setConvos((prev) =>
-                  prev.map((x) => ({ ...x, active: x.id === c.id })),
-                )
-              }
-              className={[
-                "rounded-md px-3 py-2.5 text-left transition-colors",
-                c.active
-                  ? "bg-canvas border border-forest"
-                  : "border border-transparent hover:bg-canvas",
-              ].join(" ")}
-            >
-              <div className="mono text-[10px] uppercase text-mist-500">
-                {c.when.toUpperCase()}
+          {convos.map((c) => {
+            const isActive = c.id === activeId;
+            return (
+              <div
+                key={c.id}
+                className={[
+                  "group relative rounded-md px-3 py-2.5 transition-colors",
+                  isActive
+                    ? "bg-canvas border border-forest"
+                    : "border border-transparent hover:bg-canvas",
+                ].join(" ")}
+              >
+                <button
+                  onClick={() => pickConvo(c.id)}
+                  className="block w-full text-left"
+                >
+                  <div className="mono text-[10px] uppercase text-mist-500">
+                    {formatWhen(c.updatedAt).toUpperCase()}
+                  </div>
+                  <div className="mt-0.5 truncate text-[13px] font-medium text-ink">
+                    {c.label || "New conversation"}
+                  </div>
+                  <div className="mono mt-0.5 text-[10px] text-mist-400">
+                    {c.messages.length} MSG
+                  </div>
+                </button>
+                {convos.length > 1 && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      removeConversation(c.id);
+                    }}
+                    className="absolute right-2 top-2 hidden rounded p-1 text-mist-400 hover:bg-mist-100 hover:text-clay group-hover:block"
+                    aria-label="Delete conversation"
+                    title="Delete conversation"
+                  >
+                    <Icon name="x" size={12} />
+                  </button>
+                )}
               </div>
-              <div className="mt-0.5 text-[13px] font-medium text-ink">
-                {c.label}
-              </div>
-            </button>
-          ))}
+            );
+          })}
         </div>
 
         <Eyebrow style={{ marginTop: 28, marginBottom: 12 }}>PROJECT</Eyebrow>
@@ -121,7 +167,7 @@ export default function Chat() {
       </aside>
 
       <div className="flex flex-col overflow-hidden">
-        <ChatPanel mode="fullpage" />
+        <ChatPanel key={panelKey} mode="fullpage" />
       </div>
     </div>
   );

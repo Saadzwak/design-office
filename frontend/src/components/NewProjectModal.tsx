@@ -8,6 +8,8 @@ import {
 } from "../lib/adapters/createProject";
 import {
   INDUSTRY_LABEL,
+  setPlanImage,
+  setVisitPhotos,
   type Industry,
 } from "../lib/projectState";
 
@@ -33,7 +35,10 @@ type ParseState =
   | { kind: "idle" }
   | { kind: "parsing"; fileName: string }
   | { kind: "ready"; plan: FloorPlan; fileName: string }
+  | { kind: "ready_image"; dataUrl: string; fileName: string }
   | { kind: "error"; message: string };
+
+type VisitPhoto = { name: string; data_url: string };
 
 /**
  * New-project modal — creates a project from scratch, optionally
@@ -54,11 +59,13 @@ type ParseState =
 export default function NewProjectModal({ open, onClose, onCreated }: Props) {
   const logoRef = useRef<HTMLInputElement | null>(null);
   const planRef = useRef<HTMLInputElement | null>(null);
+  const photosRef = useRef<HTMLInputElement | null>(null);
 
   const [name, setName] = useState("");
   const [industry, setIndustry] = useState<Industry>("tech_startup");
   const [logoDataUrl, setLogoDataUrl] = useState<string | null>(null);
   const [parseState, setParseState] = useState<ParseState>({ kind: "idle" });
+  const [visitPhotos, setVisitPhotosLocal] = useState<VisitPhoto[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
   const reset = () => {
@@ -66,6 +73,7 @@ export default function NewProjectModal({ open, onClose, onCreated }: Props) {
     setIndustry("tech_startup");
     setLogoDataUrl(null);
     setParseState({ kind: "idle" });
+    setVisitPhotosLocal([]);
     setSubmitting(false);
   };
 
@@ -79,10 +87,39 @@ export default function NewProjectModal({ open, onClose, onCreated }: Props) {
   };
 
   const handlePlan = async (file: File) => {
+    // Iter-20b (Saad #1) : accept PDF (parsed) OR image (PNG / JPG
+    // / WEBP). For images we can't extract vector geometry, but we
+    // store the raster preview on projectState so the macro-zoning
+    // + mood-board agents can run Vision HD on it later.
+    const isImage = /^image\/(png|jpe?g|webp)$/i.test(file.type);
+    const isPdf = file.type === "application/pdf";
+
+    if (isImage) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result;
+        if (typeof result === "string") {
+          setParseState({
+            kind: "ready_image",
+            dataUrl: result,
+            fileName: file.name,
+          });
+        }
+      };
+      reader.readAsDataURL(file);
+      return;
+    }
+
+    if (!isPdf) {
+      setParseState({
+        kind: "error",
+        message: `Unsupported file type: ${file.type || "unknown"}. Drop a PDF or an image.`,
+      });
+      return;
+    }
+
     setParseState({ kind: "parsing", fileName: file.name });
     try {
-      // `uploadPlanPdf(file, useVision)` — use PyMuPDF first (free),
-      // agents can re-run with Vision later from Test Fit.
       const plan = await uploadPlanPdf(file, false);
       setParseState({ kind: "ready", plan, fileName: file.name });
     } catch (err) {
@@ -91,6 +128,33 @@ export default function NewProjectModal({ open, onClose, onCreated }: Props) {
         message: err instanceof Error ? err.message : String(err),
       });
     }
+  };
+
+  const handleVisitPhotos = (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    const next: VisitPhoto[] = [];
+    let pending = files.length;
+    Array.from(files).forEach((file) => {
+      if (!/^image\//.test(file.type)) {
+        pending -= 1;
+        if (pending === 0 && next.length > 0) {
+          setVisitPhotosLocal((prev) => [...prev, ...next]);
+        }
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result;
+        if (typeof result === "string") {
+          next.push({ name: file.name, data_url: result });
+        }
+        pending -= 1;
+        if (pending === 0) {
+          setVisitPhotosLocal((prev) => [...prev, ...next]);
+        }
+      };
+      reader.readAsDataURL(file);
+    });
   };
 
   const canSubmit = name.trim().length >= 2 && !submitting && parseState.kind !== "parsing";
@@ -106,6 +170,14 @@ export default function NewProjectModal({ open, onClose, onCreated }: Props) {
         logoDataUrl,
         floorPlan: plan,
       });
+      // Iter-20b : persist the uploaded raster plan (image path) +
+      // visit photos onto the freshly-created project's state.
+      if (parseState.kind === "ready_image") {
+        setPlanImage(parseState.dataUrl);
+      }
+      if (visitPhotos.length > 0) {
+        setVisitPhotos(visitPhotos);
+      }
       toast(`Project "${project.name}" created`);
       onCreated?.(project.id);
       reset();
@@ -229,10 +301,10 @@ export default function NewProjectModal({ open, onClose, onCreated }: Props) {
             </div>
           </div>
 
-          {/* Floor plan (optional) */}
+          {/* Floor plan — PDF parsed or raster image (iter-20b). */}
           <div>
             <Eyebrow style={{ marginBottom: 10 }}>
-              FLOOR PLAN PDF · OPTIONAL BUT VALUED
+              FLOOR PLAN · PDF OR IMAGE · OPTIONAL
             </Eyebrow>
             <PlanDrop
               state={parseState}
@@ -242,7 +314,7 @@ export default function NewProjectModal({ open, onClose, onCreated }: Props) {
             <input
               ref={planRef}
               type="file"
-              accept="application/pdf"
+              accept="application/pdf,image/png,image/jpeg,image/webp"
               className="hidden"
               onChange={(e) => {
                 const f = e.target.files?.[0];
@@ -251,8 +323,68 @@ export default function NewProjectModal({ open, onClose, onCreated }: Props) {
               }}
             />
             <p className="mt-2 font-mono text-[10px] uppercase tracking-label text-mist-500">
-              We parse envelope + columns + cores + windows. Vision HD
-              kicks in later from Test Fit.
+              PDF → envelope + columns + cores extracted. Image → Vision
+              HD kicks in at Test Fit time.
+            </p>
+          </div>
+
+          {/* Site-visit photos (iter-20b #1) — multi-upload, stored
+              locally so the mood-board + micro-zoning prompts can
+              reference observed materials + existing furniture. */}
+          <div>
+            <Eyebrow style={{ marginBottom: 10 }}>
+              SITE-VISIT PHOTOS · OPTIONAL
+            </Eyebrow>
+            <div className="flex flex-wrap gap-2">
+              {visitPhotos.map((p, i) => (
+                <div
+                  key={`${p.name}-${i}`}
+                  className="relative h-20 w-20 overflow-hidden rounded-md border border-mist-200"
+                  style={{ background: "var(--canvas-alt)" }}
+                >
+                  <img
+                    src={p.data_url}
+                    alt={p.name}
+                    className="h-full w-full object-cover"
+                  />
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setVisitPhotosLocal((prev) =>
+                        prev.filter((_, idx) => idx !== i),
+                      )
+                    }
+                    className="absolute right-1 top-1 rounded bg-canvas/90 p-0.5 text-mist-600 hover:text-clay"
+                    aria-label="Remove photo"
+                  >
+                    <Icon name="x" size={10} />
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={() => photosRef.current?.click()}
+                className="flex h-20 w-20 items-center justify-center rounded-md border border-dashed border-mist-300 text-mist-500 transition-colors hover:border-forest hover:text-forest"
+                title="Add site-visit photos"
+              >
+                <Icon name="plus" size={16} />
+              </button>
+              <input
+                ref={photosRef}
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                onChange={(e) => {
+                  handleVisitPhotos(e.target.files);
+                  e.target.value = "";
+                }}
+              />
+            </div>
+            <p className="mt-2 font-mono text-[10px] uppercase tracking-label text-mist-500">
+              Drop what you shot during the brief visit — materials,
+              light conditions, existing furniture. Enriches mood-board
+              + micro-zoning context.
             </p>
           </div>
         </div>
@@ -328,6 +460,29 @@ function PlanDrop({
           <div className="text-mist-600">
             {plan.envelope.points.length} envelope pts · {columns} columns ·{" "}
             {cores} cores · {plan.windows.length} windows
+          </div>
+        </div>
+        <button onClick={onClear} className="btn-minimal" type="button">
+          <Icon name="x" size={12} /> Replace
+        </button>
+      </div>
+    );
+  }
+  if (state.kind === "ready_image") {
+    return (
+      <div
+        className="flex items-start gap-3.5 rounded-lg border border-mist-200 p-4"
+        style={{ background: "var(--canvas-alt)" }}
+      >
+        <img
+          src={state.dataUrl}
+          alt={state.fileName}
+          className="h-14 w-14 rounded-md border border-mist-200 object-cover"
+        />
+        <div className="flex-1 text-[13px] text-ink">
+          <div className="font-medium">{state.fileName}</div>
+          <div className="text-mist-600">
+            Raster plan attached · Vision HD will read it at Test Fit.
           </div>
         </div>
         <button onClick={onClear} className="btn-minimal" type="button">

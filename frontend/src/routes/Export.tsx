@@ -56,20 +56,45 @@ export default function Export() {
     // (nothing to hydrate yet — projectState export_runs carry only ids)
   }, []);
 
+  // Iter-20b (Saad #23). Generate DXF now requires the active project
+  // to have a floor_plan + retained variant — or falls back to the
+  // Lumen sample ONLY when the active project IS Lumen. For fresh
+  // non-Lumen projects the button routes through a friendly guard
+  // (toast + early return) so the user doesn't silently export a
+  // Lumen DXF thinking it's their own project.
   const generate = async () => {
-    setPhase("running");
-    setErrorMsg("");
-    try {
-      let plan = project.floor_plan;
-      let variant = retained;
-      if (!plan || !variant) {
+    const isLumen =
+      (project.project_id || "").toLowerCase().startsWith("lumen") ||
+      (project.client.name || "").toLowerCase() === "lumen";
+
+    let plan = project.floor_plan;
+    let variant = retained;
+
+    if (!plan || !variant) {
+      if (!isLumen) {
+        setErrorMsg(
+          "Run Test Fit first — Generate DXF needs a retained variant + floor plan for this project.",
+        );
+        setPhase("error");
+        return;
+      }
+      try {
         const sample = await fetchTestFitSample();
         plan = sample.floor_plan;
         variant =
           sample.variants.find(
             (v) => v.style === project.testfit?.retained_style,
           ) ?? sample.variants[1];
+      } catch (err) {
+        setErrorMsg(err instanceof Error ? err.message : String(err));
+        setPhase("error");
+        return;
       }
+    }
+
+    setPhase("running");
+    setErrorMsg("");
+    try {
       const resp = await generateExport({
         client_name: project.client.name,
         floor_plan: plan,

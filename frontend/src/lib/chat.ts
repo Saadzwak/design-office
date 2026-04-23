@@ -130,33 +130,224 @@ export async function* streamChatMessage(
 // localStorage conversation persistence
 // ---------------------------------------------------------------------------
 
-const STORAGE_KEY = "design-office.chat.messages";
+// ---------------------------------------------------------------------------
+// Multi-conversation persistence — iter-20b (Saad #24).
+//
+// Before : a single `design-office.chat.messages` key held ONE conversation
+// for the whole user. The `/chat` sidebar showed 5 sample rows that
+// clicking did nothing, and "+ New conversation" had no handler. Now
+// every conversation lives in a list under `design-office.chat.convos.v1`
+// with a stable id + label + messages + timestamps, plus an active-id
+// pointer. The legacy single-key messages migrate to one initial convo.
+// ---------------------------------------------------------------------------
+
+const LEGACY_KEY = "design-office.chat.messages";
+const CONVOS_KEY = "design-office.chat.convos.v1";
+const ACTIVE_KEY = "design-office.chat.active_convo";
 const MAX_STORED = 40;
+export const CONVOS_EVENT = "design-office:chat-convos-changed";
+
+export type Conversation = {
+  id: string;
+  label: string;
+  messages: ChatMessage[];
+  createdAt: string;
+  updatedAt: string;
+};
+
+function mintId(): string {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return `c-${crypto.randomUUID().slice(0, 8)}`;
+  }
+  return `c-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function isoNow(): string {
+  return new Date().toISOString();
+}
+
+function readRaw(): { convos: Conversation[]; activeId: string | null } {
+  try {
+    const raw = localStorage.getItem(CONVOS_KEY);
+    const active = localStorage.getItem(ACTIVE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        return { convos: parsed, activeId: active };
+      }
+    }
+  } catch {
+    // fall through
+  }
+  return { convos: [], activeId: null };
+}
+
+function migrateIfNeeded(): { convos: Conversation[]; activeId: string | null } {
+  const current = readRaw();
+  if (current.convos.length > 0) return current;
+
+  // No v1 storage yet — migrate the legacy single-conversation key.
+  let legacy: ChatMessage[] = [];
+  try {
+    const raw = localStorage.getItem(LEGACY_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) legacy = parsed;
+    }
+  } catch {
+    /* ignore */
+  }
+
+  const now = isoNow();
+  const initial: Conversation = {
+    id: mintId(),
+    label: inferLabel(legacy) || "Current conversation",
+    messages: legacy.slice(-MAX_STORED),
+    createdAt: now,
+    updatedAt: now,
+  };
+  writeRaw([initial], initial.id);
+  try {
+    localStorage.removeItem(LEGACY_KEY);
+  } catch {
+    /* ignore */
+  }
+  return { convos: [initial], activeId: initial.id };
+}
+
+function writeRaw(convos: Conversation[], activeId: string | null): void {
+  try {
+    localStorage.setItem(CONVOS_KEY, JSON.stringify(convos));
+    if (activeId) {
+      localStorage.setItem(ACTIVE_KEY, activeId);
+    } else {
+      localStorage.removeItem(ACTIVE_KEY);
+    }
+    window.dispatchEvent(
+      new CustomEvent<{ convos: Conversation[]; activeId: string | null }>(
+        CONVOS_EVENT,
+        { detail: { convos, activeId } },
+      ),
+    );
+  } catch {
+    /* quota full / disabled — non-fatal */
+  }
+}
+
+function inferLabel(messages: ChatMessage[]): string {
+  const firstUser = messages.find((m) => m.role === "user");
+  if (!firstUser) return "New conversation";
+  const text = firstUser.content.trim().replace(/\s+/g, " ");
+  return text.length > 48 ? text.slice(0, 45).trimEnd() + "…" : text;
+}
+
+export function listConversations(): Conversation[] {
+  const { convos } = migrateIfNeeded();
+  return convos;
+}
+
+export function getActiveConversationId(): string | null {
+  const { convos, activeId } = migrateIfNeeded();
+  if (activeId && convos.some((c) => c.id === activeId)) return activeId;
+  return convos[0]?.id ?? null;
+}
+
+export function setActiveConversation(id: string): void {
+  const { convos } = migrateIfNeeded();
+  if (!convos.some((c) => c.id === id)) return;
+  writeRaw(convos, id);
+}
+
+export function createConversation(label?: string): Conversation {
+  const { convos } = migrateIfNeeded();
+  const now = isoNow();
+  const next: Conversation = {
+    id: mintId(),
+    label: label || "New conversation",
+    messages: [],
+    createdAt: now,
+    updatedAt: now,
+  };
+  writeRaw([next, ...convos], next.id);
+  return next;
+}
+
+export function deleteConversation(id: string): Conversation[] {
+  const { convos, activeId } = migrateIfNeeded();
+  const remaining = convos.filter((c) => c.id !== id);
+  const nextActive =
+    activeId === id ? remaining[0]?.id ?? null : activeId;
+  if (remaining.length === 0) {
+    // Always keep at least one empty shell so the UI never goes blank.
+    const shell = createConversation();
+    return [shell];
+  }
+  writeRaw(remaining, nextActive);
+  return remaining;
+}
+
+export function onConversationsChange(
+  listener: (data: { convos: Conversation[]; activeId: string | null }) => void,
+): () => void {
+  const handler = (e: Event) => {
+    const custom = e as CustomEvent<{
+      convos: Conversation[];
+      activeId: string | null;
+    }>;
+    if (custom.detail) listener(custom.detail);
+  };
+  window.addEventListener(CONVOS_EVENT, handler as EventListener);
+  return () =>
+    window.removeEventListener(CONVOS_EVENT, handler as EventListener);
+}
+
+// ---------------------------------------------------------------------------
+// Messages API — reads + writes against the active conversation so existing
+// ChatPanel callers don't need to know about the multi-convo structure.
+// ---------------------------------------------------------------------------
 
 export function loadConversation(): ChatMessage[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-    return parsed.slice(-MAX_STORED);
-  } catch {
-    return [];
-  }
+  const { convos, activeId } = migrateIfNeeded();
+  const target = convos.find((c) => c.id === activeId) ?? convos[0];
+  return target ? target.messages.slice(-MAX_STORED) : [];
 }
 
 export function saveConversation(messages: ChatMessage[]): void {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(messages.slice(-MAX_STORED)));
-  } catch {
-    // quota full or storage disabled — ignore.
+  const { convos, activeId } = migrateIfNeeded();
+  const active = activeId ?? convos[0]?.id;
+  if (!active) {
+    // No convo yet — mint one to hold the messages.
+    const c = createConversation(inferLabel(messages));
+    writeRaw(
+      [{ ...c, messages: messages.slice(-MAX_STORED), updatedAt: isoNow() }],
+      c.id,
+    );
+    return;
   }
+  const updated = convos.map((c) =>
+    c.id === active
+      ? {
+          ...c,
+          messages: messages.slice(-MAX_STORED),
+          updatedAt: isoNow(),
+          label:
+            c.label === "New conversation" && messages.some((m) => m.role === "user")
+              ? inferLabel(messages) || c.label
+              : c.label,
+        }
+      : c,
+  );
+  writeRaw(updated, active);
 }
 
 export function clearConversation(): void {
-  try {
-    localStorage.removeItem(STORAGE_KEY);
-  } catch {
-    // ignore
-  }
+  const { convos, activeId } = migrateIfNeeded();
+  const active = activeId ?? convos[0]?.id;
+  if (!active) return;
+  const updated = convos.map((c) =>
+    c.id === active
+      ? { ...c, messages: [], updatedAt: isoNow() }
+      : c,
+  );
+  writeRaw(updated, active);
 }

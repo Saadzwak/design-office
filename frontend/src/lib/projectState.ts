@@ -130,6 +130,21 @@ export type ProjectState = {
     industry: Industry;
     logo_data_url: string | null;
   };
+  /** Iter-20b (Saad #1) — upload enrichment.
+   *
+   * - `plan_image_data_url` : when the user drops a PNG / JPG / WEBP
+   *   of their plan instead of a PDF, we store the raster preview
+   *   alongside the parsed FloorPlan (if any). The macro-zoning agent
+   *   can feed the raster into Vision HD for better spatial cues.
+   * - `visit_photos` : multi-upload of on-site photographs the
+   *   architect took during the brief visit. These enrich mood-board
+   *   prompts (real materials observed) and micro-zoning context
+   *   (existing furniture configuration).
+   */
+  uploads?: {
+    plan_image_data_url?: string | null;
+    visit_photos?: Array<{ name: string; data_url: string }>;
+  };
   brief: string;
   programme: {
     markdown: string;
@@ -490,6 +505,45 @@ export function setClient(
   };
   saveProjectState(next);
   return next;
+}
+
+/** Iter-20b : store the user's uploaded raster plan preview. */
+export function setPlanImage(dataUrl: string | null): ProjectState {
+  const current = loadProjectState();
+  const next: ProjectState = {
+    ...current,
+    uploads: {
+      ...(current.uploads ?? {}),
+      plan_image_data_url: dataUrl,
+    },
+  };
+  saveProjectState(next);
+  return next;
+}
+
+/** Iter-20b : append visit photos (replaces the array when list is given). */
+export function setVisitPhotos(
+  photos: Array<{ name: string; data_url: string }>,
+): ProjectState {
+  const current = loadProjectState();
+  const next: ProjectState = {
+    ...current,
+    uploads: {
+      ...(current.uploads ?? {}),
+      visit_photos: photos,
+    },
+  };
+  saveProjectState(next);
+  return next;
+}
+
+export function appendVisitPhoto(photo: {
+  name: string;
+  data_url: string;
+}): ProjectState {
+  const current = loadProjectState();
+  const list = current.uploads?.visit_photos ?? [];
+  return setVisitPhotos([...list, photo]);
 }
 
 export function setBrief(brief: string): ProjectState {
