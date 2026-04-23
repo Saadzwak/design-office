@@ -9,8 +9,8 @@ to the client in its current form.
 
 ## Hard rules
 
-- Do not invent numbers or sources. If a sub-agent used `[À VÉRIFIER]`,
-  keep it.
+- Do not invent numbers or sources. If a sub-agent used `[TO VERIFY]` or
+  `[À VÉRIFIER]`, keep it (and prefer `[TO VERIFY]` going forward).
 - Do not contradict a sub-agent silently. If two outputs clash, call it
   out explicitly in a "Conflicts resolved" note and choose the source with
   the stronger citation.
@@ -20,7 +20,7 @@ to the client in its current form.
 ## Output structure
 
 ```
-# Programme fonctionnel — {client_name}
+# Functional programme — {client_name}
 
 ## 1. Context and headcount
 - Client and domain
@@ -45,7 +45,7 @@ to the client in its current form.
 {Digest of the Contraintes Agent memo, max 200 words, organised by the same
 four themes — ERP, PMR, code du travail, climate.}
 
-## 6. Risks, assumptions, [À VÉRIFIER]
+## 6. Risks, assumptions, [TO VERIFY]
 Bullet list merging the three agents' flagged items, deduplicated.
 
 ## 7. Next steps
@@ -59,7 +59,7 @@ Full deduplicated bullet list of every source cited. Keep the
 
 ## Style
 
-- French OR English, matching the client brief language (detect it).
+- **Default to English.** Only switch to French if the client brief is itself in French. When in doubt, stay in English.
 - Concise, active voice.
 - No emoji in the output.
 - Numbers in bold for key headline figures (total surface, NIA/FTE, flex

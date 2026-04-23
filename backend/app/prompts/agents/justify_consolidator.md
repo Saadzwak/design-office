@@ -23,48 +23,48 @@ directly to a client decision-maker (CEO, COO, People lead).
   picking one.
 - **Tone** : first-person plural, confident but honest. No "it has
   been shown that…" filler ; favour "Browning (2014) shows that…".
-- **Match the brief language** (French if the brief is French).
+- **Default to English.** Only switch to French if the client brief is itself French. When in doubt, stay in English.
 - **Word budget strict** — stay under 1 500 words.
 
 ## Output structure
 
 ```
-# {Client} — Pourquoi cette variante
+# {Client} — Why this variant
 
-## 1. Le pari
+## 1. The bet
 (3 – 4 sentences. What this variant bets on and why it serves the brief —
 identity, flex, collab emphasis, biophilic anchor, acoustic discipline.
 Tie to one Leesman 2024 data point and one brief quote.)
 
-## 2. Ce que dit la recherche
+## 2. What the research says
 
-### Acoustique & confort sonore
+### Acoustic comfort
 (Digest of the Acoustic Agent memo — keep the punchy numbers : NF S 31-
 080 level targeted, rD / D2,S targets, Hongisto STI threshold.)
 
-### Biophilie & neuroarchitecture
+### Biophilic design and neuroarchitecture
 (Digest of the Biophilic Agent memo — Browning patterns expressed,
 Nieuwenhuis 2014 +15 %, Ulrich 1984, Taylor fractals.)
 
-### Programme & flex
+### Programme and flex
 (Digest of the Programming Agent memo — Leesman / Gensler / FlexOS
 benchmarks, ratio justified, split vs industry.)
 
-## 3. Ce que dit la réglementation
-(Digest of the Regulatory Agent memo — ERP type W catégorie N, PMR
-arrêté 20/04/2017, code du travail, key action points for the bureau
-de contrôle.)
+## 3. What the regulation says
+(Digest of the Regulatory Agent memo — ERP type W category N, PMR
+arrêté 20/04/2017, code du travail, key action points for the
+technical controller.)
 
-## 4. Arbitrages et incertitudes
-Bullet list merging all `[À VÉRIFIER]` items from the four agents,
-deduplicated, plus any conflict you resolved.
+## 4. Trade-offs and uncertainties
+Bullet list merging all `[TO VERIFY]` (or `[À VÉRIFIER]`) items from
+the four agents, deduplicated, plus any conflict you resolved.
 
-## 5. Résultats attendus, 6 et 12 mois
+## 5. Expected results, 6 and 12 months
 3 – 5 concrete KPIs the client can track (Leesman Lmi delta, plant
 count, meeting-room utilisation, post-occupancy acoustic
 commissioning, biophilic pattern expression count).
 
-## 6. Prochaines étapes
+## 6. Next steps
 3 – 5 bullets, who does what when.
 
 ## 7. Sources

@@ -348,13 +348,13 @@ def _render_client_pdf(
     )
 
     story: list = []
-    story.append(Paragraph("Design Office — argumentaire", eyebrow_style))
-    story.append(Paragraph(f"{client_name} · variante « {variant.title} »", hero_style))
+    story.append(Paragraph("Design Office — client argumentaire", eyebrow_style))
+    story.append(Paragraph(f"{client_name} · variant « {variant.title} »", hero_style))
     story.append(
         Paragraph(
-            f"Parti : {variant.style.value.replace('_', ' ')} · {variant.metrics.workstation_count} postes · "
+            f"Parti: {variant.style.value.replace('_', ' ')} · {variant.metrics.workstation_count} desks · "
             f"flex ratio {variant.metrics.flex_ratio_applied:.2f} · "
-            f"total programmé ≈ {round(variant.metrics.total_programmed_m2)} m²",
+            f"total programmed ≈ {round(variant.metrics.total_programmed_m2)} m²",
             body_style,
         )
     )

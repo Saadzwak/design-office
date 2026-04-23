@@ -269,14 +269,14 @@ def _build_cover_slide(
 
 def _build_bet_slide(prs: Presentation, *, client_name: str, section: str) -> None:
     slide, _, _ = _blank_slide(prs)
-    _eyebrow(slide, "01 · Le pari")
+    _eyebrow(slide, "01 · The bet")
     _add_text(
         slide,
         0.8,
         1.15,
         12,
         1.0,
-        f"Pourquoi cette variante pour {client_name}",
+        f"Why this variant for {client_name}",
         font="Calibri",
         size=36,
         color=BONE_TEXT,
@@ -291,7 +291,7 @@ def _build_bet_slide(prs: Presentation, *, client_name: str, section: str) -> No
 
 def _build_metrics_slide(prs: Presentation, *, variant: VariantOutput) -> None:
     slide, _, _ = _blank_slide(prs)
-    _eyebrow(slide, "02 · Programme retenu")
+    _eyebrow(slide, "02 · Retained programme")
     _add_text(
         slide,
         0.8,
@@ -312,7 +312,7 @@ def _build_metrics_slide(prs: Presentation, *, variant: VariantOutput) -> None:
         ("Phone booths", str(variant.metrics.phone_booth_count)),
         ("Flex ratio", f"{variant.metrics.flex_ratio_applied:.2f}"),
         ("Collab (m²)", f"{round(variant.metrics.collab_surface_m2)}"),
-        ("Total programmé (m²)", f"{round(variant.metrics.total_programmed_m2)}"),
+        ("Total programmed (m²)", f"{round(variant.metrics.total_programmed_m2)}"),
     ]
 
     x0, y0 = 0.8, 2.8
@@ -363,7 +363,7 @@ def _build_metrics_slide(prs: Presentation, *, variant: VariantOutput) -> None:
 
 def _build_research_slide(prs: Presentation, *, sections: dict[str, str]) -> None:
     slide, _, _ = _blank_slide(prs)
-    _eyebrow(slide, "03 · Ce que dit la recherche")
+    _eyebrow(slide, "03 · What the research says")
     _add_text(
         slide,
         0.8,
@@ -397,7 +397,7 @@ def _build_research_slide(prs: Presentation, *, sections: dict[str, str]) -> Non
 
 def _build_regulatory_slide(prs: Presentation, *, sections: dict[str, str]) -> None:
     slide, _, _ = _blank_slide(prs)
-    _eyebrow(slide, "04 · Ce que dit la réglementation")
+    _eyebrow(slide, "04 · What the regulation says")
     _add_text(
         slide,
         0.8,
@@ -437,7 +437,7 @@ def _build_next_steps_slide(
     logo_bytes: bytes | None = None,
 ) -> None:
     slide, _, _ = _blank_slide(prs)
-    _eyebrow(slide, "05 · Prochaines étapes & KPIs")
+    _eyebrow(slide, "05 · Next steps & KPIs")
     # Client logo, bottom-right footer.
     if logo_bytes:
         try:
@@ -457,7 +457,7 @@ def _build_next_steps_slide(
         1.15,
         12,
         1.0,
-        "Ce qu'il faut pour démarrer",
+        "What it takes to start",
         font="Calibri",
         size=36,
         color=BONE_TEXT,
@@ -474,7 +474,7 @@ def _build_next_steps_slide(
         2.7,
         5.9,
         0.35,
-        "RÉSULTATS ATTENDUS 6–12 MOIS",
+        "EXPECTED RESULTS 6–12 MONTHS",
         font="Courier New",
         size=10,
         color=OCHRE,
@@ -487,14 +487,14 @@ def _build_next_steps_slide(
         2.7,
         5.9,
         0.35,
-        "PROCHAINES ÉTAPES",
+        "NEXT STEPS",
         font="Courier New",
         size=10,
         color=OCHRE,
     )
     _add_text(slide, 7.0, 3.1, 5.9, 3.4, steps, font="Calibri", size=14, color=BONE_TEXT)
 
-    footer = f"Projet : {project_reference or 'DO-CAT-B'} · Built with Opus 4.7"
+    footer = f"Project: {project_reference or 'DO-CAT-B'} · Built with Opus 4.7"
     _add_text(
         slide,
         0.8,
