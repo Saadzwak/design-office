@@ -427,6 +427,13 @@ export type JustifyRequest = {
   language?: "fr" | "en";
   client_logo_data_url?: string | null;
   sketchup_iso_path?: string | null;
+  // iter-20e — magazine pitch deck inputs (all optional). When
+  // supplied, the PPT renders the new Vision / Programme / Three
+  // variants / Atmosphere / Materials slides with real mood content.
+  mood_board_selection?: Record<string, unknown> | null;
+  other_variants?: VariantOutput[] | null;
+  sketchup_iso_by_style?: Record<string, string> | null;
+  gallery_tile_paths?: Record<string, string> | null;
 };
 
 export async function generateJustify(req: JustifyRequest): Promise<JustifyResponse> {

@@ -76,6 +76,40 @@ class JustifyRequest(BaseModel):
             "flagship right-column image."
         ),
     )
+    # Iter-20e — magazine deck inputs. All optional : if absent, the
+    # renderer falls back to the core 6-slide deck gracefully.
+    mood_board_selection: dict | None = Field(
+        default=None,
+        description=(
+            "Curator JSON from POST /api/moodboard/generate (or its "
+            "client-side equivalent). Used to pull tagline, palette, "
+            "materials and furniture into the PPTX mood slides."
+        ),
+    )
+    other_variants: list[VariantOutput] | None = Field(
+        default=None,
+        description=(
+            "The two non-retained macro-zoning variants. Used on the "
+            "'Three variants' strip slide so the client sees the full "
+            "decision set, not just the winner."
+        ),
+    )
+    sketchup_iso_by_style: dict[str, str] | None = Field(
+        default=None,
+        description=(
+            "Map `{style.value: iso_path}` — per-variant 3D iso render "
+            "paths for the three-variants strip. Keys are "
+            "`villageois|atelier|hybride_flex`."
+        ),
+    )
+    gallery_tile_paths: dict[str, str] | None = Field(
+        default=None,
+        description=(
+            "NanoBanana gallery tile paths keyed by theme "
+            "(`atmosphere|materials|furniture|biophilic`). Used on the "
+            "Atmosphere + Materials slides."
+        ),
+    )
 
 
 class JustifySubOutput(BaseModel):
@@ -218,12 +252,40 @@ class JustifySurface:
         try:
             from app.surfaces.justify_pptx import render_pitch_deck
 
+            # Pull tagline + palette + materials + furniture from the mood-board
+            # curator JSON when available. Shape mirrors MoodBoardResponse.selection
+            # (see `app/surfaces/moodboard.py`) : header.tagline,
+            # atmosphere.palette[{name, hex, role}], materials[], furniture[].
+            mb = req.mood_board_selection or {}
+            tagline_mb = None
+            palette_hexes_mb: list[str] = []
+            materials_mb: list[dict] = []
+            furniture_mb: list[dict] = []
+            if isinstance(mb, dict):
+                tagline_mb = (mb.get("header") or {}).get("tagline")
+                palette_list = (mb.get("atmosphere") or {}).get("palette") or []
+                for sw in palette_list:
+                    if isinstance(sw, dict) and sw.get("hex"):
+                        palette_hexes_mb.append(str(sw["hex"]))
+                raw_mat = mb.get("materials") or []
+                raw_fur = mb.get("furniture") or []
+                materials_mb = [m for m in raw_mat if isinstance(m, dict)]
+                furniture_mb = [f for f in raw_fur if isinstance(f, dict)]
+
             pptx = render_pitch_deck(
                 client_name=req.client_name,
                 variant=req.variant,
                 argumentaire_markdown=cons_out.text,
                 client_logo_data_url=req.client_logo_data_url,
                 sketchup_iso_path=req.sketchup_iso_path,
+                tagline=tagline_mb,
+                palette_hexes=palette_hexes_mb or None,
+                programme_markdown=req.programme_markdown,
+                other_variants=req.other_variants,
+                sketchup_iso_by_style=req.sketchup_iso_by_style,
+                gallery_tile_paths=req.gallery_tile_paths,
+                materials=materials_mb or None,
+                furniture=furniture_mb or None,
             )
             pptx_id = pptx.pptx_id
         except Exception:  # noqa: BLE001

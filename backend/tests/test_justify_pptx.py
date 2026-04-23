@@ -91,7 +91,11 @@ def test_condense_trims_and_strips_markdown() -> None:
     assert "•" in out
 
 
-def test_render_pitch_deck_writes_six_slides() -> None:
+def test_render_pitch_deck_writes_twelve_slides() -> None:
+    """iter-20e (Saad #20) : the deck is now 12 slides minimum — magazine
+    layout with vision / programme / three variants / retained / atmosphere
+    / materials in addition to the original research + regulatory + KPIs.
+    """
     build = render_pitch_deck(
         client_name="Lumen",
         variant=_mini_variant(),
@@ -100,16 +104,52 @@ def test_render_pitch_deck_writes_six_slides() -> None:
     )
     assert build.path.exists()
     assert build.bytes > 10_000  # a real PPTX is at least ~20 KB
-    assert build.slide_count == 6
+    assert build.slide_count == 12
     # Validate it can be reopened.
     from pptx import Presentation
 
     prs = Presentation(str(build.path))
-    assert len(prs.slides) == 6
+    assert len(prs.slides) == 12
     # 13.333 in × 914400 EMU/in, rounded; allow small tolerance.
     assert 12_180_000 < prs.slide_width < 12_200_000
     # 7.5 in × 914400 = 6 858 000 EMU exactly.
     assert prs.slide_height == 6_858_000
+
+
+def test_render_pitch_deck_honours_rich_inputs() -> None:
+    """With tagline + palette + programme + other variants + gallery
+    paths + materials + furniture, the deck still reports 12 slides and
+    the file stays openable. Placeholders handle missing images.
+    """
+    other = [
+        VariantOutput(
+            style=VariantStyle.VILLAGEOIS,
+            title="Quartier Sud",
+            narrative="—",
+            metrics=_mini_variant().metrics,
+        ),
+        VariantOutput(
+            style=VariantStyle.HYBRIDE_FLEX,
+            title="Ruche Lumière",
+            narrative="—",
+            metrics=_mini_variant().metrics,
+        ),
+    ]
+    build = render_pitch_deck(
+        client_name="Lumen",
+        variant=_mini_variant(),
+        argumentaire_markdown=ARGUMENTAIRE,
+        tagline="A studio that breathes.",
+        palette_hexes=["#FAF7F2", "#2F4A3F", "#C9B79C", "#E8C547"],
+        programme_markdown=ARGUMENTAIRE,  # reuse — has ## N. headings
+        other_variants=other,
+        sketchup_iso_by_style={},
+        gallery_tile_paths={},
+        materials=[{"material": "oak", "finish": "matte"}],
+        furniture=[{"name": "Series 1", "brand": "Steelcase"}],
+    )
+    assert build.slide_count == 12
+    assert build.bytes > 10_000
 
 
 def test_pptx_endpoint_returns_404_for_missing_id() -> None:

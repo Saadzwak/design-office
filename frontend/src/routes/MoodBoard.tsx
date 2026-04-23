@@ -240,7 +240,14 @@ export default function MoodBoard() {
       )
         .map((p) => p.hex)
         .filter((s): s is string => typeof s === "string");
-      setMoodBoard({ pdf_id: resp.pdf_id, palette: hexes });
+      // iter-20e (Saad #19-#22) : persist the full selection JSON so
+      // Justify's PPT renderer can reuse tagline / palette / materials
+      // / furniture verbatim — no re-curation needed.
+      setMoodBoard({
+        pdf_id: resp.pdf_id,
+        palette: hexes,
+        selection: resp.selection as Record<string, unknown>,
+      });
       setPhase("idle");
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : String(err));

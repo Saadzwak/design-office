@@ -99,6 +99,14 @@ export default function Justify() {
             (v) => v.style === project.testfit?.retained_style,
           ) ?? sample.variants[1];
       }
+      // iter-20e (Saad #19-#22) : forward the 2 non-retained variants
+      // and the full curator selection so the PPT can render the
+      // "Three variants" strip + Vision + Atmosphere + Materials
+      // slides with real content instead of placeholders.
+      const retainedStyle = project.testfit?.retained_style ?? variant.style;
+      const others = (project.testfit?.variants ?? []).filter(
+        (v) => v.style !== retainedStyle,
+      );
       const resp = await generateJustify({
         client_name: project.client.name,
         brief: project.brief,
@@ -112,6 +120,8 @@ export default function Justify() {
         // recherche", etc., breaking the client-facing story view.
         language: "en",
         client_logo_data_url: project.client.logo_data_url ?? null,
+        mood_board_selection: project.mood_board?.selection ?? null,
+        other_variants: others.length > 0 ? others : null,
       });
       setResponse(resp);
       setJustify({

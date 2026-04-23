@@ -65,6 +65,12 @@ export type JustifyState = {
 export type MoodBoardState = {
   pdf_id: string | null;
   palette: string[];
+  // iter-20e (Saad #19-#22) : keep the full curator selection JSON
+  // around so the Justify page can forward it to the PPT renderer
+  // (tagline, palette, materials, furniture). Opaque to the UI : it
+  // only matters to the backend. `null` when the mood board hasn't
+  // been generated yet or when legacy state has no selection.
+  selection?: Record<string, unknown> | null;
 };
 
 // ──────────────────────────────── Runs ────────────────────────────────
@@ -99,6 +105,9 @@ export type MoodBoardRun = {
   pdf_id: string | null;
   visual_image_id: string | null;
   palette: string[];
+  // iter-20e : full curator JSON, persisted so Justify can forward
+  // tagline / palette / materials / furniture to the PPT renderer.
+  selection?: Record<string, unknown> | null;
 };
 
 export type JustifyRun = {
@@ -278,7 +287,11 @@ export function reconcileDerivedViews(state: ProjectState): ProjectState {
 
   const mbRun = latestForActive(state.moodboard_runs, state.active_macro_run_id);
   const mood_board: MoodBoardState | null = mbRun
-    ? { pdf_id: mbRun.pdf_id, palette: mbRun.palette }
+    ? {
+        pdf_id: mbRun.pdf_id,
+        palette: mbRun.palette,
+        selection: mbRun.selection ?? null,
+      }
     : null;
 
   return {
@@ -719,6 +732,7 @@ export function appendMoodBoardRun(payload: {
   pdf_id: string | null;
   visual_image_id?: string | null;
   palette: string[];
+  selection?: Record<string, unknown> | null;
 }): ProjectState {
   const current = loadProjectState();
   const run: MoodBoardRun = {
@@ -729,6 +743,7 @@ export function appendMoodBoardRun(payload: {
     pdf_id: payload.pdf_id,
     visual_image_id: payload.visual_image_id ?? null,
     palette: payload.palette,
+    selection: payload.selection ?? null,
   };
   const next: ProjectState = {
     ...current,
@@ -749,6 +764,7 @@ export function setMoodBoard(mb: MoodBoardState | null): ProjectState {
   return appendMoodBoardRun({
     pdf_id: mb.pdf_id,
     palette: mb.palette,
+    selection: mb.selection ?? null,
   });
 }
 
