@@ -1,335 +1,337 @@
-import { motion } from "framer-motion";
-import { ArrowUpRight } from "lucide-react";
-import { Link } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 
-const HERO_IMG =
-  "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1800&q=80";
-const SECOND_IMG =
-  "https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&w=1800&q=80";
+import { Eyebrow, Icon, Placeholder } from "../components/ui";
 
-const SURFACES = [
-  {
-    n: "I",
-    title: "Brief",
-    description:
-      "Three agents turn a client brief into a costed, sourced functional programme — ready to send.",
-    eta: "≈ 3 minutes",
-    to: "/brief",
-  },
-  {
-    n: "II",
-    title: "Test Fit",
-    description:
-      "Opus Vision reads your plan at HD and composes three contrasted 3D variants in SketchUp.",
-    eta: "≈ 3 minutes",
-    to: "/testfit",
-  },
-  {
-    n: "III",
-    title: "Mood Board",
-    description:
-      "A curated palette of materials, furniture and planting, adapted to the client's industry and identity.",
-    eta: "≈ 2 minutes",
-    to: "/moodboard",
-  },
-  {
-    n: "IV",
-    title: "Justify",
-    description:
-      "Every decision defended with a source — acoustic, neuroarchitecture, regulatory, programming.",
-    eta: "≈ 4 minutes",
-    to: "/justify",
-  },
-  {
-    n: "V",
-    title: "Export",
-    description:
-      "A dimensioned A1 DWG, five Design Office layers, title-block ready for the approvals office.",
-    eta: "≈ 2 seconds",
-    to: "/export",
-  },
-];
-
-const SOURCES = [
-  "NF S 31-080 · Bureaux & espaces associés",
-  "NF S 31-199 · Open-plan acoustic performance",
-  "ISO 3382-3:2022 · D2,S / rD / Lp,A,S,4m",
-  "Arrêté du 20 avril 2017 · Accessibilité ERP",
-  "Code du travail · R. 4222 / R. 4223",
-  "EN 12464-1 · 500 lux task area",
-  "Browning · Ryan · Clancy 2014 · 14 Patterns",
-  "Kellert · Heerwagen · Mador 2008",
-  "Nieuwenhuis et al. 2014 · +15 % productivity",
-  "Ulrich 1984 · View through a window (Science)",
-  "Kaplan & Kaplan · Attention Restoration",
-  "Hongisto 2005 · STI threshold 0.21",
-  "Leesman 2019–2024 · Lmi / H-Lmi",
-  "Gensler 2020–2024 · Workplace Survey",
-];
-
+/**
+ * Landing — Claude Design bundle parity (iter-18e).
+ *
+ * Hero split + metric strip + editorial surfaces grid + pull quote
+ * + sources marquee + footer. Own marketing-style nav (distinct
+ * from the product GlobalNav, which App.tsx hides on `/`).
+ */
 export default function Landing() {
+  const navigate = useNavigate();
   return (
-    <div className="space-y-40">
-      {/* Hero */}
-      <section className="relative">
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-          className="grid grid-cols-12 gap-8 pt-4"
-        >
-          <div className="col-span-12 lg:col-span-7">
-            <p className="eyebrow-forest">
-              AI co-architect · tertiary fit-out
-            </p>
-            <h1
-              className="mt-6 font-display text-[44px] leading-[1.02] tracking-[-0.03em] text-ink sm:text-[56px] sm:leading-[0.98] sm:tracking-[-0.035em] md:mt-10 md:text-[72px] lg:text-[104px]"
-              style={{ fontVariationSettings: '"opsz" 144, "wght" 620, "SOFT" 100' }}
+    <div className="min-h-screen bg-canvas">
+      {/* Landing-specific nav */}
+      <nav
+        className="sticky top-0 z-20 flex items-center justify-between border-b border-mist-100 px-16 py-5 backdrop-blur"
+        style={{ background: "rgba(250, 247, 242, 0.85)" }}
+      >
+        <div className="flex items-center gap-2.5">
+          <span
+            className="inline-block h-2.5 w-2.5"
+            style={{
+              background: "var(--forest)",
+              borderRadius: 2,
+              transform: "rotate(45deg)",
+            }}
+          />
+          <span
+            className="font-display text-[20px] font-medium leading-none tracking-[-0.01em] text-ink"
+            style={{ fontVariationSettings: '"opsz" 96, "wght" 500, "SOFT" 100' }}
+          >
+            Design Office
+          </span>
+        </div>
+        <div className="flex items-center gap-7">
+          {["Surfaces", "Method", "Journal"].map((a) => (
+            <span
+              key={a}
+              className="mono text-[11px] uppercase tracking-[0.08em] text-ink"
             >
-              A quiet
-              <br />
-              <span className="italic" style={{ fontVariationSettings: '"opsz" 144, "wght" 450, "SOFT" 100' }}>
-                co-architect
-              </span>
-              <br />
-              for office
-              <br />
-              interiors.
-            </h1>
-            <p className="mt-10 max-w-xl font-serif text-[19px] leading-[1.55] text-ink-soft" style={{ fontVariationSettings: '"opsz" 24, "wght" 400, "SOFT" 100' }}>
-              Space planners spend two to eight weeks on programming and one to
-              three on a test fit. Design Office reads your plan, drafts three
-              variants in SketchUp, and justifies every choice with a real
-              source — in the time it takes to brew a pot of coffee.
-            </p>
-            <div className="mt-12 flex items-center gap-5">
-              <Link to="/brief" className="btn-primary">
-                Start a project
-                <ArrowUpRight className="h-4 w-4" />
-              </Link>
-              <a href="#how-it-works" className="btn-minimal">
-                How it works
-                <ArrowUpRight className="h-3.5 w-3.5" />
-              </a>
-            </div>
-          </div>
+              {a}
+            </span>
+          ))}
+          <button
+            onClick={() => navigate("/project")}
+            className="btn-primary btn-sm"
+          >
+            Sign in
+          </button>
+        </div>
+      </nav>
 
-          <div className="col-span-12 lg:col-span-5">
-            <figure className="relative overflow-hidden rounded-lg border border-hairline bg-raised">
-              <img
-                src={HERO_IMG}
-                alt="Light-filled tertiary interior, warm wood and white volumes"
-                className="aspect-[4/5] w-full object-cover"
-                style={{ filter: "grayscale(1) contrast(1.04) brightness(0.98)" }}
-                loading="eager"
-              />
-              <figcaption className="absolute bottom-0 left-0 right-0 flex items-end justify-between bg-gradient-to-t from-ink/55 via-ink/15 to-transparent p-5 text-raised">
-                <p className="font-mono text-[10px] uppercase tracking-label">
-                  Lumen · Paris · 2 400 m²
-                </p>
-                <p className="font-mono text-[10px] uppercase tracking-label">
-                  atelier north · 130 desks
-                </p>
-              </figcaption>
-            </figure>
+      {/* Hero split */}
+      <section
+        className="grid items-center gap-[72px] px-16 pb-[60px] pt-[80px]"
+        style={{
+          gridTemplateColumns: "1.05fr 0.95fr",
+          minHeight: "calc(100vh - 74px)",
+        }}
+      >
+        <div className="animate-fade-rise">
+          <Eyebrow style={{ marginBottom: 28 }}>
+            AI CO-ARCHITECT FOR INTERIOR DESIGNERS
+          </Eyebrow>
+          <h1
+            className="m-0 mb-[18px] font-display italic"
+            style={{
+              fontSize: "clamp(52px, 9vw, 112px)",
+              lineHeight: 1.02,
+              letterSpacing: "-0.02em",
+              fontVariationSettings: '"opsz" 144, "wght" 600, "SOFT" 100',
+            }}
+          >
+            Design
+            <br />
+            Office.
+          </h1>
+          <p
+            className="m-0 mb-11 font-display"
+            style={{
+              fontSize: "clamp(22px, 2.5vw, 34px)",
+              color: "var(--mist-600)",
+              lineHeight: 1.3,
+              maxWidth: 640,
+              fontVariationSettings: '"opsz" 96, "wght" 350, "SOFT" 100',
+            }}
+          >
+            Augment your test-fit, mood board, <br />
+            and client presentation.
+          </p>
+          <div className="mb-16 flex gap-3.5">
+            <button
+              onClick={() => navigate("/brief")}
+              className="btn-primary"
+              style={{ padding: "16px 28px", fontSize: 15 }}
+            >
+              Start a project <Icon name="arrow-right" size={14} />
+            </button>
+            <button
+              onClick={() => navigate("/project")}
+              className="btn-ghost"
+              style={{ padding: "16px 28px", fontSize: 15 }}
+            >
+              <Icon name="play" size={12} /> Watch the demo
+            </button>
           </div>
-        </motion.div>
+          <div className="mono text-mist-500">
+            <span style={{ color: "var(--forest)" }}>●</span> 2026 · Opus 4.7 · Paris
+          </div>
+        </div>
+
+        <div className="relative">
+          <Placeholder
+            tag="ARCHITECTURAL CORRIDOR · SUNLIT · 4:5"
+            ratio="4/5"
+            tint="#3C5D50"
+            style={{ boxShadow: "var(--sh-hero)" }}
+          />
+          <div
+            className="absolute bottom-[-18px] left-[-18px] flex flex-col gap-0.5 bg-canvas"
+            style={{
+              padding: "14px 18px",
+              border: "1px solid var(--mist-200)",
+              borderRadius: 8,
+              boxShadow: "var(--sh-soft)",
+            }}
+          >
+            <span className="mono text-mist-500">LUMEN · PARIS 9E</span>
+            <span
+              className="font-display italic"
+              style={{ fontVariationSettings: '"opsz" 72, "wght" 380, "SOFT" 100' }}
+            >
+              2400 m² · 170 FTE
+            </span>
+          </div>
+        </div>
       </section>
 
       {/* Metric strip */}
-      <section>
-        <div className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-hairline bg-hairline md:grid-cols-4">
-          <Metric n="10" suffix="minutes" label="Cold-start to signable plan" />
-          <Metric n="2,700" suffix="lines" label="Sourced MCP resources" />
-          <Metric n="3 × 3" suffix="agents" label="Managed-agent levels" />
-          <Metric n="41" suffix="SKUs" label="Furniture catalogue" />
-        </div>
-      </section>
-
-      {/* How it works */}
-      <section id="how-it-works" className="grid grid-cols-12 gap-8">
-        <div className="col-span-12 lg:col-span-4">
-          <p className="eyebrow-forest">Five surfaces</p>
-          <h2
-            className="mt-6 font-display text-[48px] leading-[1.02] tracking-[-0.02em] text-ink md:text-[60px]"
-            style={{ fontVariationSettings: '"opsz" 96, "wght" 560, "SOFT" 100' }}
+      <section
+        className="grid border-y border-mist-200"
+        style={{ gridTemplateColumns: "repeat(4, 1fr)" }}
+      >
+        {[
+          ["10×", "FASTER TEST-FIT"],
+          ["3", "INDUSTRIES PROVEN"],
+          ["6", "EDITORIAL SURFACES"],
+          ["0", "ENGINEERING REWRITE"],
+        ].map(([num, label], i) => (
+          <div
+            key={i}
+            className="flex flex-col gap-2 px-8 py-11"
+            style={{
+              borderRight: i < 3 ? "1px solid var(--mist-200)" : "none",
+            }}
           >
-            The craft,
-            <br />
-            compressed.
-          </h2>
-          <p className="mt-6 max-w-md font-sans text-[15px] leading-relaxed text-ink-soft">
-            Four moments in the life of a fit-out — programming, test fit,
-            justification, technical export — each now a few minutes instead
-            of a few weeks. Nothing silently fabricated ; every number carries
-            a footnote.
-          </p>
-        </div>
-
-        <ol className="col-span-12 lg:col-span-8 divide-y divide-hairline">
-          {SURFACES.map((step, idx) => (
-            <motion.li
-              key={step.n}
-              initial={{ opacity: 0, y: 4 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-80px" }}
-              transition={{ duration: 0.5, delay: idx * 0.06, ease: [0.22, 1, 0.36, 1] }}
-              className="group flex items-start gap-8 py-8 transition-colors duration-300 ease-out-gentle hover:bg-mist-50/40"
+            <div
+              className="font-display"
+              style={{
+                fontSize: 56,
+                fontWeight: 300,
+                letterSpacing: "-0.03em",
+                fontVariationSettings: '"opsz" 144, "wght" 300, "SOFT" 100',
+              }}
             >
-              <span
-                className="mt-1 font-display text-[13px] tracking-[0.25em] text-ink-muted"
-                style={{ fontVariationSettings: '"opsz" 14, "wght" 420' }}
-              >
-                {step.n}
-              </span>
-              <div className="flex-1">
-                <div className="flex items-baseline justify-between gap-4">
-                  <h3
-                    className="font-display text-[32px] leading-none text-ink transition-transform duration-300 ease-out-gentle group-hover:translate-x-1"
-                    style={{ fontVariationSettings: '"opsz" 48, "wght" 520, "SOFT" 100' }}
-                  >
-                    {step.title}
-                  </h3>
-                  <span className="font-mono text-[11px] uppercase tracking-label text-ink-muted">
-                    {step.eta}
-                  </span>
-                </div>
-                <p className="mt-3 max-w-lg font-sans text-[14.5px] leading-relaxed text-ink-soft">
-                  {step.description}
-                </p>
-                <Link
-                  to={step.to}
-                  className="mt-4 inline-flex items-center gap-1 font-mono text-[11px] uppercase tracking-label text-forest transition-colors hover:text-forest-dark"
-                >
-                  Open <ArrowUpRight className="h-3 w-3" />
-                </Link>
-              </div>
-            </motion.li>
-          ))}
-        </ol>
+              {num}
+            </div>
+            <div className="mono text-mist-500">{label}</div>
+          </div>
+        ))}
       </section>
 
-      {/* Editorial image + quote */}
-      <section className="relative grid grid-cols-12 gap-8">
-        <figure className="col-span-12 lg:col-span-7">
-          <img
-            src={SECOND_IMG}
-            alt="Warm timber office — workstations by the north façade"
-            className="aspect-[5/4] w-full rounded-lg object-cover"
-            style={{ filter: "grayscale(1) contrast(1.04) brightness(0.96)" }}
-            loading="lazy"
-          />
-          <figcaption className="mt-3 font-mono text-[10px] uppercase tracking-label text-ink-muted">
-            Atelier variant · desks along the north façade · Opus 4.7 + SketchUp MCP
-          </figcaption>
-        </figure>
-        <blockquote className="col-span-12 self-center lg:col-span-5">
-          <p className="eyebrow-forest">Atelier doctrine</p>
+      {/* Surfaces I–VI asymmetric editorial grid */}
+      <section className="px-16 py-[120px]">
+        <div
+          className="mb-[72px] grid gap-[80px]"
+          style={{ gridTemplateColumns: "1fr 2fr" }}
+        >
+          <div>
+            <Eyebrow style={{ marginBottom: 18 }}>SURFACES · I — VI</Eyebrow>
+            <h2
+              className="m-0 font-display"
+              style={{
+                fontSize: 44,
+                lineHeight: 1.05,
+                letterSpacing: "-0.02em",
+                fontVariationSettings: '"opsz" 96, "wght" 500, "SOFT" 100',
+              }}
+            >
+              Six editorial surfaces, one continuous handoff.
+            </h2>
+          </div>
           <p
-            className="mt-6 font-display text-[40px] leading-[1.08] tracking-[-0.02em] text-ink md:text-[52px]"
-            style={{ fontVariationSettings: '"opsz" 96, "wght" 460, "SOFT" 100' }}
+            className="pt-5 font-display"
+            style={{
+              fontSize: 22,
+              color: "var(--mist-600)",
+              lineHeight: 1.45,
+              fontVariationSettings: '"opsz" 72, "wght" 380, "SOFT" 100',
+            }}
           >
-            <span className="italic">&ldquo;</span>Give the office back what
-            home can't — collaboration, rituals, a café that brings people
-            together<span className="italic">&rdquo;</span>
+            Each surface is a chapter — briefed, visualized, sourced. The tool
+            moves at the speed of your taste, not the speed of a form.
           </p>
-          <p className="mt-6 font-mono text-[11px] uppercase tracking-label text-ink-muted">
-            Excerpt from the Lumen argumentaire · Opus 4.7 consolidator
-          </p>
+        </div>
+
+        <div
+          className="grid"
+          style={{
+            gridTemplateColumns: "repeat(12, 1fr)",
+            rowGap: 56,
+            columnGap: 32,
+          }}
+        >
+          {[
+            { r: "I", t: "Brief", d: "Natural-language ingestion, Leesman-calibrated programme.", span: 5, offset: 0 },
+            { r: "II", t: "Test fit", d: "Three concepts, macro and micro zoning in 2D and 3D.", span: 5, offset: 2 },
+            { r: "III", t: "Mood board", d: "Editorial collage of materials, furniture, light.", span: 4, offset: 1 },
+            { r: "IV", t: "Justify", d: "Sourced argumentaire, toggled Engineering ↔ Client.", span: 5, offset: 2 },
+            { r: "V", t: "Export", d: "DXF and DWG, five named layers, zero rewrite.", span: 4, offset: 0 },
+            { r: "VI", t: "Chat", d: "A co-architect in the corner of every page.", span: 4, offset: 4 },
+          ].map((s) => (
+            <div
+              key={s.r}
+              style={{ gridColumn: `${s.offset + 1} / span ${s.span}` }}
+            >
+              <div className="mb-3.5 flex items-baseline gap-[18px]">
+                <span
+                  className="font-display italic"
+                  style={{
+                    fontSize: 28,
+                    color: "var(--sand)",
+                    fontVariationSettings: '"opsz" 96, "wght" 400, "SOFT" 100',
+                  }}
+                >
+                  {s.r}.
+                </span>
+                <span
+                  className="font-display"
+                  style={{
+                    fontSize: 32,
+                    fontWeight: 400,
+                    letterSpacing: "-0.01em",
+                    fontVariationSettings: '"opsz" 96, "wght" 420, "SOFT" 100',
+                  }}
+                >
+                  {s.t}
+                </span>
+              </div>
+              <p className="m-0 text-mist-600" style={{ maxWidth: 380 }}>
+                {s.d}
+              </p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Pull quote */}
+      <section
+        className="border-y border-mist-200 px-16 py-20"
+        style={{ background: "var(--canvas-alt)" }}
+      >
+        <blockquote
+          className="m-0 font-display italic"
+          style={{
+            fontSize: "clamp(32px, 4.2vw, 60px)",
+            fontWeight: 300,
+            lineHeight: 1.15,
+            letterSpacing: "-0.02em",
+            maxWidth: 1200,
+            fontVariationSettings: '"opsz" 144, "wght" 300, "SOFT" 100',
+          }}
+        >
+          "From brief to client deck, <br />
+          in one continuous editorial."
         </blockquote>
+        <div className="mt-8 mono text-mist-500">
+          — DESIGN OFFICE · MANIFESTO
+        </div>
       </section>
 
       {/* Sources marquee */}
-      <section>
-        <div className="flex items-end justify-between">
-          <div>
-            <p className="eyebrow-forest">Cited, not invented</p>
-            <h2
-              className="mt-4 font-display text-[44px] leading-[1.02] tracking-[-0.02em] text-ink md:text-[56px]"
-              style={{ fontVariationSettings: '"opsz" 80, "wght" 540, "SOFT" 100' }}
-            >
-              Every number
-              <br />
-              <span className="italic" style={{ fontVariationSettings: '"opsz" 80, "wght" 440, "SOFT" 100' }}>
-                footnoted.
-              </span>
-            </h2>
-          </div>
-          <p className="hidden max-w-sm font-sans text-[14px] leading-relaxed text-ink-soft md:block">
-            Anything we could not verify at time of writing carries a{" "}
-            <code className="rounded bg-mist-100 px-1 py-0.5 font-mono text-[11px]">[À VÉRIFIER]</code>{" "}
-            marker — not a fabrication.
-          </p>
+      <section className="overflow-hidden" style={{ padding: "60px 0" }}>
+        <div className="mono mb-6 px-16 text-mist-500">
+          SOURCES · WORKPLACE RESEARCH &amp; MANUFACTURERS
         </div>
-        <div className="relative mt-10 overflow-hidden border-y border-hairline py-5">
-          <div className="flex animate-marquee whitespace-nowrap">
-            {[...SOURCES, ...SOURCES].map((src, i) => (
-              <span
-                key={`${src}-${i}`}
-                className="mx-8 inline-block font-mono text-[11px] uppercase tracking-label text-ink-soft"
-              >
-                <span className="mr-3 text-forest">§</span>
-                {src}
-              </span>
-            ))}
-          </div>
-          <div className="pointer-events-none absolute inset-y-0 left-0 w-32 bg-gradient-to-r from-canvas to-transparent" />
-          <div className="pointer-events-none absolute inset-y-0 right-0 w-32 bg-gradient-to-l from-canvas to-transparent" />
+        <div
+          className="flex flex-wrap gap-[72px] px-16"
+          style={{
+            fontFamily: "var(--f-display)",
+            fontSize: 32,
+            fontStyle: "italic",
+            color: "var(--mist-400)",
+          }}
+        >
+          {[
+            "Leesman",
+            "Gensler",
+            "Steelcase",
+            "Herman Miller",
+            "Vitra",
+            "Framery",
+            "Kvadrat",
+          ].map((s) => (
+            <span key={s}>{s}</span>
+          ))}
         </div>
       </section>
 
-      {/* CTA close */}
-      <motion.section
-        initial={{ opacity: 0, y: 8 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-        className="relative overflow-hidden rounded-2xl border border-hairline bg-raised p-12 md:p-20"
-      >
-        <div className="absolute -right-24 -top-24 h-80 w-80 rounded-full bg-forest/6 blur-3xl" />
-        <div className="absolute -bottom-20 -left-20 h-72 w-72 rounded-full bg-sand/20 blur-3xl" />
-        <div className="relative grid grid-cols-12 gap-8">
-          <div className="col-span-12 lg:col-span-8">
-            <p className="eyebrow-forest">Hackathon build · Built with Opus 4.7</p>
-            <h2
-              className="mt-5 font-display text-[44px] leading-[1.03] tracking-[-0.02em] text-ink md:text-[60px]"
-              style={{ fontVariationSettings: '"opsz" 96, "wght" 540, "SOFT" 100' }}
-            >
-              Try it on Lumen —
-              <br />
-              <span className="italic" style={{ fontVariationSettings: '"opsz" 96, "wght" 430, "SOFT" 100' }}>
-                the reference brief ships with the repo.
-              </span>
-            </h2>
-          </div>
-          <div className="col-span-12 flex flex-wrap items-end gap-3 lg:col-span-4 lg:justify-end">
-            <Link to="/brief" className="btn-primary">
-              Start a project
-              <ArrowUpRight className="h-4 w-4" />
-            </Link>
-            <Link to="/testfit" className="btn-ghost">
-              Open the Test Fit
-            </Link>
-          </div>
+      {/* Footer */}
+      <footer className="flex items-center justify-between border-t border-mist-200 px-16 py-12">
+        <div className="flex items-center gap-2.5">
+          <span
+            className="inline-block h-2 w-2"
+            style={{
+              background: "var(--forest)",
+              borderRadius: 2,
+              transform: "rotate(45deg)",
+            }}
+          />
+          <span className="mono text-mist-500">
+            © 2026 DESIGN OFFICE · PARIS
+          </span>
         </div>
-      </motion.section>
-    </div>
-  );
-}
-
-function Metric({ n, suffix, label }: { n: string; suffix: string; label: string }) {
-  return (
-    <div className="flex flex-col justify-between gap-6 bg-canvas p-8">
-      <p className="font-mono text-[10px] uppercase tracking-label text-ink-muted">{label}</p>
-      <p
-        className="font-display text-[52px] leading-none tracking-[-0.025em] text-ink md:text-[68px]"
-        style={{ fontVariationSettings: '"opsz" 120, "wght" 560, "SOFT" 100' }}
-      >
-        {n}
-        <span className="ml-2 font-mono text-[11px] align-top uppercase tracking-label text-forest">
-          {suffix}
-        </span>
-      </p>
+        <div className="mono flex gap-6 text-mist-500">
+          <NavLink to="/" onClick={(e) => e.preventDefault()}>
+            GITHUB
+          </NavLink>
+          <span>JOURNAL</span>
+          <span>BUILT WITH OPUS 4.7</span>
+        </div>
+      </footer>
     </div>
   );
 }
