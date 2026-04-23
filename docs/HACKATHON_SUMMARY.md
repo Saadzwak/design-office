@@ -24,28 +24,41 @@ test-fit in a way that respects the regulation cliff of French ERP type W.
 
 ## Solution — Design Office
 
-Design Office augments the four surfaces where human time is spent :
+Design Office augments the six surfaces where human time is spent:
 
-1. **Brief synthesis** — client brief in natural language → costed,
-   sourced functional programme. Three Claude Opus 4.7 sub-agents
-   (Effectifs / Benchmarks / Contraintes) run in parallel over 10
-   curated MCP Resources (2 700 lines of sourced Markdown covering NF
-   S 31-080, NF S 31-199, arrêté 20 avril 2017, Browning 14 patterns,
-   Leesman multi-year, Gensler multi-year, Hongisto / Haapakangas,
-   Kellert, Ulrich, Taylor fractals). A consolidator merges them into
+1. **Brief synthesis** — client brief + industry profile (8 profiles
+   from tech startup to law firm to public sector) → costed, sourced
+   functional programme. Three Claude Opus 4.7 sub-agents (Effectifs /
+   Benchmarks / Contraintes) run in parallel over 13 curated MCP
+   Resources (3 500+ lines of sourced Markdown covering NF S 31-080,
+   NF S 31-199, arrêté 20 avril 2017, Browning 14 patterns, Leesman
+   multi-year, Gensler multi-year, Hongisto, Kellert, Ulrich, Taylor
+   fractals, plus `design://client-profiles`, `design://material-finishes`
+   and `design://mood-board-method`). A consolidator merges them into
    a client-ready programme with inline citations.
-2. **3D test fit** — PDF floor plan + programme → three contrasted 3D
-   variants generated in parallel in SketchUp (Villageois / Atelier /
-   Hybride flex). Each variant is reviewed in parallel by a Reviewer
-   agent checking PMR, ERP type W, programme coverage, and column
-   integrity.
-3. **Sourced justification** — retained variant → client-facing
+2. **Test fit — Macro-zoning** — PDF floor plan + programme → three
+   contrasted 3D variants generated in parallel in SketchUp
+   (Neighbourhood / Atelier / Hybrid flex). Each variant is reviewed
+   in parallel by a Reviewer agent checking PMR, ERP type W,
+   programme coverage, and column integrity. Natural-language
+   iteration works on any variant.
+3. **Test fit — Micro-zoning** — retained variant → per-zone
+   drill-down brief (furniture SKUs from the 41-SKU catalogue, finish
+   picks from real manufacturers, acoustic targets DnT,A / TR60,
+   lighting Kelvin, biophilic accents). Paired with a pseudo-3D
+   viewer that cycles through 6 SketchUp angles per variant (4 iso +
+   top-down + eye-level, 1920×1280).
+4. **Mood Board** — retained variant + industry → **A3 landscape
+   PDF** with six mandatory sections (palette, materials, furniture,
+   planting, light) curated from real products only. Layout derived
+   from `design://mood-board-method`.
+5. **Sourced justification** — retained variant → client-facing
    argumentaire with inline citations, rendered as both an A4 PDF
-   (ReportLab, 5 pages) and a 6-slide 16:9 pitch deck (python-pptx)
-   in the Design Office palette. Four specialty researchers (Acoustic /
-   Biophilic & neuroarchitecture / Regulatory / Programming) run in
-   parallel then consolidate.
-4. **Technical DWG** — retained variant → dimensioned A1 DXF with
+   (ReportLab, 5 pages) and a **6-slide 16:9 pitch deck** embedding
+   the client's logo and a SketchUp iso render on the cover. Four
+   specialty researchers (Acoustic / Biophilic & neuroarchitecture /
+   Regulatory / Programming) run in parallel then consolidate.
+6. **Technical DWG** — retained variant → dimensioned A1 DXF with
    Design Office layers (AGENCEMENT, MOBILIER, COTATIONS, CLOISONS,
    CIRCULATIONS) and a title-block cartouche. Ships through `ezdxf`
    headless by default, upgrades to AutoCAD File-IPC live when
@@ -53,7 +66,28 @@ Design Office augments the four surfaces where human time is spent :
 
 End-to-end, a **cold-start Lumen walkthrough** (fictitious fintech
 client, 170 FTE horizon, 2 400 m² plate) runs in **≈ 10 minutes
-wall-clock** — from pasted brief to signable DXF + client-ready PDF.
+wall-clock** — from pasted brief to signable DXF + client-ready PDF
++ A3 mood board + PPTX pitch deck.
+
+### Two personas, one product
+
+A top-nav segmented toggle flips the entire product between an
+**Engineering view** (dense, numeric, technical — Brief → Test Fit →
+Mood Board → Justify → Export) and a **Client view** (editorial,
+visual, narrative — Brief → Mood Board → Concept → Story). The
+interior architect wears both hats on the same project; the product
+adapts.
+
+### Chat as a real assistant
+
+"Ask Design Office" is present on every page. Nine allow-listed
+actions (`start_brief`, `start_macro_zoning`, `start_micro_zoning`,
+`start_mood_board`, `start_justify`, `iterate_variant`, `export_dwg`,
+`generate_pitch_deck`, `update_project_field`) map to real backend
+endpoints, dispatched from the chat drawer. Local regex enrichment
+detects project-parameter updates in conversation (headcount, growth
+target, flex policy, industry) and offers an inline confirmation card
+to persist them — no round-trip needed.
 
 ## Creative Opus 4.7 usage
 
@@ -158,21 +192,32 @@ Everything is in the public repo :
 
 ## What stands on day-0 of the judging window
 
-- **Phases 1 – 7 + Phase 8 bonus (PPTX + iterate) are code-complete**.
-  Organic Modern UI redesign landed end of day — Kinfolk-grade
-  ivory-paper identity across all five routes + downloadable
-  artefacts.
-- **Four surfaces exercised end-to-end live** on the Lumen fixture
-  with real Opus 4.7 calls. End-to-end wall-clock ≈ 10 min.
-- **Live SketchUp round-trip proven** : 3 variants replayed through
-  SU_MCP v1.5.0 + our DesignOffice Ruby module, 360 TCP round-trips,
-  3 iso screenshots on disk.
-- **34 pytest tests pass** (health, brief manifest, test-fit fixture,
-  justify markdown / PDF / PPTX / 404, export round-trip + layer
-  presence, AutoCAD ezdxf, iterate round-trip).
-- **Frontend tsc strict is clean** across all 6 routes and components.
-- **Cross-page Ask Design Office chat** on every route with
-  page-aware context injection.
+- **Six surfaces live** — Brief, Test Fit (macro + micro), Mood Board,
+  Justify, Export. Every one exercised end-to-end on the Lumen
+  fixture with real Opus 4.7 calls.
+- **18 SketchUp PNGs on disk** — 3 variants × 6 angles (iso NE / NW /
+  SE / SW + top-down + eye-level) at 1920×1280, with realistic
+  materials (Light Wood, White Laminate, Felt Grey, Carpet Olive,
+  Fabric Charcoal, Moss Green) applied via
+  `DesignOffice.capture_multi_angle_renders` running against the
+  live SU_MCP v1.5.0 + DesignOffice Ruby module.
+- **Pseudo-3D viewer** powers the Micro-zoning tab: Framer-Motion
+  parallax + angle dock + orbit slider + top-down / eye-level
+  toggles.
+- **Active chat** with 9 allow-listed actions dispatched to real
+  endpoints. Enrichment detection persists mid-conversation
+  corrections to the unified project state.
+- **38 pytest tests pass** (health, brief manifest — 13 MCP
+  resources, test-fit fixture + sample, justify markdown / PDF /
+  PPTX / 404, export round-trip + layer presence, AutoCAD ezdxf,
+  iterate, mood-board PDF round-trip + 404 + streaming).
+- **Frontend tsc strict clean** across 7 routes (landing + 6
+  surfaces + chat) and all components.
+- **Engineering/Client view toggle** flips the full product between
+  two personas.
+- **Pre-flight check** (`scripts/demo_preflight.ps1`) verifies 27
+  things before recording: artefacts, backend health, 5 HTTP
+  surfaces, frontend shell, SketchUp MCP probe.
 - **Only waiting on** : AutoCAD install for live File-IPC A1 plot
   (headless ezdxf already ships a real DXF), and the demo video
   recording.

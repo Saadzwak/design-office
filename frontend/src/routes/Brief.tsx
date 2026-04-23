@@ -310,10 +310,22 @@ function AgentLine({
             {String(index + 1).padStart(2, "0")}
           </span>
           <span
-            className="font-display text-[1.05rem] text-ink"
+            className={[
+              "font-display transition-all duration-300 ease-out-gentle",
+              isRunning
+                ? "italic text-forest text-[1.1rem]"
+                : isDone
+                  ? "text-ink text-[1.05rem]"
+                  : "text-ink text-[1.05rem]",
+            ].join(" ")}
             style={{ fontVariationSettings: '"opsz" 72, "wght" 520, "SOFT" 100' }}
           >
             {agent.name}
+            {isDone && (
+              <span className="ml-2 font-sans text-[10px] not-italic tracking-label text-ink-muted">
+                ✓ done
+              </span>
+            )}
           </span>
         </div>
         <p className="mt-1.5 text-[13.5px] leading-relaxed text-ink-soft">{agent.role}</p>

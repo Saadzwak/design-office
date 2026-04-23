@@ -114,9 +114,10 @@ Write-Host "[3/5] HTTP surfaces" -ForegroundColor Cyan
 
 $endpoints = @(
     @{ url = "$BackendUrl/api/integrations/status"; probe = "anthropic.api_key_loaded"; label = "integrations status" },
-    @{ url = "$BackendUrl/api/brief/manifest"      ; probe = "files"                  ; label = "brief manifest" },
+    @{ url = "$BackendUrl/api/brief/manifest"      ; probe = "files"                  ; label = "brief manifest (13 MCP resources)" },
     @{ url = "$BackendUrl/api/testfit/catalog"     ; probe = "count"                  ; label = "testfit catalog" },
-    @{ url = "$BackendUrl/api/testfit/fixture?use_vision=false"; probe = "envelope"   ; label = "testfit Lumen fixture" }
+    @{ url = "$BackendUrl/api/testfit/fixture?use_vision=false"; probe = "envelope"   ; label = "testfit Lumen fixture" },
+    @{ url = "$BackendUrl/api/testfit/sample"     ; probe = "variants"               ; label = "testfit saved sample (cold-start demo)" }
 )
 foreach ($e in $endpoints) {
     try {

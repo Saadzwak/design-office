@@ -1150,3 +1150,134 @@ secondary, sun `#E8C547` highlight, clay `#A0522D` errors,
 - Visual verification via headless Chrome at 1 440 × 900 on all five
   pages — the new identity reads as Gensler/Saguez-worthy.
 
+---
+
+## Iter 16 — Saad feedback pass: vocabulary, active chat, client-aware, mood board (2026-04-23)
+
+**Status** : ✅ done across two trajectories (11 commits).
+
+Triggered by Saad's product-feedback brief: unify English, switch
+vocabulary to macro/micro/mood, make the chat actually act, separate
+Engineering from Client personas, client-aware generation, optional
+plan + logo uploads, multi-angle SketchUp renders.
+
+### Trajectory B (background agent, parallel to A)
+
+Crisp whitelist on 4 files + PNG fixtures.
+
+- `sketchup-plugin/design_office_extensions.rb` — added
+  `MATERIAL_SPECS`, `DesignOffice.capture_multi_angle_renders`
+  (4 iso + top + eye-level at 1920×1280 with 14:00 shadows + realistic
+  materials). Loaded hot into the live SketchUp session.
+- `backend/scripts/capture_variant_angles.py` — probes port 9876,
+  replays each variant, captures 18 PNGs to
+  `backend/tests/fixtures/` + mirrors to
+  `frontend/public/sketchup/`. Falls back gracefully if SketchUp is
+  down.
+- `frontend/src/components/viewer/PseudoThreeDViewer.tsx` — Framer
+  Motion parallax + thumbnail dock + orbit slider + Top/Eye toggles.
+- `docs/PSEUDO_3D_VIEWER.md` + `docs/FUTURE_WORK.md` (Three.js, Revit
+  MCP, IFC, HRIS roadmap).
+- **18 PNGs captured live** (3 variants × 6 angles), total ~2.7 MB,
+  committed.
+
+### Trajectory A (foreground, 8 commits)
+
+1. **TGBT fix + English UI round 1** — tightened
+   `chat_assistant.md` with an allow-list of 9 action types + a
+   hard "out of domain" refusal list, translated route labels /
+   placeholders / verdict strings to English.
+2. **Unified project_state + industry selector** — new
+   `lib/projectState.ts` collapses 4 legacy keys into one versioned
+   payload at `design-office.project_state.v1`; `useProjectState`
+   hook re-renders on any mutation via custom event + cross-tab
+   storage event. 8-button industry selector on Brief persists
+   `client.industry`.
+3. **Active chat** — `lib/chatActions.ts` routes every allow-listed
+   action to a real backend call + unified-state mutation;
+   `detectEnrichment` regex scans user messages for headcount /
+   growth target / flex policy / industry and offers inline
+   confirmation cards. `ProjectSummaryStrip` in the drawer header
+   shows "Working on · client · industry · N staff · → horizon ·
+   flex …".
+4. **3 new MCP resources** — `client-profiles.md` (350 lines, 8
+   industries), `material-finishes.md` (300 lines, real products
+   across floors / walls / ceilings / textiles / lighting),
+   `mood-board-method.md` (220 lines, A3 layout + palette
+   derivation per industry). Manifest count 10 → 13; test updated.
+5. **Mood Board + /moodboard route + Engineering/Client toggle** —
+   new `moodboard_curator.md` prompt, `surfaces/moodboard.py` with
+   strict-JSON curator + ReportLab A3 landscape renderer (six
+   mandatory sections per the method). `POST /api/moodboard/generate`
+   + `GET /api/moodboard/pdf/{id}`. New `/moodboard` route with
+   editorial preview layout. New `ViewModeToggle` pill in the top
+   nav flips the whole product between Engineering and Client
+   personas.
+6. **Micro-zoning + Macro/Micro tabs + PseudoThreeDViewer
+   integration** — new `testfit_micro_zoning.md` prompt,
+   `run_micro_zoning` surface + `POST /api/testfit/microzoning`,
+   segmented tabs in TestFit (Micro disabled until macro run
+   completes), URL `?tab=micro` for chat deep-link. Micro tab
+   swaps the viewer for the pseudo-3D component pointed at the 6
+   captured angles of the retained variant.
+7. **Optional plan + logo upload on Brief + PPTX logo + SketchUp
+   iso** — `FloorPlanUpload` underline-style dropzone ships the
+   PDF to `/api/testfit/parse` (Vision HD) and persists the
+   parsed FloorPlan to the unified state. `ClientLogoUpload`
+   converts PNG/JPG to a 500-KB-ceiling data URL. PPTX cover slide
+   now embeds the client logo top-left + SketchUp iso render on
+   the right half; last slide embeds the logo in the footer.
+8. **English sweep round 2** — translated `brief_consolidator` +
+   `justify_consolidator` section headers + language defaults
+   (default English, only switch to French if brief is French).
+   PPTX slide eyebrows + cover subtitle + metric labels + footer
+   all English. ReportLab PDF header lines + parti line English.
+   `[À VÉRIFIER]` → `[TO VERIFY]`. Regenerated `lumen_justify_
+   pitch_deck.pptx` + `148727235162bc34.pdf` with new strings.
+
+### UI polish
+
+- TestFit variant list: active row now gets a 2-px left forest
+  border, raised surface, dot ring + dot-pulse, opacity 80 → 100 %
+  transition. Inactive rows dimmed to 80 %.
+- Brief agent names: in-run state goes italic + forest + 1.1rem;
+  done state adds a `✓ done` pill next to the name. Clear before /
+  during / after visual signature for the 4-agent fan-out.
+
+### Docs
+
+- `docs/PRODUCT_VISION.md` (~150 lines) — who the product is for,
+  the six surfaces, macro/micro/mood vocabulary, view-mode
+  separation, client-aware generation, what is out of scope.
+- `docs/CHAT_BEHAVIOR.md` (~120 lines) — page awareness, the 9
+  allow-listed action types with endpoint mapping, regex-based
+  enrichment detection, hard rules from the system prompt.
+- Updated `README.md` table (6 surfaces) + thumbnail grid (6 page
+  captures) + documentation index.
+- Updated `HACKATHON_SUMMARY.md` with the six-surface solution,
+  two-persona toggle, active chat, day-0 status (38 tests, 18 PNGs,
+  pseudo-3D viewer, English end-to-end).
+- Updated `scripts/demo_preflight.ps1` — now asserts 13 MCP
+  resources + the testfit/sample cold-start endpoint + all 6
+  multi-angle PNGs. Live dry-run: **27 pass / 0 warn / 0 fail**.
+
+### Screenshots refresh
+
+6 page captures at 1440 × 900 under `docs/screenshots/` :
+
+| # | page      | file                | bytes    |
+|---|-----------|---------------------|----------|
+| 1 | Landing   | `01-landing.png`    | 301 KB   |
+| 2 | Brief     | `02-brief.png`      | 155 KB   |
+| 3 | Test Fit  | `03-testfit.png`    | 85 KB    |
+| 4 | Mood Board| `04-moodboard.png`  | 109 KB   |
+| 5 | Justify   | `05-justify.png`    | 175 KB   |
+| 6 | Export    | `06-export.png`     | 160 KB   |
+
+### Quality gates
+
+- `pytest -q` → **38 passed**
+- `npx tsc -b --noEmit` → clean on all 7 routes
+- `scripts/demo_preflight.ps1` → **27 pass / 0 warn / 0 fail** ·
+  "READY - every surface is green. Hit Record."
+

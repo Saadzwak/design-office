@@ -11,20 +11,38 @@ Built for the Anthropic **Built with Opus 4.7** hackathon (deadline
 
 ## What it does
 
-Design Office covers the four surfaces where space planners spend the most
+Design Office covers the five surfaces where space planners spend the most
 time today, and where no serious AI tool exists :
 
 | # | Surface | Input | Output | Time today |
 |---|---------|-------|--------|-----------|
-| 1 | **Brief** | Client brief in natural language | Costed, sourced functional programme | 2 – 8 weeks |
-| 2 | **Test fit** | PDF floor plan + programme | Three 3D variants in SketchUp, **iterable in natural language** | 1 – 3 weeks |
-| 3 | **Justify** | Retained variant | Client-facing argumentaire with citations + A4 PDF + 6-slide PPTX pitch deck | 3 – 5 days |
-| 4 | **Export** | Retained variant | Dimensioned A1 DXF with Design Office layers | 2 – 4 days |
+| 1 | **Brief** | Client brief + industry profile | Costed, sourced functional programme | 2 – 8 weeks |
+| 2 | **Test fit — Macro-zoning** | PDF floor plan + programme | Three 3D variants in SketchUp, **iterable in natural language** | 1 – 3 weeks |
+|   | **Test fit — Micro-zoning** | Retained variant | Per-zone drill-down (furniture SKUs, finishes, acoustic targets, light Kelvin), with 6-angle pseudo-3D viewer | ∅ today |
+| 3 | **Mood Board** | Retained variant + industry | **A3 landscape PDF** (palette, materials, furniture, planting, light) — client-aware | 1 – 2 weeks |
+| 4 | **Justify** | Retained variant | Client-facing argumentaire with citations + A4 PDF + 6-slide PPTX pitch deck (with client logo + SketchUp iso) | 3 – 5 days |
+| 5 | **Export** | Retained variant | Dimensioned A1 DXF with Design Office layers | 2 – 4 days |
 
 Everything orchestrated by Claude **Opus 4.7** — Vision HD reads the plans,
 three-level managed-agent orchestration produces the programme / variants /
-argumentaire, and MCP Resources with real peer-reviewed sources back every
-decision.
+argumentaire, and 13 MCP Resources with real peer-reviewed sources back
+every decision.
+
+### Two personas, one product
+
+A top-nav toggle flips the entire product between an **Engineering view**
+(dense, numeric, technical) and a **Client view** (editorial, visual,
+narrative). The interior architect wears both hats on the same project;
+the product adapts instead of fighting them.
+
+### Chat that actually acts
+
+"Ask Design Office" is present on every page. It executes real actions
+(`start_macro_zoning`, `iterate_variant`, `export_dwg`, etc.) against
+the backend, not just suggests them. It also enriches the project state
+from plain conversation: tell it "we have 140 staff now" and a
+confirmation card pops up to update the programme. Full behaviour in
+[`docs/CHAT_BEHAVIOR.md`](docs/CHAT_BEHAVIOR.md).
 
 ## Architecture
 
@@ -265,16 +283,25 @@ The five page captures below come from headless Chrome at 1 440 × 900.
 Full principles + palette + motion tokens live in
 **[`docs/UI_DESIGN.md`](docs/UI_DESIGN.md)**.
 
-| I · Landing | II · Brief | III · Test Fit | IV · Justify | V · Export |
-|:-:|:-:|:-:|:-:|:-:|
-| [![Landing](docs/screenshots/01-landing.png)](docs/screenshots/01-landing.png) | [![Brief](docs/screenshots/02-brief.png)](docs/screenshots/02-brief.png) | [![Test Fit](docs/screenshots/03-testfit.png)](docs/screenshots/03-testfit.png) | [![Justify](docs/screenshots/04-justify.png)](docs/screenshots/04-justify.png) | [![Export](docs/screenshots/05-export.png)](docs/screenshots/05-export.png) |
+| I · Landing | II · Brief | III · Test Fit | IV · Mood Board | V · Justify | VI · Export |
+|:-:|:-:|:-:|:-:|:-:|:-:|
+| [![Landing](docs/screenshots/01-landing.png)](docs/screenshots/01-landing.png) | [![Brief](docs/screenshots/02-brief.png)](docs/screenshots/02-brief.png) | [![Test Fit](docs/screenshots/03-testfit.png)](docs/screenshots/03-testfit.png) | [![Mood Board](docs/screenshots/04-moodboard.png)](docs/screenshots/04-moodboard.png) | [![Justify](docs/screenshots/05-justify.png)](docs/screenshots/05-justify.png) | [![Export](docs/screenshots/06-export.png)](docs/screenshots/06-export.png) |
 
 ## Documentation
 
+- **[`docs/PRODUCT_VISION.md`](docs/PRODUCT_VISION.md)** — who the
+  product is for, the six surfaces, macro/micro/mood vocabulary,
+  Engineering vs Client views.
+- **[`docs/CHAT_BEHAVIOR.md`](docs/CHAT_BEHAVIOR.md)** — how the chat
+  actually runs actions + enriches the project state.
 - **[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)** — deep dive on the
-  four surfaces, orchestration, Vision HD fusion, MCP integrations.
-- **[`docs/UI_DESIGN.md`](docs/UI_DESIGN.md)** — visual language :
+  surfaces, orchestration, Vision HD fusion, MCP integrations.
+- **[`docs/UI_DESIGN.md`](docs/UI_DESIGN.md)** — visual language:
   palette tokens, typography, motion, a11y.
+- **[`docs/PSEUDO_3D_VIEWER.md`](docs/PSEUDO_3D_VIEWER.md)** —
+  6-angle SketchUp viewer for the Micro-zoning tab.
+- **[`docs/FUTURE_WORK.md`](docs/FUTURE_WORK.md)** — Three.js 3D,
+  Revit MCP, IFC, HRIS roadmap.
 - **[`docs/USE_CASE.md`](docs/USE_CASE.md)** — full Lumen walkthrough
   with real numbers and screenshots.
 - **[`docs/FLOW_WALKTHROUGH.md`](docs/FLOW_WALKTHROUGH.md)** — A-Z
@@ -286,6 +313,11 @@ Full principles + palette + motion tokens live in
   submission summary.
 - **[`BUILD_LOG.md`](BUILD_LOG.md)** — every iteration, timestamped,
   with token usage and outcomes.
+
+Run `.\scripts\demo_preflight.ps1` before recording the demo video.
+It checks 27 things (artefacts, backend health, HTTP surfaces,
+SketchUp MCP probe) end-to-end and prints a READY line when the
+stack is green.
 
 ## License
 

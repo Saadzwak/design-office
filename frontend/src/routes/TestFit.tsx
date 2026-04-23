@@ -414,16 +414,20 @@ export default function TestFit() {
                     <button
                       onClick={() => setActive(s)}
                       className={[
-                        "group flex w-full items-start gap-4 border-t border-hairline py-5 text-left transition-all duration-200 ease-out-gentle",
-                        isActive ? "text-ink" : "text-ink-soft hover:text-ink",
+                        "group flex w-full items-start gap-4 rounded-r-md border-t border-hairline py-5 pl-4 pr-2 text-left transition-all duration-200 ease-out-gentle",
+                        isActive
+                          ? "border-l-2 border-l-forest bg-raised text-ink shadow-soft"
+                          : "border-l-2 border-l-transparent text-ink-soft opacity-80 hover:opacity-100 hover:text-ink",
                       ].join(" ")}
                     >
                       <span
                         className={[
                           "mt-[10px] inline-block h-[7px] w-[7px] shrink-0 rounded-full transition-all",
                           STYLE_DOT[s],
-                          isActive ? "scale-125" : "",
-                          isGenerating ? "animate-dot-pulse" : "",
+                          isActive ? "scale-125 ring-2 ring-forest/20 ring-offset-2 ring-offset-raised" : "",
+                          isGenerating || (isActive && state.kind === "done")
+                            ? "animate-dot-pulse"
+                            : "",
                         ].join(" ")}
                       />
                       <div className="flex-1">
