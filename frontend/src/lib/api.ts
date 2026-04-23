@@ -264,6 +264,82 @@ export type IterateResponse = {
   screenshot_url?: string | null;
 };
 
+// ---------------------------------------------------------------------------
+// Structured micro-zoning (iter-18i)
+// ---------------------------------------------------------------------------
+
+export type StructuredFurniturePiece = {
+  brand: string;
+  name: string;
+  quantity: number;
+  dimensions_mm: string;
+  catalog_id?: string | null;
+};
+
+export type StructuredMaterial = {
+  surface: "floor" | "walls" | "ceiling" | "joinery" | "textile" | "other";
+  brand: string;
+  name: string;
+  note: string;
+};
+
+export type AcousticTarget = {
+  rw_target_db?: number | null;
+  dnt_a_target_db?: number | null;
+  tr60_target_s?: number | null;
+  source: string;
+};
+
+export type StructuredAdjacencyCheck = {
+  ok: boolean;
+  note: string;
+  rule_ids: string[];
+};
+
+export type StructuredZone = {
+  n: number;
+  name: string;
+  surface_m2: number;
+  icon: string;
+  status: "ok" | "warn" | "error";
+  furniture: StructuredFurniturePiece[];
+  materials: StructuredMaterial[];
+  acoustic?: AcousticTarget | null;
+  adjacency: StructuredAdjacencyCheck;
+  narrative: string;
+};
+
+export type StructuredMicroZoningResponse = {
+  variant_style: VariantStyle;
+  zones: StructuredZone[];
+  markdown: string;
+  tokens: { input: number; output: number };
+  duration_ms: number;
+};
+
+export async function runMicroZoningStructured(
+  req: {
+    client_name: string;
+    client_industry: string;
+    floor_plan: FloorPlan;
+    variant: VariantOutput;
+    programme_markdown: string;
+  },
+  signal?: AbortSignal,
+): Promise<StructuredMicroZoningResponse> {
+  const r = await fetch("/api/testfit/microzoning/structured", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(req),
+    signal,
+  });
+  if (!r.ok) {
+    const body = await r.text();
+    throw new Error(body || `Structured micro-zoning failed: ${r.status}`);
+  }
+  return r.json();
+}
+
 export async function iterateVariant(req: IterateRequest): Promise<IterateResponse> {
   const r = await fetch("/api/testfit/iterate", {
     method: "POST",

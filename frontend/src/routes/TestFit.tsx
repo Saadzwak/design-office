@@ -4,14 +4,17 @@ import { useLocation, useNavigate } from "react-router-dom";
 import {
   AgentTrace,
   Card,
+  Drawer,
   Eyebrow,
   FloorPlan2D,
   Icon,
   MetricBadge,
   Pill,
   PillToggle,
+  Placeholder,
   ZONE_COLORS,
   type AgentRow,
+  type IconName,
   type ZoneKind,
   type Zone,
 } from "../components/ui";
@@ -21,8 +24,11 @@ import {
   fetchTestFitSample,
   generateTestFit,
   iterateVariant,
+  runMicroZoningStructured,
   type FloorPlan,
   type ReviewerVerdict,
+  type StructuredMicroZoningResponse,
+  type StructuredZone,
   type TestFitResponse,
   type VariantOutput,
   type VariantStyle,
@@ -266,11 +272,12 @@ export default function TestFit() {
           onIterate={onIterate}
         />
       ) : (
-        <MicroViewStub
+        <MicroView
           state={state}
           active={active}
           onPickVariant={onRetain}
           designVariants={designVariants}
+          project={project}
         />
       )}
     </div>
@@ -620,21 +627,51 @@ function averageAdjacency(variants: DesignVariant[]): number {
   return scores.reduce((a, b) => a + b, 0) / scores.length;
 }
 
-// ─────────────────────────────────────── MicroView stub ──────
-// Full structured drill-down (zone list + drawer) lands in iter-18i.
+// ─────────────────────────────────────── MicroView ──────
 
-function MicroViewStub({
+type MicroState =
+  | { kind: "idle" }
+  | { kind: "running" }
+  | { kind: "done"; payload: StructuredMicroZoningResponse }
+  | { kind: "error"; message: string };
+
+function MicroView({
   state,
   active,
   onPickVariant,
   designVariants,
+  project,
 }: {
   state: State;
   active: VariantStyle;
   onPickVariant: (s: VariantStyle) => void;
   designVariants: DesignVariant[];
+  project: ReturnType<typeof useProjectState>;
 }) {
   const activeVariant = designVariants.find((v) => v.id === active);
+  const [micro, setMicro] = useState<MicroState>({ kind: "idle" });
+  const [openZone, setOpenZone] = useState<StructuredZone | null>(null);
+
+  // Preload the live fixture when the variant matches Lumen atelier so
+  // the page has content for the demo without spending tokens.
+  useEffect(() => {
+    if (
+      state.kind === "done" &&
+      active === "atelier" &&
+      project.client.name.toLowerCase().includes("lumen") &&
+      micro.kind === "idle"
+    ) {
+      fetch("/microzoning-fixtures/atelier.json")
+        .then((r) => (r.ok ? r.json() : null))
+        .then((data: StructuredMicroZoningResponse | null) => {
+          if (data && data.zones?.length) {
+            setMicro({ kind: "done", payload: data });
+          }
+        })
+        .catch(() => null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active, state.kind]);
 
   if (state.kind !== "done" || !activeVariant) {
     return (
@@ -645,9 +682,36 @@ function MicroViewStub({
     );
   }
 
+  const run = async () => {
+    setMicro({ kind: "running" });
+    try {
+      const rawVariant = state.result.variants.find((v) => v.style === active);
+      if (!rawVariant) throw new Error("Active variant not found");
+      const resp = await runMicroZoningStructured({
+        client_name: project.client.name || "Client",
+        client_industry: project.client.industry,
+        floor_plan: state.plan,
+        variant: rawVariant,
+        programme_markdown: project.programme.markdown || "",
+      });
+      setMicro({ kind: "done", payload: resp });
+    } catch (err) {
+      setMicro({
+        kind: "error",
+        message: err instanceof Error ? err.message : String(err),
+      });
+    }
+  };
+
+  const zones = micro.kind === "done" ? micro.payload.zones : [];
+
   return (
     <div className="space-y-8">
-      <div className="inline-flex items-center gap-2.5 rounded-full bg-forest-ghost px-4 py-2">
+      {/* Drilling-into pill */}
+      <div
+        className="inline-flex items-center gap-2.5 rounded-full px-4 py-2"
+        style={{ background: "var(--forest-ghost)" }}
+      >
         <span className="mono text-forest">DRILLING INTO</span>
         <span
           className="font-display italic text-forest"
@@ -667,6 +731,7 @@ function MicroViewStub({
         </span>
       </div>
 
+      {/* Variant picker */}
       <div className="flex gap-2">
         {designVariants.map((v) => (
           <Pill
@@ -679,24 +744,319 @@ function MicroViewStub({
         ))}
       </div>
 
-      <Card>
-        <div className="flex items-center justify-between">
-          <div>
-            <Eyebrow style={{ marginBottom: 6 }}>NEXT · ITER-18I</Eyebrow>
-            <p className="text-[13px] text-mist-600">
-              Structured zone list + zoom drawer + acoustic + furniture
-              ships in iter-18i with the new{" "}
-              <code className="mono text-[11px]">
-                /api/testfit/microzoning/structured
-              </code>{" "}
-              endpoint.
-            </p>
+      {micro.kind === "idle" && (
+        <Card>
+          <div className="flex items-center justify-between">
+            <div>
+              <Eyebrow style={{ marginBottom: 6 }}>DRILL DOWN</Eyebrow>
+              <p className="max-w-xl text-[13px] leading-relaxed text-mist-600">
+                Run the structured micro-zoning on the retained variant —
+                10-14 zones, each with real furniture SKUs, material
+                picks from <code className="mono text-[11px]">design://material-finishes</code>,
+                acoustic targets and per-zone adjacency verdicts.
+              </p>
+            </div>
+            <button onClick={run} className="btn-primary">
+              <Icon name="sparkles" size={14} /> Run micro-zoning
+            </button>
           </div>
-          <button className="btn-ghost btn-sm" disabled>
-            Coming next
+        </Card>
+      )}
+
+      {micro.kind === "running" && (
+        <Card>
+          <div className="flex items-center gap-4">
+            <span
+              className="inline-block h-3 w-3 animate-[dot-pulse_1.1s_var(--ease)_infinite] rounded-full"
+              style={{ background: "var(--forest)" }}
+            />
+            <div>
+              <Eyebrow style={{ marginBottom: 4 }}>OPUS · MICRO-ZONING</Eyebrow>
+              <p className="text-[13px] text-mist-600">
+                Detailing the {activeVariant.name} variant, zone by zone…
+                usually 2-3 minutes.
+              </p>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {micro.kind === "error" && (
+        <Card>
+          <Eyebrow style={{ marginBottom: 4 }}>ERROR</Eyebrow>
+          <p className="mt-2 text-[13px] text-clay">{micro.message}</p>
+          <button onClick={run} className="btn-ghost btn-sm mt-4">
+            Retry
           </button>
+        </Card>
+      )}
+
+      {micro.kind === "done" && (
+        <div
+          className="grid gap-8"
+          style={{ gridTemplateColumns: "1.6fr 1fr" }}
+        >
+          {/* Numbered floor plan */}
+          <div
+            className="rounded-xl border border-mist-200 p-4"
+            style={{ background: "#FFFDF9" }}
+          >
+            <FloorPlan2D
+              zones={activeVariant.zones as Zone[]}
+              numbered
+              size={{ w: 720, h: 460 }}
+              ariaLabel={`${activeVariant.name} micro-zoning`}
+              onZoneClick={(_, i) => {
+                const z = zones[i] ?? null;
+                if (z) setOpenZone(z);
+              }}
+            />
+          </div>
+
+          {/* Zone list */}
+          <div>
+            <div className="mb-3 flex items-center justify-between">
+              <Eyebrow>ZONES · {zones.length}</Eyebrow>
+              <button onClick={run} className="btn-minimal">
+                <Icon name="sparkles" size={12} /> Re-run
+              </button>
+            </div>
+            <div className="flex max-h-[520px] flex-col gap-1.5 overflow-auto pr-1.5">
+              {zones.map((z) => (
+                <Card
+                  key={z.n}
+                  as="button"
+                  onClick={() => setOpenZone(z)}
+                  className="!p-3.5 !flex items-center gap-3.5"
+                >
+                  <span className="mono w-6 text-[11px] text-mist-400">
+                    {String(z.n).padStart(2, "0")}
+                  </span>
+                  <div
+                    className="flex h-7 w-7 items-center justify-center rounded text-forest"
+                    style={{ background: "var(--canvas-alt)" }}
+                  >
+                    <Icon name={z.icon as IconName} size={14} />
+                  </div>
+                  <div className="flex-1 text-left">
+                    <div className="text-[14px] font-medium">{z.name}</div>
+                    <div className="mono text-[10px] text-mist-500">
+                      {z.surface_m2} m²
+                    </div>
+                  </div>
+                  <span
+                    title={z.status === "ok" ? "OK" : z.status}
+                    className="inline-block h-2 w-2 rounded-full"
+                    style={{
+                      background:
+                        z.status === "ok"
+                          ? "var(--mint)"
+                          : z.status === "warn"
+                            ? "var(--sun)"
+                            : "var(--clay)",
+                    }}
+                  />
+                </Card>
+              ))}
+            </div>
+          </div>
         </div>
-      </Card>
+      )}
+
+      <Drawer
+        open={!!openZone}
+        onClose={() => setOpenZone(null)}
+        width={560}
+        ariaLabel="Zone detail"
+      >
+        {openZone && (
+          <ZoneDrawerContent
+            zone={openZone}
+            onClose={() => setOpenZone(null)}
+            variantName={activeVariant.name}
+          />
+        )}
+      </Drawer>
+    </div>
+  );
+}
+
+function ZoneDrawerContent({
+  zone,
+  onClose,
+  variantName,
+}: {
+  zone: StructuredZone;
+  onClose: () => void;
+  variantName: string;
+}) {
+  return (
+    <div className="h-full overflow-auto p-9">
+      <div className="mb-6 flex items-center justify-between">
+        <Eyebrow>ZONE · {String(zone.n).padStart(2, "0")}</Eyebrow>
+        <button onClick={onClose} className="text-mist-500 hover:text-ink">
+          <Icon name="x" size={18} />
+        </button>
+      </div>
+
+      <div className="mb-3.5 flex items-center gap-3.5">
+        <div
+          className="flex h-11 w-11 items-center justify-center rounded-lg"
+          style={{
+            background: "var(--forest-ghost)",
+            color: "var(--forest)",
+          }}
+        >
+          <Icon name={zone.icon as IconName} size={20} />
+        </div>
+        <div>
+          <h2
+            className="m-0 font-display italic"
+            style={{
+              fontSize: 30,
+              fontVariationSettings: '"opsz" 144, "wght" 500, "SOFT" 100',
+            }}
+          >
+            {zone.name}
+          </h2>
+          <span className="mono text-mist-500">
+            {zone.surface_m2} m² · {variantName.toUpperCase()}
+          </span>
+        </div>
+      </div>
+
+      {zone.narrative && (
+        <p
+          className="m-0 mb-5 font-display"
+          style={{
+            fontSize: 17,
+            color: "var(--mist-700)",
+            lineHeight: 1.5,
+            fontVariationSettings: '"opsz" 72, "wght" 380, "SOFT" 100',
+          }}
+        >
+          {zone.narrative}
+        </p>
+      )}
+
+      <Placeholder
+        tag={`ZOOMED PLAN · ZONE ${zone.n}`}
+        ratio="16/9"
+        tint="#3C5D50"
+        style={{ margin: "20px 0", border: "1px solid var(--mist-200)" }}
+      />
+
+      {zone.furniture.length > 0 && (
+        <>
+          <Eyebrow style={{ marginTop: 20, marginBottom: 10 }}>
+            FURNITURE
+          </Eyebrow>
+          <div className="flex flex-col gap-1.5">
+            {zone.furniture.map((f, i) => (
+              <div
+                key={i}
+                className="flex justify-between border-b border-mist-100 py-1.5 text-[14px]"
+              >
+                <span>
+                  {f.brand && (
+                    <span className="mono mr-2 text-mist-500">
+                      {f.brand.toUpperCase()}
+                    </span>
+                  )}
+                  {f.name}
+                </span>
+                <span className="mono text-mist-500">
+                  {f.quantity > 1 ? `× ${f.quantity}` : "× 1"}
+                  {f.dimensions_mm && ` · ${f.dimensions_mm}`}
+                </span>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {zone.acoustic && (
+        <>
+          <Eyebrow style={{ marginTop: 28, marginBottom: 10 }}>ACOUSTIC</Eyebrow>
+          <div
+            className="rounded-lg p-3.5 text-[13px]"
+            style={{ background: "var(--canvas-alt)" }}
+          >
+            {zone.acoustic.rw_target_db != null && (
+              <div className="mb-1.5 flex justify-between">
+                <span>Rw target</span>
+                <span className="mono">≥ {zone.acoustic.rw_target_db} dB</span>
+              </div>
+            )}
+            {zone.acoustic.dnt_a_target_db != null && (
+              <div className="mb-1.5 flex justify-between">
+                <span>DnT,A target</span>
+                <span className="mono">≥ {zone.acoustic.dnt_a_target_db} dB</span>
+              </div>
+            )}
+            {zone.acoustic.tr60_target_s != null && (
+              <div className="mb-1.5 flex justify-between">
+                <span>TR60 target</span>
+                <span className="mono">≤ {zone.acoustic.tr60_target_s} s</span>
+              </div>
+            )}
+            {zone.acoustic.source && (
+              <div className="mono mt-2.5 text-[10px] text-mist-500">
+                → {zone.acoustic.source}
+              </div>
+            )}
+          </div>
+        </>
+      )}
+
+      {zone.materials.length > 0 && (
+        <>
+          <Eyebrow style={{ marginTop: 28, marginBottom: 10 }}>MATERIALS</Eyebrow>
+          <div className="text-[13px] leading-loose text-mist-700">
+            {zone.materials.map((m, i) => (
+              <div key={i}>
+                <span className="mono mr-2.5 text-mist-500">
+                  {m.surface.toUpperCase()}
+                </span>
+                {m.brand && (
+                  <span className="mono mr-1.5 text-mist-500">{m.brand}</span>
+                )}
+                {m.name}
+                {m.note && (
+                  <span className="ml-2 text-mist-500"> · {m.note}</span>
+                )}
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      <div
+        className="mt-7 rounded-lg p-3.5"
+        style={{
+          background:
+            zone.adjacency.ok
+              ? "rgba(107, 143, 127, 0.12)"
+              : "rgba(232, 197, 71, 0.18)",
+          borderLeft: `3px solid ${
+            zone.adjacency.ok ? "var(--mint)" : "var(--sun)"
+          }`,
+        }}
+      >
+        <Eyebrow style={{ marginBottom: 4 }}>ADJACENCY CHECK</Eyebrow>
+        <div className="text-[13px]">
+          {zone.adjacency.ok ? "✓ " : "⚠ "}
+          {zone.adjacency.note ||
+            (zone.adjacency.ok
+              ? "Adjacencies respected."
+              : "Adjacent to a tension — review or buffer.")}
+        </div>
+        {zone.adjacency.rule_ids.length > 0 && (
+          <div className="mono mt-2 text-[10px] text-mist-500">
+            → {zone.adjacency.rule_ids.join(" · ")}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

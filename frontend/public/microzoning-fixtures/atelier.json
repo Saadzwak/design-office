@@ -1,0 +1,902 @@
+{
+  "variant_style": "atelier",
+  "zones": [
+    {
+      "n": 1,
+      "name": "Neighbourhood Nord-Ouest (26 postes)",
+      "surface_m2": 180,
+      "icon": "layout-grid",
+      "status": "ok",
+      "furniture": [
+        {
+          "brand": "Steelcase",
+          "name": "Migration SE 1600",
+          "quantity": 26,
+          "dimensions_mm": "160 × 80 cm",
+          "catalog_id": "steelcase_migration_se_1600"
+        },
+        {
+          "brand": "Herman Miller",
+          "name": "Aeron size B",
+          "quantity": 26,
+          "dimensions_mm": "seat · adjustable",
+          "catalog_id": "millerknoll_aeron_b"
+        },
+        {
+          "brand": "Bisley",
+          "name": "Essentials Pedestal 3 tiroirs",
+          "quantity": 26,
+          "dimensions_mm": "42 × 58 × 62 cm",
+          "catalog_id": "bisley_pedestal_essentials"
+        }
+      ],
+      "materials": [
+        {
+          "surface": "floor",
+          "brand": "Interface",
+          "name": "Composure — SKOA Grey",
+          "note": "Moquette dalle, carbon-neutral (design://material-finishes §Floors)"
+        },
+        {
+          "surface": "ceiling",
+          "brand": "Ecophon",
+          "name": "Master A plafond Class A αw ≥ 0,90",
+          "note": "Absorption plein champ au-dessus des bancs"
+        },
+        {
+          "surface": "walls",
+          "brand": "Farrow & Ball",
+          "name": "Shadow White",
+          "note": "Blanc cassé légèrement chaud, façade nord"
+        }
+      ],
+      "acoustic": {
+        "rw_target_db": null,
+        "dnt_a_target_db": null,
+        "tr60_target_s": 0.5,
+        "source": "NF S 31-199 · D2,S ≥ 7 dB, Lp,A,S,4m ≤ 48 dB, rD ≤ 5 m ; masking pink noise 45 dBA recommandé"
+      },
+      "adjacency": {
+        "ok": true,
+        "note": "Façade nord calme, lumière diffuse, neighbourhood avec sa propre gravité (Framery, huddles H5-H7 à moins de 15 m).",
+        "rule_ids": [
+          "zoning.team_neighbourhood_has_own_gravity",
+          "daylight.deep_focus_desks_not_glare_zone"
+        ]
+      },
+      "narrative": "Premier atelier d'écriture de code contre la façade nord, 26 postes en bancs de 8 alignés sur la lumière diffuse. Recul de 3,5 m jusqu'à la vitre pour la circulation PMR et le confort visuel."
+    },
+    {
+      "n": 2,
+      "name": "Neighbourhood Nord-Centre (26 postes)",
+      "surface_m2": 180,
+      "icon": "layout-grid",
+      "status": "ok",
+      "furniture": [
+        {
+          "brand": "Steelcase",
+          "name": "Migration SE 1600",
+          "quantity": 26,
+          "dimensions_mm": "160 × 80 cm",
+          "catalog_id": "steelcase_migration_se_1600"
+        },
+        {
+          "brand": "Herman Miller",
+          "name": "Aeron size B",
+          "quantity": 26,
+          "dimensions_mm": "seat · adjustable",
+          "catalog_id": "millerknoll_aeron_b"
+        },
+        {
+          "brand": "Steelcase",
+          "name": "V.I.A. écrans mid-desk 1450 mm",
+          "quantity": 13,
+          "dimensions_mm": "120 × 145 cm",
+          "catalog_id": "steelcase_v_ia_partition"
+        }
+      ],
+      "materials": [
+        {
+          "surface": "floor",
+          "brand": "Interface",
+          "name": "Composure Edge — Stonewash",
+          "note": "Rappel du voisin nord-ouest, tonalité légèrement plus chaude"
+        },
+        {
+          "surface": "ceiling",
+          "brand": "Ecophon",
+          "name": "Master A αw ≥ 0,90",
+          "note": "Classe A continue façade nord"
+        },
+        {
+          "surface": "joinery",
+          "brand": "Gustafs",
+          "name": "Linear 13 chêne micro-perforé",
+          "note": "Colonne de rangement bas en limite sud du neighbourhood"
+        }
+      ],
+      "acoustic": {
+        "rw_target_db": null,
+        "dnt_a_target_db": null,
+        "tr60_target_s": 0.5,
+        "source": "NF S 31-080 · performant ; NF EN ISO 23351-1 pour les écrans mid-desk"
+      },
+      "adjacency": {
+        "ok": true,
+        "note": "Bande neighbourhood continue nord, tampon storage wall prévu côté salles centrales pour éviter tout écho.",
+        "rule_ids": [
+          "micro.desk_cluster_face_to_face_acoustic"
+        ]
+      },
+      "narrative": "Deuxième atelier adossé à la façade nord, en prolongement direct du premier. Bancs Migration SE 1600 en vis-à-vis, écrans mid-desk NRC ≥ 0,7 pour casser les échanges verbaux."
+    },
+    {
+      "n": 3,
+      "name": "Neighbourhood Nord-Est (26 postes)",
+      "surface_m2": 180,
+      "icon": "layout-grid",
+      "status": "warn",
+      "furniture": [
+        {
+          "brand": "Steelcase",
+          "name": "Migration SE 1600",
+          "quantity": 26,
+          "dimensions_mm": "160 × 80 cm",
+          "catalog_id": "steelcase_migration_se_1600"
+        },
+        {
+          "brand": "Herman Miller",
+          "name": "Aeron size B",
+          "quantity": 26,
+          "dimensions_mm": "seat · adjustable",
+          "catalog_id": "millerknoll_aeron_b"
+        },
+        {
+          "brand": "Framery",
+          "name": "One Compact (à relocaliser)",
+          "quantity": 1,
+          "dimensions_mm": "103 × 100 cm",
+          "catalog_id": "framery_one_compact"
+        }
+      ],
+      "materials": [
+        {
+          "surface": "floor",
+          "brand": "Interface",
+          "name": "Composure — SKOA Grey",
+          "note": "Continuité nord"
+        },
+        {
+          "surface": "ceiling",
+          "brand": "Ecophon",
+          "name": "Master A αw ≥ 0,90",
+          "note": "Classe A"
+        },
+        {
+          "surface": "walls",
+          "brand": "Woven Image",
+          "name": "EchoPanel 12 mm accents ZZ",
+          "note": "Panneaux feutrine façade intérieure, absorption + identité atelier"
+        }
+      ],
+      "acoustic": {
+        "rw_target_db": null,
+        "dnt_a_target_db": null,
+        "tr60_target_s": 0.5,
+        "source": "NF S 31-199 · target rD ≤ 5 m avec masking 45 dBA"
+      },
+      "adjacency": {
+        "ok": false,
+        "note": "Neighbourhood sans cabine Framery dans son emprise — relocaliser une booth depuis le cluster sud (audit, rule_ids ci-dessous).",
+        "rule_ids": [
+          "zoning.team_neighbourhood_has_own_gravity"
+        ]
+      },
+      "narrative": "Troisième atelier en façade nord, côté est. L'audit d'adjacence signale l'absence de cabine Framery dans son emprise — à relocaliser une booth depuis le cluster sud pour respecter la règle zéro-marche."
+    },
+    {
+      "n": 4,
+      "name": "Neighbourhood Est (26 postes)",
+      "surface_m2": 180,
+      "icon": "layout-grid",
+      "status": "warn",
+      "furniture": [
+        {
+          "brand": "Steelcase",
+          "name": "Migration SE 1600",
+          "quantity": 26,
+          "dimensions_mm": "160 × 80 cm",
+          "catalog_id": "steelcase_migration_se_1600"
+        },
+        {
+          "brand": "Steelcase",
+          "name": "Gesture",
+          "quantity": 26,
+          "dimensions_mm": "seat · adjustable",
+          "catalog_id": "steelcase_gesture"
+        },
+        {
+          "brand": "Steelcase",
+          "name": "V.I.A. 1200 écran acoustique H 1600",
+          "quantity": 4,
+          "dimensions_mm": "120 × 160 cm",
+          "catalog_id": "steelcase_v_ia_partition"
+        }
+      ],
+      "materials": [
+        {
+          "surface": "floor",
+          "brand": "Interface",
+          "name": "Composure Edge",
+          "note": "Dalle moquette plank 25 × 100"
+        },
+        {
+          "surface": "ceiling",
+          "brand": "Ecophon",
+          "name": "Solo baffles suspendues",
+          "note": "Îlots acoustiques irréguliers (Browning P8)"
+        },
+        {
+          "surface": "walls",
+          "brand": "BAUX",
+          "name": "Acoustic Pulp — Natural",
+          "note": "Panneaux bois-ciment, NRC ≈ 0,85"
+        }
+      ],
+      "acoustic": {
+        "rw_target_db": null,
+        "dnt_a_target_db": null,
+        "tr60_target_s": 0.5,
+        "source": "NF S 31-080 · performant ; Steelcase WorkSpace Futures 2014"
+      },
+      "adjacency": {
+        "ok": false,
+        "note": "Grappe Framery x 50-57 k, y 26 k à moins de 2 m du banc — ajouter écran acoustique H ≥ 1600 mm face au couloir.",
+        "rule_ids": [
+          "acoustic.phone_booths_cluster_must_buffer_open_desks"
+        ]
+      },
+      "narrative": "Cluster est (x 47-59 k, y ≈ 24 k) en prolongement des focus rooms. L'audit pointe le risque d'intrusion acoustique des Framery voisines à < 2 m ; ajouter un écran 1600 mm ou décaler la rangée sud."
+    },
+    {
+      "n": 5,
+      "name": "Neighbourhood Centre-Nord (26 postes)",
+      "surface_m2": 180,
+      "icon": "layout-grid",
+      "status": "ok",
+      "furniture": [
+        {
+          "brand": "Steelcase",
+          "name": "Migration SE 1600",
+          "quantity": 26,
+          "dimensions_mm": "160 × 80 cm",
+          "catalog_id": "steelcase_migration_se_1600"
+        },
+        {
+          "brand": "Herman Miller",
+          "name": "Aeron size B",
+          "quantity": 26,
+          "dimensions_mm": "seat · adjustable",
+          "catalog_id": "millerknoll_aeron_b"
+        },
+        {
+          "brand": "Steelcase",
+          "name": "Flex Personal Locker (colonne 5 cases)",
+          "quantity": 6,
+          "dimensions_mm": "40 × 45 × 200 cm",
+          "catalog_id": "steelcase_flex_locker"
+        }
+      ],
+      "materials": [
+        {
+          "surface": "floor",
+          "brand": "Interface",
+          "name": "Composure — Deep Sky",
+          "note": "Accent tonal doux au centre du plateau"
+        },
+        {
+          "surface": "ceiling",
+          "brand": "Ecophon",
+          "name": "Master A αw ≥ 0,90",
+          "note": "Class A continue"
+        },
+        {
+          "surface": "joinery",
+          "brand": "Gustafs",
+          "name": "Linear chêne micro-perforé",
+          "note": "Mur-casier doublant comme tampon acoustique"
+        }
+      ],
+      "acoustic": {
+        "rw_target_db": null,
+        "dnt_a_target_db": null,
+        "tr60_target_s": 0.5,
+        "source": "NF S 31-199 · good open-plan"
+      },
+      "adjacency": {
+        "ok": true,
+        "note": "Lockers et mur-casier forment la transition propre vers la bande centrale des salles.",
+        "rule_ids": [
+          "zoning.team_neighbourhood_has_own_gravity"
+        ]
+      },
+      "narrative": "Cinquième atelier, central-nord. Complète les 130 postes flex (ratio 0,76) du brief Lumen. Bancs orientés façade pour préserver la vue extérieure continue."
+    },
+    {
+      "n": 6,
+      "name": "Bande bibliothèque — 6 salles médiums",
+      "surface_m2": 150,
+      "icon": "users",
+      "status": "ok",
+      "furniture": [
+        {
+          "brand": "Vitra",
+          "name": "Eames Segmented 2400",
+          "quantity": 3,
+          "dimensions_mm": "240 × 120 cm",
+          "catalog_id": "vitra_eames_segmented_2400"
+        },
+        {
+          "brand": "Herman Miller",
+          "name": "Everywhere 1800",
+          "quantity": 3,
+          "dimensions_mm": "180 × 90 cm",
+          "catalog_id": "hm_everywhere_1800"
+        },
+        {
+          "brand": "Vitra",
+          "name": "ID Chair Mesh",
+          "quantity": 42,
+          "dimensions_mm": "seat · adjustable",
+          "catalog_id": "vitra_id_chair_mesh"
+        }
+      ],
+      "materials": [
+        {
+          "surface": "walls",
+          "brand": "Maars",
+          "name": "Living Walls Momentum double vitrage",
+          "note": "Rw ≥ 44 dB, manifestations intégrées"
+        },
+        {
+          "surface": "floor",
+          "brand": "Shaw Contract",
+          "name": "Inspire plank 25 × 100",
+          "note": "Moquette continue, Cradle-to-Cradle Silver"
+        },
+        {
+          "surface": "ceiling",
+          "brand": "Armstrong",
+          "name": "Ultima+ NRC 0,90",
+          "note": "T-grid recyclable"
+        }
+      ],
+      "acoustic": {
+        "rw_target_db": 44,
+        "dnt_a_target_db": 45,
+        "tr60_target_s": 0.5,
+        "source": "NF S 31-080 · performant (salle 6-8 pax)"
+      },
+      "adjacency": {
+        "ok": true,
+        "note": "Bibliothèque centrale tamponnée des façades ; Étain/Cuivre à dédoubler côté café (voir recommandation audit).",
+        "rule_ids": [
+          "acoustic.quiet_room_min_distance_from_hospitality"
+        ]
+      },
+      "narrative": "Cœur réunion : Étain, Cuivre, Chêne, Frêne, Noyer, Érable — 6 salles médiums 6-8 pax consolidées autour des cores. Cloisons pleine hauteur, moquette continue, plafond Class A."
+    },
+    {
+      "n": 7,
+      "name": "Boardrooms Atelier Sud & Est (2 × 14 pax)",
+      "surface_m2": 72,
+      "icon": "presentation",
+      "status": "warn",
+      "furniture": [
+        {
+          "brand": "Vitra",
+          "name": "Eames Segmented 4000",
+          "quantity": 2,
+          "dimensions_mm": "400 × 140 cm",
+          "catalog_id": "vitra_eames_segmented_4000"
+        },
+        {
+          "brand": "Herman Miller",
+          "name": "Embody",
+          "quantity": 28,
+          "dimensions_mm": "seat · adjustable",
+          "catalog_id": "millerknoll_embody"
+        },
+        {
+          "brand": "Steelcase",
+          "name": "Roam Mobile Stand",
+          "quantity": 2,
+          "dimensions_mm": "80 × 76 × 190 cm",
+          "catalog_id": "steelcase_roam"
+        }
+      ],
+      "materials": [
+        {
+          "surface": "floor",
+          "brand": "Amtico",
+          "name": "Signature Worn Oak plank",
+          "note": "LVT chêne, gravitas sans pompe"
+        },
+        {
+          "surface": "walls",
+          "brand": "Gustafs",
+          "name": "Linear chêne micro-perforé",
+          "note": "Doublure acoustique, NRC ≈ 0,85"
+        },
+        {
+          "surface": "ceiling",
+          "brand": "BAUX",
+          "name": "Acoustic Wood-Wool baffles",
+          "note": "Suspentes irrégulières, Browning P8"
+        },
+        {
+          "surface": "textile",
+          "brand": "Création Baumann",
+          "name": "Hush acoustic curtain",
+          "note": "Rideau NRC ≈ 0,70, confidentialité"
+        }
+      ],
+      "acoustic": {
+        "rw_target_db": 48,
+        "dnt_a_target_db": 45,
+        "tr60_target_s": 0.5,
+        "source": "NF S 31-080 · très performant (board) ; WELL v2 Feature S03"
+      },
+      "adjacency": {
+        "ok": false,
+        "note": "Boardroom Sud à ~1 m du town-hall ; insérer storage wall ou file de Framery pour atteindre 8 m de tampon.",
+        "rule_ids": [
+          "acoustic.quiet_room_min_distance_from_hospitality",
+          "acoustic.open_desks_next_to_boardroom"
+        ]
+      },
+      "narrative": "Deux boardrooms 14 pax côté sud et est de la bande centrale. La salle Sud touche le continuum café/town-hall — insérer un storage wall ou rangée de booths pour tenir le tampon 8 m exigé."
+    },
+    {
+      "n": 8,
+      "name": "Grappe huddles H1-H8 (4 pax)",
+      "surface_m2": 120,
+      "icon": "users",
+      "status": "warn",
+      "furniture": [
+        {
+          "brand": "Herman Miller",
+          "name": "Everywhere Round 1200",
+          "quantity": 8,
+          "dimensions_mm": "Ø 120 cm",
+          "catalog_id": "hm_everywhere_round_1200"
+        },
+        {
+          "brand": "Arper",
+          "name": "Kinesit",
+          "quantity": 32,
+          "dimensions_mm": "seat · adjustable",
+          "catalog_id": "arper_kinesit"
+        },
+        {
+          "brand": "Steelcase",
+          "name": "Roam Mobile Stand",
+          "quantity": 8,
+          "dimensions_mm": "80 × 76 × 190 cm",
+          "catalog_id": "steelcase_roam"
+        }
+      ],
+      "materials": [
+        {
+          "surface": "floor",
+          "brand": "Shaw Contract",
+          "name": "Inspire plank — Terracotta accent",
+          "note": "Rappel chaud ponctuel"
+        },
+        {
+          "surface": "walls",
+          "brand": "Woven Image",
+          "name": "EchoPanel 12 mm feutrine",
+          "note": "60% PET recyclé, absorption"
+        },
+        {
+          "surface": "ceiling",
+          "brand": "Ecophon",
+          "name": "Solo îlots suspendus",
+          "note": "NRC 0,95"
+        }
+      ],
+      "acoustic": {
+        "rw_target_db": 38,
+        "dnt_a_target_db": 38,
+        "tr60_target_s": 0.4,
+        "source": "NF S 31-080 · performant (huddle ≤ 50 m³)"
+      },
+      "adjacency": {
+        "ok": false,
+        "note": "H5-H7 débouchent sur l'aisle à y ≈ 33 000 — rotation porte vers le spine ou lobby 1,20 m à créer.",
+        "rule_ids": [
+          "micro.huddle_door_not_onto_desk_aisle"
+        ]
+      },
+      "narrative": "Huit huddles 4 pax distribués entre les cores et contre la limite nord de la bande centrale. Les portes H5-H7 ouvrent aujourd'hui sur l'aisle des bancs — pivoter vers le spine central."
+    },
+    {
+      "n": 9,
+      "name": "Cabines Framery (14 One Compact)",
+      "surface_m2": 18,
+      "icon": "phone",
+      "status": "warn",
+      "furniture": [
+        {
+          "brand": "Framery",
+          "name": "One Compact",
+          "quantity": 14,
+          "dimensions_mm": "103 × 100 × 225 cm",
+          "catalog_id": "framery_one_compact"
+        }
+      ],
+      "materials": [
+        {
+          "surface": "floor",
+          "brand": "Interface",
+          "name": "Composure — base continue",
+          "note": "Aucune rupture sous les cabines"
+        },
+        {
+          "surface": "walls",
+          "brand": "Kvadrat",
+          "name": "Steelcut Trio 3 habillage",
+          "note": "Laine habillant l'extérieur des Framery, identité atelier"
+        }
+      ],
+      "acoustic": {
+        "rw_target_db": 32,
+        "dnt_a_target_db": null,
+        "tr60_target_s": null,
+        "source": "Fabricant Framery — ~30 dB reduction ; WELL v2 S02"
+      },
+      "adjacency": {
+        "ok": false,
+        "note": "Cluster est x 50-57 k à < 2 m du banc — écran acoustique H 1600 à ajouter ; transférer 1 booth vers le nord-est.",
+        "rule_ids": [
+          "acoustic.phone_booths_cluster_must_buffer_open_desks",
+          "zoning.team_neighbourhood_has_own_gravity"
+        ]
+      },
+      "narrative": "14 cabines 1 pers. en grappes aux jonctions — densité 1 pour 9 postes, alignée Gensler. Relocaliser une cabine du cluster sud vers le neighbourhood nord-est (audit)."
+    },
+    {
+      "n": 10,
+      "name": "Focus rooms F1-F6",
+      "surface_m2": 60,
+      "icon": "feather",
+      "status": "warn",
+      "furniture": [
+        {
+          "brand": "Humanscale",
+          "name": "Float",
+          "quantity": 12,
+          "dimensions_mm": "152 × 76 cm",
+          "catalog_id": "humanscale_float"
+        },
+        {
+          "brand": "Wilkhahn",
+          "name": "ON",
+          "quantity": 12,
+          "dimensions_mm": "seat · adjustable",
+          "catalog_id": "wilkhahn_on"
+        },
+        {
+          "brand": "Flos",
+          "name": "D'E-Light task",
+          "quantity": 6,
+          "dimensions_mm": "LED 2700-5000 K",
+          "catalog_id": null
+        }
+      ],
+      "materials": [
+        {
+          "surface": "walls",
+          "brand": "Clayworks",
+          "name": "Natural Clay Plaster",
+          "note": "Clay lime, régule l'humidité, zéro VOC"
+        },
+        {
+          "surface": "floor",
+          "brand": "Forbo",
+          "name": "Marmoleum Natural Shell",
+          "note": "Linoléum biodégradable"
+        },
+        {
+          "surface": "ceiling",
+          "brand": "Armstrong",
+          "name": "Ultima+ NRC 0,90",
+          "note": "Fond absorbant"
+        }
+      ],
+      "acoustic": {
+        "rw_target_db": 40,
+        "dnt_a_target_db": 40,
+        "tr60_target_s": 0.5,
+        "source": "NF S 31-080 · performant (focus individuel)"
+      },
+      "adjacency": {
+        "ok": false,
+        "note": "F4-F6 en façade est captent la lumière réservée aux postes (Leesman) ; F1 à ~3 m du lounge rompt le gradient calme-énergie.",
+        "rule_ids": [
+          "daylight.focus_rooms_off_facade",
+          "zoning.calm_energy_gradient"
+        ]
+      },
+      "narrative": "Six salles focus 2 pers. contre le core est. F4-F6 mangent la façade est — audit recommande de les intervertir avec un banc pour rendre la lumière aux postes partagés."
+    },
+    {
+      "n": 11,
+      "name": "Café sud (260 m²)",
+      "surface_m2": 260,
+      "icon": "coffee",
+      "status": "ok",
+      "furniture": [
+        {
+          "brand": "Hay",
+          "name": "Mags Soft 3-seater",
+          "quantity": 4,
+          "dimensions_mm": "228 × 96 cm",
+          "catalog_id": "hay_mags_soft_3s"
+        },
+        {
+          "brand": "Muuto",
+          "name": "Outline 3-seater",
+          "quantity": 2,
+          "dimensions_mm": "215 × 84 cm",
+          "catalog_id": "muuto_outline_sofa_3s"
+        },
+        {
+          "brand": "Vitra",
+          "name": "Tip Ton",
+          "quantity": 40,
+          "dimensions_mm": "47 × 55 × 80 cm",
+          "catalog_id": "vitra_tip_ton"
+        },
+        {
+          "brand": "Pedrali",
+          "name": "Babila Lounge",
+          "quantity": 10,
+          "dimensions_mm": "69 × 66 × 73 cm",
+          "catalog_id": "pedrali_babila_lounge"
+        }
+      ],
+      "materials": [
+        {
+          "surface": "floor",
+          "brand": "Dinesen",
+          "name": "Douglas plank naturel huilé",
+          "note": "Bois massif long format, patine atelier"
+        },
+        {
+          "surface": "walls",
+          "brand": "BAUX",
+          "name": "Acoustic Pulp tuiles géométriques",
+          "note": "Bois-wool teinté, identité forte"
+        },
+        {
+          "surface": "ceiling",
+          "brand": "Ecophon",
+          "name": "Solo baffles + ventilos plafonniers",
+          "note": "Absorption + variabilité d'air (Browning P4)"
+        }
+      ],
+      "acoustic": {
+        "rw_target_db": null,
+        "dnt_a_target_db": null,
+        "tr60_target_s": 0.6,
+        "source": "NF S 31-080 · courant (café > 50 m³) ; masking coupé pendant les events"
+      },
+      "adjacency": {
+        "ok": true,
+        "note": "Façade sud, plantes sun-direct (Ficus elastica, Strelitzia), tier moderate 4 % concentré ici.",
+        "rule_ids": [
+          "zoning.social_hub_central_not_peripheral"
+        ]
+      },
+      "narrative": "Café 260 m² en façade sud, bande conviviale chaleureuse : bois, liège, plantes de soleil direct. C'est la salle à manger de l'atelier Lumen, pas un refectoire corporate."
+    },
+    {
+      "n": 12,
+      "name": "Town hall sud (120 m²)",
+      "surface_m2": 120,
+      "icon": "mic",
+      "status": "ok",
+      "furniture": [
+        {
+          "brand": "Magis",
+          "name": "Jam stackable",
+          "quantity": 80,
+          "dimensions_mm": "55 × 54 × 79 cm",
+          "catalog_id": "magis_jam"
+        },
+        {
+          "brand": "Steelcase",
+          "name": "Roam Mobile Stand",
+          "quantity": 2,
+          "dimensions_mm": "80 × 76 × 190 cm",
+          "catalog_id": "steelcase_roam"
+        },
+        {
+          "brand": "Vitra",
+          "name": "Soft Work banquette",
+          "quantity": 2,
+          "dimensions_mm": "240 × 108 cm",
+          "catalog_id": "vitra_soft_work"
+        }
+      ],
+      "materials": [
+        {
+          "surface": "floor",
+          "brand": "Dinesen",
+          "name": "Douglas plank — continuité café",
+          "note": "Bande sud unifiée"
+        },
+        {
+          "surface": "walls",
+          "brand": "Gustafs",
+          "name": "Linear chêne + pinboard",
+          "note": "Gallery-style pour WIP projets"
+        },
+        {
+          "surface": "ceiling",
+          "brand": "Ecophon",
+          "name": "Solo freestanding îlots",
+          "note": "NRC 0,95, variable absorption pour events"
+        },
+        {
+          "surface": "textile",
+          "brand": "Création Baumann",
+          "name": "Hush rideau acoustique",
+          "note": "Ferme le volume pendant les all-hands"
+        }
+      ],
+      "acoustic": {
+        "rw_target_db": null,
+        "dnt_a_target_db": null,
+        "tr60_target_s": 0.8,
+        "source": "NF S 31-080 · performant (volume ≥ 200 m³) ; étude acoustique dédiée recommandée"
+      },
+      "adjacency": {
+        "ok": true,
+        "note": "Continuum > 300 m² café+town-hall+lounge → désenfumage ERP type W à confirmer (IT 246).",
+        "rule_ids": [
+          "erp.desenfumage_not_blocked"
+        ]
+      },
+      "narrative": "Town hall 120 m² en prolongement du café, configurable pour all-hands 60-80 pax ou lunch-and-learn. Rideaux acoustiques Hush pour fermer le continuum pendant les events."
+    },
+    {
+      "n": 13,
+      "name": "Lounge tampon sud-est",
+      "surface_m2": 140,
+      "icon": "armchair",
+      "status": "ok",
+      "furniture": [
+        {
+          "brand": "Vitra",
+          "name": "Alcove High Back 2264",
+          "quantity": 3,
+          "dimensions_mm": "226 × 84 × 128 cm",
+          "catalog_id": "vitra_alcove_2264"
+        },
+        {
+          "brand": "Haworth / BuzziSpace",
+          "name": "BuzziNest lounge pod",
+          "quantity": 2,
+          "dimensions_mm": "144 × 91 × 150 cm",
+          "catalog_id": "haworth_buzzinest"
+        },
+        {
+          "brand": "Pedrali",
+          "name": "Babila Lounge",
+          "quantity": 6,
+          "dimensions_mm": "69 × 66 × 73 cm",
+          "catalog_id": "pedrali_babila_lounge"
+        }
+      ],
+      "materials": [
+        {
+          "surface": "floor",
+          "brand": "Interface",
+          "name": "Biophilic series fractal carpet",
+          "note": "Pattern fractal D ≈ 1,3-1,5 (Browning P8)"
+        },
+        {
+          "surface": "walls",
+          "brand": "Clayworks",
+          "name": "Natural Clay Plaster — Earth Warm",
+          "note": "Texture main, tonalité chaude"
+        },
+        {
+          "surface": "textile",
+          "brand": "Kvadrat",
+          "name": "Remix 3 laine",
+          "note": "Upholstery Alcove, durable"
+        }
+      ],
+      "acoustic": {
+        "rw_target_db": null,
+        "dnt_a_target_db": null,
+        "tr60_target_s": 0.6,
+        "source": "NF S 31-080 · performant (café/lounge)"
+      },
+      "adjacency": {
+        "ok": true,
+        "note": "Refuge pocket en bout de gradient sud, biophilie sun-direct concentrée (Ficus, Strelitzia).",
+        "rule_ids": [
+          "zoning.calm_energy_gradient"
+        ]
+      },
+      "narrative": "Lounge 140 m² en bout de bande sud, refuge pocket façon prospect-refuge. Sofas hauts Alcove, planteurs hauts, éclairage chaud 3000 K — la zone la plus calme du continuum convivial."
+    },
+    {
+      "n": 14,
+      "name": "Escalier central & atrium vert",
+      "surface_m2": 40,
+      "icon": "stairs",
+      "status": "ok",
+      "furniture": [
+        {
+          "brand": "Vitra",
+          "name": "Tip Ton perchés marches basses",
+          "quantity": 6,
+          "dimensions_mm": "47 × 55 × 80 cm",
+          "catalog_id": "vitra_tip_ton"
+        }
+      ],
+      "materials": [
+        {
+          "surface": "floor",
+          "brand": "Mutina",
+          "name": "Margarita terrazzo 600 × 600",
+          "note": "Palier et retour, signature discrète"
+        },
+        {
+          "surface": "walls",
+          "brand": "Gustafs",
+          "name": "Linear chêne micro-perforé",
+          "note": "Verticalité + absorption"
+        },
+        {
+          "surface": "ceiling",
+          "brand": "BAUX",
+          "name": "Wood-Wool baffles suspendues",
+          "note": "Canopy irrégulière au-dessus du vide"
+        },
+        {
+          "surface": "other",
+          "brand": "Ambius",
+          "name": "Atrium planting (Ficus lyrata 3 m + Pothos)",
+          "note": "Hero tree + trailing, Browning P1+P2"
+        }
+      ],
+      "acoustic": {
+        "rw_target_db": null,
+        "dnt_a_target_db": null,
+        "tr60_target_s": 0.6,
+        "source": "NF S 31-080 · circulation performant"
+      },
+      "adjacency": {
+        "ok": true,
+        "note": "Escalier à 2 m clear de tous côtés (ERP), atrium planté non bloquant pour égrèss.",
+        "rule_ids": [
+          "erp.egress_path_not_blocked"
+        ]
+      },
+      "narrative": "Escalier central (x 28-32 k, y 17,5-22,5 k) préservé avec 2 m clear. Atrium planté autour (Ficus lyrata 3 m, Pothos tombant) — seul accent biophilique généreux à l'intérieur du plan profond."
+    }
+  ],
+  "markdown": "# Micro-zonage — L'Atelier Lumière du Nord\n\nLe plateau Lumen se lit du nord au sud comme un atelier d'horlogerie qui s'ouvrirait progressivement sur la salle à manger. Cinq **neighbourhoods de 26 postes** (zones 1 à 5) alignent 130 Steelcase Migration SE 1600 contre la façade nord, tous à moins de 7 m d'une fenêtre, sur moquette Interface Composure et plafond Ecophon Master A (αw ≥ 0,90). Les écrans mid-desk 1450 mm (NRC 0,7) cassent les échanges verbaux ; un masking pink noise 45 dBA abaisse rD sous 5 m conformément à NF S 31-199.\n\nLa **bande centrale bibliothèque** (zone 6) consolide les six salles médiums — Étain, Cuivre, Chêne, Frêne, Noyer, Érable — derrière des cloisons Maars Momentum Rw ≥ 44 dB. Les **deux boardrooms 14 pax** (zone 7), Eames Segmented 4000 et chaises Embody, montent à Rw 48 dB (NF S 31-080 très performant) ; l'audit signale cependant un tampon trop court côté town-hall : un mur-casier Gustafs sera inséré pour tenir les 8 m exigés par la règle acoustic.quiet_room_min_distance_from_hospitality.\n\nLes **huit huddles** (zone 8) entourent les cores avec des tables Herman Miller Everywhere Round 1200 et des chaises Arper Kinesit. Les portes de H5-H7 seront pivotées vers le spine pour respecter micro.huddle_door_not_onto_desk_aisle. Les **14 Framery One Compact** (zone 9) sont distribuées en grappes, avec un transfert vers le nord-est pour satisfaire zoning.team_neighbourhood_has_own_gravity. Les **six focus rooms** (zone 10) sont habillées de Clayworks plaster et Marmoleum Forbo ; l'audit recommande de permuter F4-F6 avec un banc pour rendre la façade est aux postes (daylight.focus_rooms_off_facade).\n\nLa **façade sud** bascule dans un registre chaud. Le **café** (zone 11) déploie Dinesen Douglas au sol, BAUX Acoustic Pulp aux murs, Hay Mags Soft, Muuto Outline et Pedrali Babila. Le **town hall 120 m²** (zone 12) se configure en 80 places Magis Jam, avec rideaux Création Baumann Hush pour fermer le continuum pendant les all-hands. Le **lounge tampon** (zone 13) joue la carte refuge pocket avec Vitra Alcove et BuzziNest sur moquette fractale Interface Biophilic (Browning P8). Enfin, l'**escalier central et son atrium planté** (zone 14) — Ficus lyrata 3 m, Pothos tombant, terrazzo Mutina Margarita — matérialisent l'unique geste biophilique généreux à l'intérieur du plan profond, tandis que les neighbourhoods nord conservent des accents ponctuels en ZZ et Sansevieria.",
+  "tokens": {
+    "input": 61235,
+    "output": 12229
+  },
+  "duration_ms": 160229
+}
