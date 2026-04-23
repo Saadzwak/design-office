@@ -174,7 +174,7 @@ export default function Justify() {
     <div className="space-y-14">
       <header className="max-w-3xl">
         <p className="eyebrow-forest">
-          III · Justify
+          IV · Justify
           {isSample && (
             <span className="ml-3 text-ink-muted normal-case tracking-normal">
               · demo data

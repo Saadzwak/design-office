@@ -5,6 +5,7 @@ import DotStatus from "../components/ui/DotStatus";
 import TypewriterText from "../components/ui/TypewriterText";
 import { useProjectState } from "../hooks/useProjectState";
 import {
+  fetchTestFitSample,
   generateMoodBoard,
   moodBoardPdfUrl,
   type MoodBoardResponse,
@@ -12,6 +13,7 @@ import {
 import {
   INDUSTRY_LABEL,
   setMoodBoard,
+  setTestFit,
   type VariantStyle,
 } from "../lib/projectState";
 
@@ -36,6 +38,37 @@ const STYLE_DOT: Record<VariantStyle, string> = {
 export default function MoodBoard() {
   const project = useProjectState();
   const [state, setState] = useState<State>({ kind: "idle" });
+  const [isSample, setIsSample] = useState(false);
+
+  // Cold-start demo mode: if the user lands here without running Test Fit
+  // first, auto-load the saved Lumen fixture so the page has content. The
+  // first approved variant is picked as the retained one.
+  useEffect(() => {
+    if (project.testfit) return;
+    const ac = new AbortController();
+    fetchTestFitSample(ac.signal)
+      .then((sample) => {
+        const firstApproved =
+          sample.variants.find(
+            (v) =>
+              sample.verdicts.find((r) => r.style === v.style)?.verdict ===
+                "approved_with_notes" ||
+              sample.verdicts.find((r) => r.style === v.style)?.verdict ===
+                "approved",
+          ) ?? sample.variants[0];
+        setTestFit({
+          floor_plan: sample.floor_plan,
+          variants: sample.variants,
+          verdicts: sample.verdicts,
+          live_screenshots: {},
+          retained_style: firstApproved?.style ?? null,
+        });
+        setIsSample(true);
+      })
+      .catch(() => null);
+    return () => ac.abort();
+  }, [project.testfit]);
+
   // Restore the last render for this project, if any.
   useEffect(() => {
     if (project.mood_board?.pdf_id && state.kind === "idle") {
@@ -92,7 +125,14 @@ export default function MoodBoard() {
   return (
     <div className="space-y-14">
       <header className="max-w-3xl">
-        <p className="eyebrow-forest">III · Mood Board</p>
+        <p className="eyebrow-forest">
+          III · Mood Board
+          {isSample && (
+            <span className="ml-3 text-ink-muted normal-case tracking-normal">
+              · demo data
+            </span>
+          )}
+        </p>
         <h1
           className="mt-5 font-display text-display-sm leading-[1.02] text-ink"
           style={{ fontVariationSettings: '"opsz" 144, "wght" 620, "SOFT" 100' }}

@@ -133,7 +133,7 @@ export default function ExportRoute() {
     <div className="space-y-20">
       <header className="max-w-3xl">
         <p className="eyebrow-forest">
-          IV · Export
+          V · Export
           {isSample && (
             <span className="ml-3 text-ink-muted normal-case tracking-normal">
               · demo data

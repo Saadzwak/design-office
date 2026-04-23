@@ -149,7 +149,7 @@ export default function Landing() {
       {/* How it works */}
       <section id="how-it-works" className="grid grid-cols-12 gap-8">
         <div className="col-span-12 lg:col-span-4">
-          <p className="eyebrow-forest">Four surfaces</p>
+          <p className="eyebrow-forest">Five surfaces</p>
           <h2
             className="mt-6 font-display text-[48px] leading-[1.02] tracking-[-0.02em] text-ink md:text-[60px]"
             style={{ fontVariationSettings: '"opsz" 96, "wght" 560, "SOFT" 100' }}
