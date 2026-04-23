@@ -92,7 +92,7 @@ export default function Landing() {
           </p>
           <div className="mb-16 flex gap-3.5">
             <button
-              onClick={() => navigate("/brief")}
+              onClick={() => navigate("/project?new=1")}
               className="btn-primary"
               style={{ padding: "16px 28px", fontSize: 15 }}
             >

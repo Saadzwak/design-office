@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
+import NewProjectModal from "../components/NewProjectModal";
 import {
   Card,
   Eyebrow,
@@ -48,11 +49,34 @@ export default function ProjectDashboard() {
   const [openId, setOpenId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<string>("all");
+  const [newProjectOpen, setNewProjectOpen] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
 
   useEffect(() => {
     const unsub = onProjectsIndexChange(setProjects);
     return unsub;
   }, []);
+
+  // Support `/project?new=1` deep-link from Landing "Start a project".
+  useEffect(() => {
+    if (searchParams.get("new") === "1") {
+      setNewProjectOpen(true);
+      searchParams.delete("new");
+      setSearchParams(searchParams, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Support `/project?open=<id>` from "Write the brief" redirects.
+  useEffect(() => {
+    const target = searchParams.get("open");
+    if (target) {
+      setOpenId(target);
+      searchParams.delete("open");
+      setSearchParams(searchParams, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projects.length]);
 
   const filtered = useMemo(() => {
     return projects.filter((p) => {
@@ -86,8 +110,18 @@ export default function ProjectDashboard() {
             setOpenId(id);
             setActiveProject(id);
           }}
+          onNewProject={() => setNewProjectOpen(true)}
         />
       )}
+
+      <NewProjectModal
+        open={newProjectOpen}
+        onClose={() => setNewProjectOpen(false)}
+        onCreated={(id) => {
+          // Land the user on the project's detail view immediately.
+          setOpenId(id);
+        }}
+      />
     </div>
   );
 }
@@ -102,6 +136,7 @@ function ProjectsList({
   filter,
   setFilter,
   onOpen,
+  onNewProject,
 }: {
   projects: ProjectSummary[];
   totalProjects: number;
@@ -110,6 +145,7 @@ function ProjectsList({
   filter: string;
   setFilter: (f: string) => void;
   onOpen: (id: string) => void;
+  onNewProject: () => void;
 }) {
   const filters = ["all", "Brief", "Test fit", "Justify", "Export"];
 
@@ -143,7 +179,7 @@ function ProjectsList({
             to engineering handoff.
           </p>
         </div>
-        <button className="btn-primary">
+        <button onClick={onNewProject} className="btn-primary">
           <Icon name="plus" size={14} /> New project
         </button>
       </header>
@@ -425,8 +461,12 @@ function ProjectDetail({
         <Eyebrow>
           SURFACES · {activeCount} / {SURFACES.length} ACTIVE
         </Eyebrow>
-        <button className="btn-ghost btn-sm">
-          <Icon name="plus" size={12} /> New run
+        <button
+          onClick={() => navigate("/brief")}
+          className="btn-ghost btn-sm"
+          title="Write the brief for this project"
+        >
+          <Icon name="edit-3" size={12} /> Write the brief
         </button>
       </div>
 

@@ -19,9 +19,11 @@ export { default as Icon } from "./Icon";
 export type { IconName } from "./Icon";
 export { default as IntegrationBadge } from "./IntegrationBadge";
 export { default as MetricBadge } from "./MetricBadge";
+export { default as Modal } from "./Modal";
 export { default as Pill } from "./Pill";
 export { default as PillToggle } from "./PillToggle";
 export { default as Placeholder } from "./Placeholder";
+export { default as ToastHost, toast } from "./Toast";
 export { default as TypewriterText } from "./TypewriterText";
 /** Bundle-parity alias — the bundle's `Typewriter` matches our
  *  `TypewriterText`. */

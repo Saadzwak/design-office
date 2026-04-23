@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import ChatDrawer from "./components/chat/ChatDrawer";
 import Icon from "./components/ui/Icon";
 import IntegrationBadge from "./components/ui/IntegrationBadge";
+import ToastHost from "./components/ui/Toast";
 import ViewModeToggle from "./components/ui/ViewModeToggle";
 import { useProjectState } from "./hooks/useProjectState";
 import {
@@ -142,6 +143,7 @@ export default function App() {
           navigate("/chat");
         }}
       />
+      <ToastHost />
     </div>
   );
 }

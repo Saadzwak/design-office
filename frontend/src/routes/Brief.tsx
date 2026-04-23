@@ -111,18 +111,25 @@ export default function Brief() {
   }, []);
 
   // Pre-seed the done-phase from the persisted programme so a page
-  // reload still shows the cards the user already synthesised.
+  // reload still shows the cards the user already synthesised — but
+  // ONLY if the stored markdown actually yields drill-down sections
+  // (i.e. has H2 headings). Otherwise keep the phase idle so the
+  // "Synthesize programme" CTA stays visible for fresh projects that
+  // only carry a bullet-point seed.
   useEffect(() => {
-    if (phase.kind === "idle" && project.programme.markdown) {
-      setPhase({
-        kind: "done",
-        response: {
-          programme: project.programme.markdown,
-          trace: [],
-          tokens: { input: 0, output: 0 },
-        },
-      });
-    }
+    if (phase.kind !== "idle") return;
+    const markdown = project.programme.markdown ?? "";
+    if (!markdown.trim()) return;
+    const sectionCount = parseProgrammeSections(markdown).length;
+    if (sectionCount === 0) return;
+    setPhase({
+      kind: "done",
+      response: {
+        programme: markdown,
+        trace: [],
+        tokens: { input: 0, output: 0 },
+      },
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
