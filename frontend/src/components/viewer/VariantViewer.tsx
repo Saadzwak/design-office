@@ -1,5 +1,6 @@
 import { useState } from "react";
 
+import PanZoom from "./PanZoom";
 import PlanSvg from "./PlanSvg";
 import type { FloorPlan, VariantOutput } from "../../lib/api";
 
@@ -88,15 +89,23 @@ export default function VariantViewer({
       </div>
       <div className="flex-1 overflow-hidden bg-canvas">
         {activeView === "3d" && activeSrc ? (
-          <img
-            src={activeSrc}
-            alt={`SketchUp iso render of the ${style} variant`}
-            className="h-full w-full object-contain"
-          />
+          // iter-20f : wrap the 3D iso in PanZoom too — clients often
+          // want to zoom into a specific zone of the render.
+          <PanZoom>
+            <img
+              src={activeSrc}
+              alt={`SketchUp iso render of the ${style} variant`}
+              className="h-full w-full object-contain"
+              draggable={false}
+            />
+          </PanZoom>
         ) : plan ? (
-          <div className="h-full w-full p-6">
+          // iter-20f (Saad #13) : wrap the plan in PanZoom so wheel
+          // zoom + drag pan work. Previously wheel events scrolled the
+          // host page because nothing captured them.
+          <PanZoom className="p-6">
             <PlanSvg plan={plan} highlightedVariant={style} zones={zones} />
-          </div>
+          </PanZoom>
         ) : (
           <div className="grid h-full place-items-center">
             <p className="font-mono text-[11px] uppercase tracking-label text-ink-muted">

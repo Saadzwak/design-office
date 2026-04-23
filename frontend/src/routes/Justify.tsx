@@ -391,12 +391,26 @@ export default function Justify() {
             onClick={runGenerate}
             disabled={phase === "running"}
             className="btn-primary"
-            title="Compose the PPTX — includes the 7 argumentaire sections + the retained variant's iso render."
+            title="Compose the PPTX — 12 editorial slides including the retained variant's iso render, vision, programme, atmosphere tiles and materials."
+            aria-busy={phase === "running"}
           >
-            <Icon name="presentation" size={12} />
-            {phase === "running"
-              ? "Composing pitch deck…"
-              : "Compose pitch deck (PPTX)"}
+            {/* iter-20f (Saad #15) : add a pulsing dot while the
+                pipeline runs so the loading state reads from across
+                the room. Was previously only a text change. */}
+            {phase === "running" ? (
+              <>
+                <span
+                  className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-canvas"
+                  aria-hidden="true"
+                />
+                <span className="ml-2">Composing pitch deck…</span>
+              </>
+            ) : (
+              <>
+                <Icon name="presentation" size={12} />
+                Compose pitch deck (PPTX)
+              </>
+            )}
           </button>
         )}
         {response?.pdf_id && (
