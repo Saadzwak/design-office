@@ -3,13 +3,13 @@
 import tempfile
 from pathlib import Path
 
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, Response, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse
 
 from app import __version__
 from app.config import get_settings
-from app.models import FloorPlan, TestFitResponse, VariantStyle
+from app.models import FloorPlan, TestFitResponse, VariantOutput, VariantStyle
 from app.pdf.fixtures import generate_lumen_plan_pdf
 from app.pdf.parser import parse_pdf
 from app.surfaces.brief import (
@@ -38,6 +38,7 @@ from app.surfaces.moodboard import (
     compile_default_surface as compile_moodboard_surface,
     pdf_path_for as moodboard_pdf_path_for,
 )
+from app.surfaces.floorplan_svg import render_floorplan_svg
 from app.surfaces.testfit import (
     IterateRequest,
     IterateResponse,
@@ -184,6 +185,63 @@ def testfit_sample() -> TestFitResponse:
 
     data = json.loads(_SAMPLE_RESULT_PATH.read_text(encoding="utf-8"))
     return TestFitResponse.model_validate(data)
+
+
+class FloorPlanSvgRequest(BaseModel):
+    """Iter-17 D : caller-supplied plan + variant → 2D top-down SVG."""
+
+    floor_plan: FloorPlan
+    variant: VariantOutput | None = None
+    width_px: int = 1440
+    show_legend: bool = True
+
+
+@app.post("/api/testfit/floor-plan-2d")
+def testfit_floor_plan_2d_svg(payload: FloorPlanSvgRequest) -> Response:
+    """POST the floor plan (and optionally a variant) and receive back an
+    SVG with zones coloured by functional category, numbered 1..N, and
+    a legend in the bottom-right corner.
+
+    Pure function (no LLM, no MCP), so it's cheap enough to call on
+    every variant toggle in the Test Fit 2D viewer.
+    """
+
+    svg = render_floorplan_svg(
+        plan=payload.floor_plan,
+        variant=payload.variant,
+        width_px=payload.width_px,
+        show_legend=payload.show_legend,
+    )
+    return Response(
+        content=svg,
+        media_type="image/svg+xml",
+        headers={"Cache-Control": "public, max-age=600"},
+    )
+
+
+@app.get("/api/testfit/sample/variants/{style}/floor-plan-2d")
+def testfit_sample_floor_plan_2d_svg(style: str) -> Response:
+    """Convenience GET : serve the 2D SVG for one of the three saved
+    Lumen variants. Wired for the cold-start demo path — the same
+    fixture that /api/testfit/sample returns.
+    """
+
+    if not _SAMPLE_RESULT_PATH.exists():
+        raise HTTPException(status_code=404, detail="Sample fixture missing.")
+    import json
+
+    data = json.loads(_SAMPLE_RESULT_PATH.read_text(encoding="utf-8"))
+    sample = TestFitResponse.model_validate(data)
+    picked = next(
+        (v for v in sample.variants if v.style.value == style),
+        None,
+    )
+    if picked is None:
+        raise HTTPException(
+            status_code=404, detail=f"Variant '{style}' not in the saved sample."
+        )
+    svg = render_floorplan_svg(plan=sample.floor_plan, variant=picked)
+    return Response(content=svg, media_type="image/svg+xml")
 
 
 @app.post("/api/testfit/parse")
