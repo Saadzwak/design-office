@@ -284,6 +284,219 @@ module DesignOffice
       end
       { path: path, view: view_name }
     end
+
+    # -----------------------------------------------------------------
+    # Materials library — realistic textures over the flat colours.
+    #
+    # SketchUp's stock materials catalogue name varies per install; we
+    # therefore seed named materials on demand (create-if-missing) with
+    # sensible colour + alpha fallbacks. When a built-in texture with the
+    # requested name happens to already exist in the model, we reuse it.
+    # -----------------------------------------------------------------
+
+    MATERIAL_SPECS = {
+      'Light Wood'       => { rgb: [196, 160, 110], alpha: 1.0 },
+      'White Laminate'   => { rgb: [245, 242, 232], alpha: 1.0 },
+      'Felt Grey'        => { rgb: [150, 148, 140], alpha: 1.0 },
+      'Carpet Olive'     => { rgb: [128, 130,  95], alpha: 1.0 },
+      'Fabric Charcoal'  => { rgb: [ 62,  62,  68], alpha: 1.0 },
+      'Moss Green'       => { rgb: [102, 140,  92], alpha: 1.0 }
+    }.freeze
+
+    def ensure_material(name)
+      mats = model.materials
+      existing = mats[name] rescue nil
+      return existing if existing
+      spec = MATERIAL_SPECS[name] || { rgb: [200, 200, 200], alpha: 1.0 }
+      mat = mats.add(name)
+      mat.color = Sketchup::Color.new(*spec[:rgb])
+      mat.alpha = spec[:alpha]
+      mat
+    rescue StandardError
+      nil
+    end
+
+    # Map the flat colours already applied by low-level draw helpers onto
+    # the named materials above. We walk every face in the model, look at
+    # its current material colour, and re-assign to the nearest named mat.
+    # Idempotent : calling twice is a no-op.
+    def apply_materials_from_palette
+      mats = {
+        floor_wood:    ensure_material('Light Wood'),
+        desk_laminate: ensure_material('White Laminate'),
+        felt:          ensure_material('Felt Grey'),
+        carpet_olive:  ensure_material('Carpet Olive'),
+        fabric:        ensure_material('Fabric Charcoal'),
+        moss:          ensure_material('Moss Green')
+      }
+      model.entities.grep(Sketchup::Face).each do |face|
+        next unless face.valid?
+        m = face.material
+        if m.nil?
+          # Unpainted floor-level face: leave it, SketchUp default is fine.
+          next
+        end
+        col = m.color
+        r, g, b = col.red, col.green, col.blue rescue [128, 128, 128]
+        target =
+          if r > 235 && g > 235 && b > 220 then mats[:desk_laminate]
+          elsif r > 180 && g > 180 && b < 180 then mats[:floor_wood]     # desk cream
+          elsif (r - 200).abs < 25 && (g - 170).abs < 25 && b < 160 then mats[:floor_wood]  # café
+          elsif r > 190 && g > 190 && b > 220 then mats[:felt]           # glazed wall -> treat as felt fallback
+          elsif (r - 201).abs < 20 && (g - 105).abs < 20 && b < 110 then mats[:carpet_olive] # townhall terracotta → carpet
+          elsif r < 90 && g < 90 && b < 100 then mats[:fabric]           # phone booth dark
+          elsif g > 150 && r < 140 && b < 140 then mats[:moss]           # biophilic green
+          elsif (r - 180).abs < 25 && (g - 200).abs < 25 && (b - 190).abs < 25 then mats[:carpet_olive] # default collab mint
+          elsif (r - 190).abs < 25 && (g - 180).abs < 25 && (b - 170).abs < 25 then mats[:felt] # lounge grey
+          elsif r < 80 && g < 80 && b < 80 then mats[:fabric]            # core dark
+          else nil
+          end
+        face.material = target if target
+      end
+      { materials: mats.keys.map(&:to_s) }
+    rescue StandardError => e
+      { error: e.message }
+    end
+
+    # -----------------------------------------------------------------
+    # Rendering style + sun/shadows
+    # -----------------------------------------------------------------
+
+    def apply_architectural_style
+      styles = model.styles
+      target = nil
+      styles.each do |s|
+        next unless s && s.name
+        if s.name.downcase.include?('architectural') || s.name.downcase.include?('shaded with textures')
+          target = s
+          break
+        end
+      end
+      if target
+        styles.selected_style = target
+        styles.update_selected_style
+        { style: target.name }
+      else
+        { style: 'default' }
+      end
+    rescue StandardError => e
+      { error: e.message }
+    end
+
+    def enable_afternoon_shadows
+      si = model.shadow_info
+      si['DisplayShadows'] = true
+      si['UseSunForAllShading'] = true
+      begin
+        si['ShadowTime'] = Time.local(2026, 6, 21, 14, 0, 0)
+      rescue StandardError
+        # Some SketchUp builds expect a Numeric ShadowTime (day fraction).
+        # 14:00 = 14/24 ≈ 0.5833
+        si['ShadowTime'] = 14.0 / 24.0 rescue nil
+      end
+      { shadows: true }
+    rescue StandardError => e
+      { error: e.message }
+    end
+
+    # -----------------------------------------------------------------
+    # Camera helpers
+    # -----------------------------------------------------------------
+
+    def _set_camera_iso(azimuth_deg, elevation_deg)
+      bb = model.bounds
+      center = bb.center
+      diag = bb.diagonal
+      dist = diag * 1.15
+      az = azimuth_deg.to_f * Math::PI / 180.0
+      el = elevation_deg.to_f * Math::PI / 180.0
+      eye = Geom::Point3d.new(
+        center.x + dist * Math.cos(el) * Math.cos(az),
+        center.y + dist * Math.cos(el) * Math.sin(az),
+        center.z + dist * Math.sin(el)
+      )
+      cam = Sketchup::Camera.new(eye, center, Z_AXIS)
+      cam.perspective = true
+      cam.fov = 35.0
+      model.active_view.camera = cam
+    end
+
+    def _set_camera_topdown
+      bb = model.bounds
+      center = bb.center
+      dist = bb.diagonal * 1.0
+      eye = Geom::Point3d.new(center.x, center.y, center.z + dist)
+      cam = Sketchup::Camera.new(eye, center, Y_AXIS)
+      cam.perspective = false
+      model.active_view.camera = cam
+    end
+
+    def _set_camera_eye_level
+      bb = model.bounds
+      center = bb.center
+      # Position 10 m outside the bounding box on the south-west corner,
+      # looking across the space at 1.65 m height.
+      edge_x = bb.min.x - mm(10_000)
+      edge_y = bb.min.y - mm(10_000)
+      eye_z = mm(1650)
+      eye = Geom::Point3d.new(edge_x, edge_y, eye_z)
+      target = Geom::Point3d.new(center.x, center.y, eye_z)
+      cam = Sketchup::Camera.new(eye, target, Z_AXIS)
+      cam.perspective = true
+      cam.fov = 55.0
+      model.active_view.camera = cam
+    end
+
+    # -----------------------------------------------------------------
+    # Multi-angle capture — 4 iso + top + eye-level
+    # -----------------------------------------------------------------
+
+    ANGLE_SPECS = {
+      'iso_ne'    => { az:  45.0, el: 30.0, kind: :iso },
+      'iso_nw'    => { az: 135.0, el: 30.0, kind: :iso },
+      'iso_se'    => { az: 315.0, el: 30.0, kind: :iso },
+      'iso_sw'    => { az: 225.0, el: 30.0, kind: :iso },
+      'top_down'  => { kind: :top },
+      'eye_level' => { kind: :eye }
+    }.freeze
+
+    def capture_multi_angle_renders(variant_id:, out_dir:, **_ignored)
+      # Prep pass : textures + style + shadows (idempotent).
+      apply_materials_from_palette
+      apply_architectural_style
+      enable_afternoon_shadows
+
+      view = model.active_view
+      out = {}
+      errors = {}
+
+      ANGLE_SPECS.each do |angle_name, spec|
+        begin
+          case spec[:kind]
+          when :iso
+            _set_camera_iso(spec[:az], spec[:el])
+          when :top
+            _set_camera_topdown
+          when :eye
+            _set_camera_eye_level
+          end
+          sep = out_dir.end_with?('/') || out_dir.end_with?('\\') ? '' : '/'
+          filename = "#{out_dir}#{sep}sketchup_variant_#{variant_id}_#{angle_name}.png"
+          view.write_image({
+            filename: filename,
+            width: 1920,
+            height: 1280,
+            antialias: true,
+            transparent: false
+          })
+          out[angle_name] = filename
+        rescue StandardError => e
+          errors[angle_name] = e.message
+        end
+      end
+
+      { ok: errors.empty?, paths: out, errors: errors, variant: variant_id }
+    end
   end
 end
 
