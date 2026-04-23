@@ -303,14 +303,32 @@ export default function Justify() {
         )}
       </section>
 
-      {/* CTAs */}
+      {/* CTAs — iter-19 D : "Compose client deck (PPTX)" actually
+          generates the PPTX now (or serves it if we already have
+          pptx_id). Was an orphan nav to /export. */}
       <div className="flex flex-wrap gap-3">
-        <button
-          onClick={() => navigate("/export")}
-          className="btn-ghost"
-        >
-          <Icon name="file-text" size={12} /> Compose client deck (PPTX)
-        </button>
+        {response?.pptx_id ? (
+          <a
+            href={justifyPptxUrl(response.pptx_id)}
+            target="_blank"
+            rel="noreferrer"
+            className="btn-primary"
+          >
+            <Icon name="download" size={12} /> Download pitch deck (PPTX)
+          </a>
+        ) : (
+          <button
+            onClick={runGenerate}
+            disabled={phase === "running"}
+            className="btn-primary"
+            title="Compose the PPTX — includes the 7 argumentaire sections + the retained variant's iso render."
+          >
+            <Icon name="presentation" size={12} />
+            {phase === "running"
+              ? "Composing pitch deck…"
+              : "Compose pitch deck (PPTX)"}
+          </button>
+        )}
         {response?.pdf_id && (
           <a
             href={justifyPdfUrl(response.pdf_id)}
@@ -321,16 +339,13 @@ export default function Justify() {
             <Icon name="download" size={12} /> Download report (PDF)
           </a>
         )}
-        {response?.pptx_id && (
-          <a
-            href={justifyPptxUrl(response.pptx_id)}
-            target="_blank"
-            rel="noreferrer"
-            className="btn-ghost"
-          >
-            <Icon name="download" size={12} /> Download pitch deck (PPTX)
-          </a>
-        )}
+        <button
+          onClick={() => navigate("/export")}
+          className="btn-ghost"
+          title="Hand off to engineering — generate the DXF export."
+        >
+          <Icon name="arrow-right" size={12} /> Open export
+        </button>
       </div>
 
       {/* Drawer */}

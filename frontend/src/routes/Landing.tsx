@@ -1,4 +1,4 @@
-import { NavLink, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 import { Eyebrow, Icon, Placeholder } from "../components/ui";
 
@@ -35,13 +35,24 @@ export default function Landing() {
           </span>
         </div>
         <div className="flex items-center gap-7">
-          {["Surfaces", "Method", "Journal"].map((a) => (
-            <span
-              key={a}
-              className="mono text-[11px] uppercase tracking-[0.08em] text-ink"
+          {[
+            { label: "Surfaces", target: "surfaces" },
+            { label: "Method", target: "method" },
+            { label: "Journal", target: "journal" },
+          ].map((a) => (
+            <a
+              key={a.target}
+              href={`#${a.target}`}
+              onClick={(e) => {
+                e.preventDefault();
+                document
+                  .getElementById(a.target)
+                  ?.scrollIntoView({ behavior: "smooth", block: "start" });
+              }}
+              className="mono text-[11px] uppercase tracking-[0.08em] text-ink transition-colors hover:text-forest"
             >
-              {a}
-            </span>
+              {a.label}
+            </a>
           ))}
           <button
             onClick={() => navigate("/project")}
@@ -173,7 +184,7 @@ export default function Landing() {
       </section>
 
       {/* Surfaces I–VI asymmetric editorial grid */}
-      <section className="px-16 py-[120px]">
+      <section id="surfaces" className="px-16 py-[120px]" style={{ scrollMarginTop: 80 }}>
         <div
           className="mb-[72px] grid gap-[80px]"
           style={{ gridTemplateColumns: "1fr 2fr" }}
@@ -259,8 +270,9 @@ export default function Landing() {
 
       {/* Pull quote */}
       <section
+        id="method"
         className="border-y border-mist-200 px-16 py-20"
-        style={{ background: "var(--canvas-alt)" }}
+        style={{ background: "var(--canvas-alt)", scrollMarginTop: 80 }}
       >
         <blockquote
           className="m-0 font-display italic"
@@ -282,7 +294,11 @@ export default function Landing() {
       </section>
 
       {/* Sources marquee */}
-      <section className="overflow-hidden" style={{ padding: "60px 0" }}>
+      <section
+        id="journal"
+        className="overflow-hidden"
+        style={{ padding: "60px 0", scrollMarginTop: 80 }}
+      >
         <div className="mono mb-6 px-16 text-mist-500">
           SOURCES · WORKPLACE RESEARCH &amp; MANUFACTURERS
         </div>
@@ -325,10 +341,26 @@ export default function Landing() {
           </span>
         </div>
         <div className="mono flex gap-6 text-mist-500">
-          <NavLink to="/" onClick={(e) => e.preventDefault()}>
+          <a
+            href="https://github.com/anthropics/design-office"
+            target="_blank"
+            rel="noreferrer"
+            className="transition-colors hover:text-forest"
+          >
             GITHUB
-          </NavLink>
-          <span>JOURNAL</span>
+          </a>
+          <a
+            href="#journal"
+            onClick={(e) => {
+              e.preventDefault();
+              document
+                .getElementById("journal")
+                ?.scrollIntoView({ behavior: "smooth", block: "start" });
+            }}
+            className="transition-colors hover:text-forest"
+          >
+            JOURNAL
+          </a>
           <span>BUILT WITH OPUS 4.7</span>
         </div>
       </footer>

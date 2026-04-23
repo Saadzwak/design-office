@@ -506,6 +506,13 @@ function VariantCard({
             ? "var(--sun)"
             : "var(--clay)";
 
+  // Iter-19 D : per-card 2D / 3D view state. Bundle-parity toggle
+  // now actually swaps the preview — 3D shows the committed SketchUp
+  // iso render from `/sketchup/sketchup_variant_{style}.png`, 2D
+  // keeps the normalised FloorPlan2D.
+  const [view, setView] = useState<"2d" | "3d">("2d");
+  const sketchupUrl = `/sketchup/sketchup_variant_${v.id}.png`;
+
   return (
     <div
       onClick={onPick}
@@ -544,16 +551,14 @@ function VariantCard({
             {v.name}
           </span>
         </div>
-        <PillToggle
+        <PillToggle<"2d" | "3d">
           size="sm"
           options={[
             { value: "2d", label: "2D" },
             { value: "3d", label: "3D" },
           ]}
-          value="2d"
-          onChange={() => {
-            /* 3D toggle ships in iter-18i with the live SketchUp screenshots */
-          }}
+          value={view}
+          onChange={(next) => setView(next)}
         />
       </div>
 
@@ -565,16 +570,43 @@ function VariantCard({
         {v.pitch}
       </p>
 
-      {/* 2D floor plan */}
+      {/* Preview — 2D or 3D depending on the toggle. */}
       <div
-        className="rounded-lg border border-mist-100 p-2"
-        style={{ background: "var(--canvas-alt)" }}
+        className="overflow-hidden rounded-lg border border-mist-100"
+        style={{ background: "var(--canvas-alt)", padding: view === "3d" ? 0 : 8 }}
       >
-        <FloorPlan2D
-          zones={v.zones as Zone[]}
-          size={{ w: 400, h: 260 }}
-          ariaLabel={`${v.name} macro-zoning`}
-        />
+        {view === "2d" ? (
+          <FloorPlan2D
+            zones={v.zones as Zone[]}
+            size={{ w: 400, h: 260 }}
+            ariaLabel={`${v.name} macro-zoning`}
+          />
+        ) : (
+          <div
+            className="relative flex aspect-[400/260] w-full items-center justify-center"
+            style={{ background: "var(--canvas-alt)" }}
+          >
+            <img
+              src={sketchupUrl}
+              alt={`${v.name} SketchUp iso render`}
+              className="h-full w-full object-contain"
+              onError={(e) => {
+                // If the fixture PNG is missing, fall back to a
+                // placeholder so the card doesn't break.
+                (e.currentTarget as HTMLImageElement).style.display = "none";
+                (e.currentTarget.nextElementSibling as HTMLElement | null)?.removeAttribute(
+                  "hidden",
+                );
+              }}
+            />
+            <div
+              hidden
+              className="placeholder-img absolute inset-0 flex items-center justify-center"
+            >
+              <span>SKETCHUP ISO · {v.name.toUpperCase()}</span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Metrics */}

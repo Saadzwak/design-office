@@ -311,28 +311,31 @@ export default function MoodBoard() {
 
       {/* CTAs */}
       <div className="flex flex-wrap gap-3">
+        {response?.pdf_id ? (
+          <a
+            href={moodBoardPdfUrl(response.pdf_id)}
+            target="_blank"
+            rel="noreferrer"
+            className="btn-ghost"
+          >
+            <Icon name="download" size={12} /> Download A3 PDF
+          </a>
+        ) : (
+          <button
+            onClick={run}
+            disabled={phase === "running"}
+            className="btn-ghost"
+          >
+            <Icon name="sparkles" size={12} />
+            {phase === "running" ? "Composing…" : "Generate A3 PDF"}
+          </button>
+        )}
         <button
-          onClick={response?.pdf_id ? undefined : run}
-          disabled={phase === "running"}
+          onClick={() => navigate("/justify")}
           className="btn-ghost"
+          title="Open Justify — compose the client deck (PPTX, includes this mood board)"
         >
-          <Icon name="download" size={12} />
-          {response?.pdf_id ? (
-            <a
-              href={moodBoardPdfUrl(response.pdf_id)}
-              target="_blank"
-              rel="noreferrer"
-            >
-              Download A3 PDF
-            </a>
-          ) : phase === "running" ? (
-            "Composing…"
-          ) : (
-            "Generate A3 PDF"
-          )}
-        </button>
-        <button onClick={() => navigate("/justify")} className="btn-ghost">
-          <Icon name="arrow-right" size={12} /> Add to client deck
+          <Icon name="presentation" size={12} /> Compose client deck
         </button>
       </div>
 
