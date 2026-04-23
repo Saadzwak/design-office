@@ -171,6 +171,12 @@ export function variantToDesign(
       h: normalised.h,
     });
   }
+  // Sort biggest-first so small zones render ON TOP of bigger ones in
+  // the SVG renderer. Backend macro-zoning routinely emits a large
+  // "open_work" bbox that encloses smaller "focus_room" / "huddle"
+  // bboxes — without this sort, the smaller zones disappear under the
+  // bigger ones (Saad's iter-19 collision bug).
+  zones.sort((a, b) => b.w * b.h - a.w * a.h);
 
   // Derive metrics
   const density =

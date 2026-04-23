@@ -225,11 +225,14 @@ describe("variantAdapter", () => {
     expect(designed.zones).toHaveLength(4);
   });
 
-  it("categorises tools consistently (work / collab / support / biophilic)", () => {
+  it("categorises tools consistently (sorted biggest-first per iter-19 C)", () => {
     const v = makeVariant();
     const designed = variantToDesign(v, LUMEN_PLAN);
     const kinds = designed.zones.map((z) => z.kind);
-    expect(kinds).toEqual(["work", "collab", "support", "biophilic"]);
+    // Areas (mm²) : work 30000×5000=150M ; collab 10000×6000=60M ;
+    // biophilic 8000×6000=48M ; support 1200×1200=1.44M.
+    // Sorted biggest-first → work, collab, biophilic, support.
+    expect(kinds).toEqual(["work", "collab", "biophilic", "support"]);
   });
 
   it("emits zones in normalised 88 × 62 space", () => {
