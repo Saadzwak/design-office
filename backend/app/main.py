@@ -38,6 +38,18 @@ from app.surfaces.moodboard import (
     compile_default_surface as compile_moodboard_surface,
     pdf_path_for as moodboard_pdf_path_for,
 )
+from app.surfaces.visual_moodboard import (
+    VisualMoodBoardRequest,
+    VisualMoodBoardResponse,
+    compile_default_surface as compile_visual_moodboard_surface,
+    generated_image_path as visual_moodboard_path_for,
+)
+from app.surfaces.zone_overlay import (
+    ZoneOverlayRequest,
+    ZoneOverlayResponse,
+    compile_default_surface as compile_zone_overlay_surface,
+)
+from app.services.nanobanana_client import NanoBananaError
 from app.surfaces.floorplan_svg import render_floorplan_svg
 from app.surfaces.testfit import (
     IterateRequest,
@@ -402,6 +414,87 @@ def moodboard_pdf(pdf_id: str) -> FileResponse:
         media_type="application/pdf",
         filename=f"design-office-moodboard-{pdf_id}.pdf",
     )
+
+
+# ---------------------------------------------------------------------------
+# iter-17 C : NanoBanana Pro surfaces
+# ---------------------------------------------------------------------------
+
+@app.post(
+    "/api/moodboard/generate-visual",
+    response_model=VisualMoodBoardResponse,
+)
+def moodboard_generate_visual(payload: VisualMoodBoardRequest) -> VisualMoodBoardResponse:
+    """Generate a Pinterest-style composite mood board via NanoBanana Pro.
+
+    Complementary to `/api/moodboard/generate` (the A3 PDF). The visual
+    artefact reflects the full project context — industry, retained
+    variant, macro-zoning, micro-zoning and the base mood-board selection
+    — so judges see ONE coherent identity across the two formats.
+    """
+
+    try:
+        surface = compile_visual_moodboard_surface()
+    except NanoBananaError as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
+    try:
+        return surface.generate(payload)
+    except NanoBananaError as exc:
+        raise HTTPException(status_code=502, detail=str(exc))
+
+
+@app.get("/api/moodboard/visual/{image_id}")
+def moodboard_visual(image_id: str) -> FileResponse:
+    """Stream back a generated visual-moodboard PNG by its cache id."""
+
+    path = visual_moodboard_path_for(image_id)
+    if path is None:
+        raise HTTPException(
+            status_code=404, detail=f"Visual moodboard {image_id} not found."
+        )
+    return FileResponse(
+        path,
+        media_type="image/png",
+        filename=f"design-office-visual-moodboard-{image_id}.png",
+    )
+
+
+@app.post(
+    "/api/testfit/variants/zone-overlay",
+    response_model=ZoneOverlayResponse,
+)
+def testfit_zone_overlay(payload: ZoneOverlayRequest) -> ZoneOverlayResponse:
+    """Generate a 2D overlay of the floor plan with zones coloured by
+    category. Falls back transparently to the pure-SVG artefact when
+    NanoBanana Pro is unavailable (no FAL_KEY, no cairosvg, network
+    failure) — the endpoint always returns a usable path.
+    """
+
+    surface = compile_zone_overlay_surface()
+    return surface.generate(payload)
+
+
+@app.get("/api/generated-images/{image_id}")
+def generated_image(image_id: str) -> FileResponse:
+    """Serve any cached NanoBanana artefact by its 32-hex id. Whitelisted
+    to `.png` / `.svg` / `_base.png` suffixes the surfaces produce.
+    """
+
+    from app.surfaces.zone_overlay import OUT_DIR
+
+    if not image_id or len(image_id) > 40 or any(
+        c not in "0123456789abcdef_" for c in image_id
+    ):
+        raise HTTPException(status_code=400, detail="Bad image id.")
+    for suffix, media in (
+        (".png", "image/png"),
+        (".svg", "image/svg+xml"),
+        ("_base.png", "image/png"),
+    ):
+        candidate = OUT_DIR / f"{image_id}{suffix}"
+        if candidate.exists():
+            return FileResponse(candidate, media_type=media)
+    raise HTTPException(status_code=404, detail=f"Image {image_id} not found.")
 
 
 # ---------------------------------------------------------------------------

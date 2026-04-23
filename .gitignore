@@ -43,3 +43,8 @@ Thumbs.db
 *.pdf.tmp
 out/
 tmp/
+
+# --- NanoBanana cache ---
+# The on-disk cache of fal.ai renders. One committed golden image
+# lives in backend/tests/fixtures/lumen_visual_moodboard.png.
+backend/app/data/generated_images/
