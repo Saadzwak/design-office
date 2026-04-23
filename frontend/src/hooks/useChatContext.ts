@@ -1,13 +1,14 @@
 import { useLocation } from "react-router-dom";
 
 import type { PageContext, PageName } from "../lib/chat";
+import { loadProjectState } from "../lib/projectState";
 
 /**
  * Derive the page-aware context the backend chat agent needs.
  *
  * The hook reads :
  * - the current route (from react-router)
- * - the relevant localStorage keys each page persists
+ * - the unified project state (`design-office.project_state.v1`)
  *
  * Returns a `PageContext` ready to POST to /api/chat/message. The structure
  * of `data` intentionally mirrors what the agent needs to answer intelligently
@@ -20,41 +21,54 @@ export function useChatContext(): PageContext {
   const data: Record<string, unknown> = {};
 
   try {
-    const brief = localStorage.getItem("design-office.brief");
-    if (brief) data.brief = brief;
+    const project = loadProjectState();
 
-    const programme = localStorage.getItem("design-office.programme");
-    if (programme) data.programme_markdown = programme;
+    data.client = project.client;
+    data.view_mode = project.view_mode;
 
-    const testfitRaw = localStorage.getItem("design-office.testfit.result");
-    if (testfitRaw) {
-      const parsed = JSON.parse(testfitRaw);
-      if (parsed?.variants?.length) {
-        // Only expose metrics + verdicts + style + title — the full zone
-        // trace is too heavy and rarely useful for Q&A.
-        data.variants = parsed.variants.map((v: {
-          style: string;
-          title: string;
-          narrative: string;
-          metrics: Record<string, unknown>;
-        }) => ({
-          style: v.style,
-          title: v.title,
-          narrative_head: typeof v.narrative === "string" ? v.narrative.slice(0, 800) : "",
-          metrics: v.metrics,
-        }));
-        data.verdicts = parsed.verdicts;
-        data.floor_plan_summary = parsed.floor_plan
-          ? {
-              name: parsed.floor_plan.name,
-              columns: parsed.floor_plan.columns?.length ?? 0,
-              cores: parsed.floor_plan.cores?.length ?? 0,
-              stairs: parsed.floor_plan.stairs?.length ?? 0,
-              windows: parsed.floor_plan.windows?.length ?? 0,
-              source_confidence: parsed.floor_plan.source_confidence,
-            }
-          : null;
-      }
+    if (project.brief) data.brief = project.brief;
+    if (project.programme.markdown) {
+      data.programme_markdown = project.programme.markdown;
+      data.programme = {
+        headcount: project.programme.headcount,
+        growth_target: project.programme.growth_target,
+        flex_policy: project.programme.flex_policy,
+        constraints: project.programme.constraints,
+      };
+    }
+
+    if (project.testfit?.variants?.length) {
+      data.variants = project.testfit.variants.map((v) => ({
+        style: v.style,
+        title: v.title,
+        narrative_head:
+          typeof v.narrative === "string" ? v.narrative.slice(0, 800) : "",
+        metrics: v.metrics,
+      }));
+      data.verdicts = project.testfit.verdicts;
+      data.retained_style = project.testfit.retained_style;
+      data.floor_plan_summary = project.testfit.floor_plan
+        ? {
+            name: project.testfit.floor_plan.name,
+            columns: project.testfit.floor_plan.columns?.length ?? 0,
+            cores: project.testfit.floor_plan.cores?.length ?? 0,
+            stairs: project.testfit.floor_plan.stairs?.length ?? 0,
+            windows: project.testfit.floor_plan.windows?.length ?? 0,
+            source_confidence: project.testfit.floor_plan.source_confidence,
+          }
+        : null;
+    }
+
+    if (project.justify?.argumentaire_markdown) {
+      data.argumentaire_excerpt = project.justify.argumentaire_markdown.slice(0, 2000);
+      data.justify = {
+        pdf_id: project.justify.pdf_id,
+        pptx_id: project.justify.pptx_id,
+      };
+    }
+
+    if (project.mood_board) {
+      data.mood_board = project.mood_board;
     }
   } catch {
     // localStorage disabled or corrupted — fall through with partial data.

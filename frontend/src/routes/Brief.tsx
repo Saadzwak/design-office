@@ -5,6 +5,7 @@ import remarkGfm from "remark-gfm";
 
 import DotStatus from "../components/ui/DotStatus";
 import TypewriterText from "../components/ui/TypewriterText";
+import { useProjectState } from "../hooks/useProjectState";
 import {
   BriefResponse,
   fetchBriefManifest,
@@ -12,6 +13,13 @@ import {
   type BriefManifest,
   type SubAgentTrace,
 } from "../lib/api";
+import {
+  INDUSTRY_LABEL,
+  setBrief as persistBrief,
+  setClient,
+  setProgramme as persistProgramme,
+  type Industry,
+} from "../lib/projectState";
 
 const LUMEN_BRIEF = `Lumen, a fintech startup, 120 people today, 170 projected within 24 months.
 Attendance policy: 3 days on-site, 2 remote. Tech teams pair-program heavily.
@@ -56,9 +64,24 @@ type RunState =
 
 const STORAGE_KEY = "design-office.brief.result";
 
+const INDUSTRIES: Industry[] = [
+  "tech_startup",
+  "law_firm",
+  "bank_insurance",
+  "consulting",
+  "creative_agency",
+  "healthcare",
+  "public_sector",
+  "other",
+];
+
 export default function Brief() {
-  const [brief, setBrief] = useState(LUMEN_BRIEF);
-  const [clientName, setClientName] = useState("Lumen");
+  const project = useProjectState();
+  const [brief, setBrief] = useState<string>(() => project.brief || LUMEN_BRIEF);
+  const [clientName, setClientName] = useState<string>(
+    () => project.client.name || "Lumen",
+  );
+  const [industry, setIndustry] = useState<Industry>(project.client.industry);
   const [manifest, setManifest] = useState<BriefManifest | null>(null);
   const [run, setRun] = useState<RunState>({ kind: "idle" });
 
@@ -81,13 +104,27 @@ export default function Brief() {
     }
   }, []);
 
+  // Persist every user edit to the unified project state so the chat,
+  // Test Fit, Mood Board etc. all see the same brief / client / industry.
+  useEffect(() => {
+    persistBrief(brief);
+  }, [brief]);
+
+  useEffect(() => {
+    setClient({ name: clientName });
+  }, [clientName]);
+
+  useEffect(() => {
+    setClient({ industry });
+  }, [industry]);
+
   const onSubmit = async () => {
     setRun({ kind: "running" });
     try {
       const response = await synthesizeBrief({
         brief,
         client_name: clientName || undefined,
-        language: "fr",
+        language: "en",
       });
       setRun({ kind: "done", response });
       try {
@@ -95,6 +132,10 @@ export default function Brief() {
       } catch {
         /* ignore */
       }
+      // Feed the consolidated programme into the unified project state
+      // so every downstream surface (Test Fit, Mood Board, Justify) picks
+      // it up without asking the user to hit Save.
+      persistProgramme({ markdown: response.programme });
     } catch (err) {
       const message = err instanceof Error ? err.message : "Unknown error";
       setRun({ kind: "error", message });
@@ -128,15 +169,40 @@ export default function Brief() {
           </p>
 
           <div className="mt-14 space-y-10">
-            <div>
-              <label className="label-xs text-ink-muted">Client</label>
-              <input
-                value={clientName}
-                onChange={(e) => setClientName(e.target.value)}
-                className="input-line mt-3 w-full font-display text-[1.75rem] leading-tight text-ink"
-                style={{ fontVariationSettings: '"opsz" 72, "wght" 520, "SOFT" 100' }}
-                placeholder="Client name"
-              />
+            <div className="grid gap-8 md:grid-cols-[minmax(0,1.4fr),minmax(0,1fr)]">
+              <div>
+                <label className="label-xs text-ink-muted">Client</label>
+                <input
+                  value={clientName}
+                  onChange={(e) => setClientName(e.target.value)}
+                  className="input-line mt-3 w-full font-display text-[1.75rem] leading-tight text-ink"
+                  style={{ fontVariationSettings: '"opsz" 72, "wght" 520, "SOFT" 100' }}
+                  placeholder="Client name"
+                />
+              </div>
+              <div>
+                <label className="label-xs text-ink-muted">Industry</label>
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  {INDUSTRIES.map((key) => (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => setIndustry(key)}
+                      className={[
+                        "rounded-md border px-2.5 py-1 font-mono text-[10px] uppercase tracking-label transition-colors",
+                        industry === key
+                          ? "border-forest bg-forest/5 text-forest"
+                          : "border-hairline text-ink-soft hover:border-mist-300",
+                      ].join(" ")}
+                    >
+                      {INDUSTRY_LABEL[key]}
+                    </button>
+                  ))}
+                </div>
+                <p className="mt-3 font-mono text-[10px] uppercase tracking-label text-ink-muted">
+                  Tunes the programme, mood board, and argumentaire for this industry.
+                </p>
+              </div>
             </div>
 
             <div>

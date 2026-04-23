@@ -7,6 +7,7 @@ import DotStatus from "../components/ui/DotStatus";
 import TypewriterText from "../components/ui/TypewriterText";
 import VariantViewer from "../components/viewer/VariantViewer";
 import { useLiveScreenshots } from "../hooks/useLiveScreenshots";
+import { useProjectState } from "../hooks/useProjectState";
 import {
   fetchCatalogPreview,
   fetchLumenFixture,
@@ -18,6 +19,13 @@ import {
   type TestFitResponse,
   type VariantOutput,
 } from "../lib/api";
+import {
+  setFloorPlan,
+  setLiveScreenshot,
+  setProgramme as persistProgramme,
+  setTestFit,
+  upsertVariant,
+} from "../lib/projectState";
 
 type VariantStyle = "villageois" | "atelier" | "hybride_flex";
 
@@ -73,12 +81,11 @@ const FALLBACK_PROGRAMME = `# Functional programme — Lumen
 - Sources: design://office-programming, design://flex-ratios, design://collaboration-spaces.`;
 
 export default function TestFit() {
+  const project = useProjectState();
   const [state, setState] = useState<State>({ kind: "idle" });
   const [catalog, setCatalog] = useState<CatalogPreview | null>(null);
   const [active, setActive] = useState<VariantStyle>("villageois");
-  const [programme, setProgramme] = useState(() =>
-    localStorage.getItem("design-office.programme") ?? "",
-  );
+  const [programme, setProgramme] = useState(() => project.programme.markdown ?? "");
   const [showProgramme, setShowProgramme] = useState(false);
   const [instruction, setInstruction] = useState("");
   const [iterating, setIterating] = useState(false);
@@ -117,6 +124,7 @@ export default function TestFit() {
     try {
       const plan = await uploadPlanPdf(file, false);
       setState({ kind: "plan_ready", plan });
+      setFloorPlan(plan);
     } catch (err) {
       setState({ kind: "error", message: String(err) });
     }
@@ -130,10 +138,13 @@ export default function TestFit() {
       const result = await generateTestFit({
         floor_plan: plan,
         programme_markdown: programme || FALLBACK_PROGRAMME,
-        client_name: "Lumen",
+        client_name: project.client.name || "Lumen",
         styles: STYLES,
       });
-      localStorage.setItem("design-office.programme", programme || FALLBACK_PROGRAMME);
+      persistProgramme({ markdown: programme || FALLBACK_PROGRAMME });
+      // Unified project state — single source of truth for Justify + Export +
+      // Mood Board + chat. Keep the legacy key dual-written for one more
+      // release to ease rollback and the cold-start demo mode.
       try {
         localStorage.setItem(
           "design-office.testfit.result",
@@ -146,6 +157,13 @@ export default function TestFit() {
       } catch {
         /* ignore */
       }
+      setTestFit({
+        floor_plan: result.floor_plan,
+        variants: result.variants,
+        verdicts: result.verdicts,
+        live_screenshots: project.testfit?.live_screenshots ?? {},
+        retained_style: null,
+      });
       setState({ kind: "done", plan, result });
     } catch (err) {
       setState({ kind: "error", message: String(err) });
@@ -191,6 +209,7 @@ export default function TestFit() {
         variants: updatedVariants,
       };
       persistResult(state.plan, updatedVariants, state.result.verdicts);
+      upsertVariant(resp.variant);
       if (resp.screenshot_url) {
         try {
           const raw = localStorage.getItem("design-office.testfit.live_screenshots");
@@ -203,6 +222,7 @@ export default function TestFit() {
         } catch {
           /* ignore */
         }
+        setLiveScreenshot(active, resp.screenshot_url);
       }
       setState({ kind: "done", plan: state.plan, result: nextResult });
       setHistory((h) => [
