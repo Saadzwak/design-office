@@ -148,11 +148,15 @@ accidental extra testfit re-generate noted in P2-c below) :
 
 ## Observable qualities (the good stuff)
 
-- **Editorial design holds up** across all 5 screens. Fraunces hero +
-  Inter body + JetBrains Mono captions ; terracotta accent used
-  sparingly ; rounded-2xl cards consistent.
-- **Loading states are elegant** — skeleton shimmer on /brief, ochre
-  pulse dots on agents, motion fade on result reveal.
+- **Editorial design holds up** across all 6 screens. Fraunces hero
+  (variable font, opsz + wght + SOFT axes) + Inter body + JetBrains
+  Mono captions ; forest `#2F4A3F` accent used sparingly on CTAs and
+  active state ; hairline `#E8E3D8` borders rather than shadowed
+  cards. Ivory `#FAF7F2` canvas with sand `#C9B79C` + sun `#E8C547`
+  pigments reserved for the three variants.
+- **Loading states are elegant** — no SaaS skeletons. Instead :
+  typewriter reveals of the agent's live task, forest dot-pulse
+  indicators, motion fade on result reveal.
 - **Cross-page state persistence works** (localStorage) — a variant
   generated on /testfit auto-selects on /justify and /export.
 - **Integration badge in the nav** tells the user at a glance whether

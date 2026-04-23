@@ -123,7 +123,7 @@ to persist them — no round-trip needed.
    with two backends (ezdxf headless + File-IPC live). Both clients
    auto-probe their target app and switch between mock and live with
    no code change — the `SketchUpFacade` and `AutoCadFacade` abstract
-   the wire protocol away from the 4 surfaces.
+   the wire protocol away from the 6 surfaces.
 
 ## Business impact
 
@@ -279,7 +279,7 @@ Kaplan, Taylor, Hongisto, Haapakangas) ; to AFNOR, ISO, the IWBI and
 Légifrance for the standards work that makes the regulatory agent
 defensible ; to Leesman and Gensler for the multi-year benchmark data
 that anchors every programming choice ; to the Anthropic team for the
-hackathon and for shipping a model that can do all four surfaces in a
+hackathon and for shipping a model that can do all six surfaces in a
 single product.
 
 Built with Opus 4.7.

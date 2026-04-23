@@ -36,7 +36,7 @@ the screenshots pane will show the PlanSvg overlay instead.
 - **Cut** at 00:12 to the Brief page — blank-page serif editor full
   of the Lumen brief.
 
-## 00:15 – 00:35 Surface 1 — Brief
+## 00:15 – 00:35 Surface I — Brief
 
 > *"Lumen, a fintech startup, needs 2 400 m² over two floors. I paste
 > the brief."*
@@ -54,12 +54,12 @@ the screenshots pane will show the PlanSvg overlay instead.
 - **Cut** to the terminal on the side : `brief.synthesize:Effectifs
   attempts=1 outcome=success` lines scroll.
 - **Back** to the UI : the programme fades in — Fraunces-headed
-  prose document with 130 postes, 14 phone booths, total 2 091 m²,
+  prose document with 130 desks, 14 phone booths, total 2 091 m²,
   split 30/26/25/19 %, inline citations to `design://` URIs.
 - 3 agents × ~70 s each in parallel + consolidator — total ~90 s. In the
   final cut we compress to 20 s of accelerated footage.
 
-## 00:35 – 01:15 Surface 2 — Test Fit
+## 00:35 – 01:15 Surface II — Test Fit
 
 > *"Now I upload the plan. Opus Vision reads it at 2 576 px, then three
 > agents each draft a variant — in parallel."*
@@ -80,7 +80,7 @@ the screenshots pane will show the PlanSvg overlay instead.
   Hybride flex — each showing the plate with desks in place and
   phone booths scattered.
 - **Back** to /testfit : the left rail populates with variant
-  metrics (`130 postes · 16 rooms · 14 booths`) and reviewer
+  metrics (`130 desks · 16 rooms · 14 booths`) and reviewer
   verdicts coloured forest / sand-deep / clay. Click Atelier — the
   active row slides forward, the viewer refreshes, the right column
   reveals the variant title ("Atelier Nord — Fabrique Lumineuse"),
@@ -94,7 +94,7 @@ the screenshots pane will show the PlanSvg overlay instead.
 
 ## 01:15 – 01:45 Natural-language iteration
 
-> *"Agrandis la boardroom, pousse les postes vers la façade sud."*
+> *"Grow the boardroom, push the desks to the south façade."*
 
 - **Switch** focus to the *Iterate in natural language* block under
   the Atelier narrative. Type the instruction in the underline-style
@@ -106,13 +106,16 @@ the screenshots pane will show the PlanSvg overlay instead.
   variant…" → "Interpreting …" → "Generating the modified structured
   plan…" → "Replaying against the SketchUp MCP backend…" →
   "Re-validating PMR circulations and programme coverage…"*.
-- **Cut** to SketchUp : the boardroom grows, the postes migrate to
+- **Cut** to SketchUp : the boardroom grows, the desks migrate to
   the south façade. Back in the app, the 3D viewer refreshes with the
   fresh iso screenshot captured after the iteration, and the history
   line logs the instruction + tokens + duration.
 - ~30 s.
 
-## 01:45 – 02:15 Surface 3 — Justify
+## 01:45 – 02:15 Surface IV — Justify
+
+> Note: Surface III (Mood Board) is featured in the outro at 02:45–03:00
+> as the cross-industry flex moment, not in the main Lumen flow.
 
 > *"Now defend every choice. Four research agents in parallel cite
 > acoustic norms, biophilic research, PMR regulation, and programming
@@ -141,7 +144,7 @@ the screenshots pane will show the PlanSvg overlay instead.
   deck PPTX ↗" button to show the 6-slide alternative.
 - ~30 s.
 
-## 02:15 – 02:45 Surface 4 — Export
+## 02:15 – 02:45 Surface V — Export
 
 > *"And here's the dimensioned A1 DXF, with the five Design Office
 > layers — AGENCEMENT, MOBILIER, COTATIONS, CLOISONS, CIRCULATIONS."*

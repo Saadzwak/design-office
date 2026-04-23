@@ -1,8 +1,15 @@
 # Use case — Lumen, fintech, 2 400 m²
 
 Walkthrough of the reference use case Design Office ships with. Every
-number below was produced by a live run through the four surfaces —
-see `backend/tests/fixtures/` for the raw JSON outputs and the DXF.
+number below was produced by a live run through the six surfaces —
+see `backend/tests/fixtures/` for the raw JSON outputs, the mood-board
+and argumentaire PDFs, the PPTX pitch deck, and the DXF.
+
+> Note on history: this walkthrough captures the Lumen run as it was
+> originally executed. The brief fixture shipped in the app is now in
+> English (see the `LUMEN_BRIEF` constant in the Brief surface); the
+> French transcript preserved below is the exact text the Opus 4.7
+> agents actually saw on that run.
 
 ---
 
@@ -50,7 +57,7 @@ to materialise the PDF and kick off the full pipeline.
 
 ---
 
-## Surface 1 — Brief synthesis
+## Surface I — Brief synthesis
 
 ### Live run statistics
 
@@ -76,7 +83,7 @@ to materialise the PDF and kick off the full pipeline.
   pair programming intensif côté tech.
 - Flex-ratio retenu : 0.75 seat/FTE (fourchette 0.70–0.80 pour
   une politique 3/2, `ratios_json.flex_ratio_by_policy.3_2_hybrid_standard`),
-  peak-day factor 1.25 → 130 postes individuels.
+  peak-day factor 1.25 → 130 individual desks.
 - Enveloppe disponible : 2 400 m² utiles sur 2 niveaux.
 - Budget Cat B : 2,2 M€ HT.
 
@@ -126,7 +133,7 @@ dernière version 2026).
 
 ---
 
-## Surface 2 — Test Fit
+## Surface II — Test Fit (macro-zoning)
 
 ### PDF parse (Vision HD + PyMuPDF)
 
@@ -163,13 +170,13 @@ Total for this surface : **142 520 input / 22 172 output tokens, 108 s**.
 - Town hall declared in narrative but not placed as a distinct zone
 
 **atelier** :
-- Workstation cluster x=54 500 mm with 2 postes risks column
+- Workstation cluster x=54 500 mm with 2 desks risks column
   collision at x=52 500 or x=59 500 — needs spot-check
 - Huddle S4 has degenerate y coordinates (y=26 800 both ends)
 - Locker bank + back-office acknowledged in notes, not placed
 
 **hybride_flex** :
-- 112 postes vs programme 130 (−14 %), outside ± 5 % tolerance
+- 112 desks vs programme 130 (−14 %), outside ± 5 % tolerance
 - 0 meeting_room_count and 0 phone_booth_count (likely parse issue on
   a partial JSON — but flagged as hard violation)
 - Back-of-house missing as zones
@@ -180,7 +187,7 @@ meeting rooms.
 
 ---
 
-## Surface 3 — Justify
+## Surface IV — Justify
 
 Selected variant : **atelier** (the only one with
 `approved_with_notes`).
@@ -233,13 +240,14 @@ Selected variant : **atelier** (the only one with
 
 ### PDF output
 
-A 5-page A4 PDF renders via ReportLab in the Design Office palette
-(terracotta eyebrow, ochre rules, Helvetica body). Download link
-available at `GET /api/justify/pdf/148727235162bc34`.
+A 5-page A4 PDF renders via ReportLab in the Organic Modern palette
+(forest eyebrow `#2F4A3F`, sand rules `#C9B79C`, ink body `#1C1F1A`,
+Helvetica). Download link available at
+`GET /api/justify/pdf/148727235162bc34`.
 
 ---
 
-## Surface 4 — Export
+## Surface V — Export
 
 Headless `ezdxf` backend on the atelier variant :
 
