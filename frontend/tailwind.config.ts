@@ -2,58 +2,75 @@ import type { Config } from "tailwindcss";
 import typography from "@tailwindcss/typography";
 
 /**
- * Design Office — Organic Modern palette.
+ * Design Office — Organic Modern palette (iter-18 reconciled with the
+ * Claude Design handoff bundle `claude-design-bundle/opus-4-7/project/
+ * src/tokens.css`, source of visual truth per Saad's non-negotiables).
  *
  * Semantic tokens (use these, not raw colour names):
- *   canvas / raised          — page + card backgrounds (warm ivory)
- *   ink / ink-soft / ink-muted — primary/secondary/tertiary text
- *   forest / forest-dark / forest-light — primary accent (CTAs, links)
- *   sand / sand-deep         — secondary wood accent
- *   sun                      — highlights, success
- *   clay                     — error, destructive (warm red)
- *   mist-50 … mist-900       — warm neutral gray scale
+ *   canvas / canvas-alt / raised  — page + card backgrounds (warm ivory)
+ *   ink / ink-heavy / ink-soft / ink-muted — primary/secondary/tertiary text
+ *   forest / forest-2 / forest-dark / forest-soft / forest-ghost
+ *     — primary accent (CTAs, links, hover)
+ *   sand / sand-2 / sand-deep     — secondary wood accent
+ *   sun                           — highlights, success
+ *   mint                          — biophilic / positive-adjacency
+ *   clay                          — error, destructive (warm red)
+ *   mist-50 … mist-900            — warm neutral gray scale
+ *
+ * Mist scale realigned to the bundle's warmer, lighter values
+ * (diff documented in docs/CLAUDE_DESIGN_HANDOFF_REPORT.md §c).
+ * The stray malformed `mist-900: "#15141200"` (8-char hex with an
+ * accidental alpha byte) is fixed to `#1A1816`.
  */
 
 const palette = {
   // Canvas (ivory base)
   canvas: "#FAF7F2",
+  "canvas-alt": "#F3EEE5",
   raised: "#FFFCF6",
   hairline: "#E8E3D8",
 
   // Ink (primary text on ivory)
   ink: "#1C1F1A",
+  "ink-heavy": "#2A2E28",
   "ink-soft": "#5A5E53",
   "ink-muted": "#8C8F84",
 
   // Forest (primary accent)
   forest: "#2F4A3F",
+  "forest-2": "#3C5D50",
   "forest-dark": "#1E2F28",
   "forest-soft": "#4A6B5E",
+  "forest-ghost": "rgba(47, 74, 63, 0.08)",
 
   // Sand / wood secondary
   sand: "#C9B79C",
+  "sand-2": "#E4D7C1",
   "sand-deep": "#A8967D",
-  "sand-soft": "#E5DAC4",
+  "sand-soft": "#E4D7C1",
 
   // Sun (highlight)
   sun: "#E8C547",
   "sun-soft": "#F2DD8F",
 
+  // Mint (biophilic / positive)
+  mint: "#6B8F7F",
+
   // Clay (error, warm red)
   clay: "#A0522D",
   "clay-soft": "#CE7A53",
 
-  // Warm neutrals (mist)
-  "mist-50": "#F4F1EA",
-  "mist-100": "#E8E3D8",
-  "mist-200": "#D4CEC0",
-  "mist-300": "#B8B2A4",
-  "mist-400": "#8F8A7F",
-  "mist-500": "#6F6B62",
-  "mist-600": "#504D46",
-  "mist-700": "#363431",
-  "mist-800": "#23221F",
-  "mist-900": "#15141200",
+  // Warm neutrals (mist) — bundle-aligned
+  "mist-50": "#F6F3EE",
+  "mist-100": "#EDE8DF",
+  "mist-200": "#DDD6C9",
+  "mist-300": "#C5BCAC",
+  "mist-400": "#A49B8B",
+  "mist-500": "#7F776A",
+  "mist-600": "#5F584E",
+  "mist-700": "#423D36",
+  "mist-800": "#2B2824",
+  "mist-900": "#1A1816",
 };
 
 const config: Config = {
@@ -63,20 +80,25 @@ const config: Config = {
       colors: {
         // Semantic tokens (preferred)
         canvas: palette.canvas,
+        "canvas-alt": palette["canvas-alt"],
         raised: palette.raised,
         hairline: palette.hairline,
         ink: {
           DEFAULT: palette.ink,
+          heavy: palette["ink-heavy"],
           soft: palette["ink-soft"],
           muted: palette["ink-muted"],
         },
         forest: {
           DEFAULT: palette.forest,
+          2: palette["forest-2"],
           dark: palette["forest-dark"],
           soft: palette["forest-soft"],
+          ghost: palette["forest-ghost"],
         },
         sand: {
           DEFAULT: palette.sand,
+          2: palette["sand-2"],
           deep: palette["sand-deep"],
           soft: palette["sand-soft"],
         },
@@ -84,6 +106,7 @@ const config: Config = {
           DEFAULT: palette.sun,
           soft: palette["sun-soft"],
         },
+        mint: palette.mint,
         clay: {
           DEFAULT: palette.clay,
           soft: palette["clay-soft"],
@@ -144,7 +167,7 @@ const config: Config = {
       },
       letterSpacing: {
         label: "0.18em",
-        eyebrow: "0.28em",
+        eyebrow: "0.14em",
       },
       borderRadius: {
         sm: "4px",
@@ -152,14 +175,18 @@ const config: Config = {
         md: "6px",
         lg: "8px",
         xl: "12px",
-        "2xl": "16px",
+        // Bundle standardised on 18px for the 2xl token (hero cards,
+        // project detail band). Up from our previous 16px.
+        "2xl": "18px",
         "3xl": "24px",
       },
       boxShadow: {
-        // Subtle, never heavy.
-        soft: "0 1px 2px rgba(28, 31, 26, 0.04), 0 0 1px rgba(28, 31, 26, 0.06)",
-        lift: "0 8px 28px -12px rgba(28, 31, 26, 0.12), 0 2px 4px rgba(28, 31, 26, 0.04)",
-        drawer: "-16px 0 48px -24px rgba(28, 31, 26, 0.18)",
+        // Bundle-aligned — slightly more pronounced than the previous
+        // hairline-soft shadows so cards feel present on ivory.
+        soft: "0 1px 2px rgba(28, 31, 26, 0.04), 0 4px 12px rgba(28, 31, 26, 0.05)",
+        lift: "0 2px 4px rgba(28, 31, 26, 0.05), 0 12px 24px rgba(28, 31, 26, 0.07)",
+        hero: "0 24px 48px rgba(28, 31, 26, 0.08)",
+        drawer: "-24px 0 48px rgba(28, 31, 26, 0.08)",
       },
       transitionTimingFunction: {
         "out-gentle": "cubic-bezier(0.22, 1, 0.36, 1)",
@@ -171,12 +198,18 @@ const config: Config = {
           "100%": { opacity: "1", transform: "translateY(0)" },
         },
         "soft-breathe": {
-          "0%, 100%": { transform: "scale(1)", opacity: "1" },
-          "50%": { transform: "scale(1.03)", opacity: "0.92" },
+          // Bundle spec : pure transform, no opacity, 3 s cycle.
+          "0%, 100%": { transform: "scale(1)" },
+          "50%": { transform: "scale(1.03)" },
         },
         "dot-pulse": {
-          "0%, 100%": { opacity: "0.35" },
-          "50%": { opacity: "1" },
+          // Bundle spec : opacity 0.3 → 1 + scale 0.9 → 1.1, 1.1 s cycle.
+          "0%, 100%": { opacity: "0.3", transform: "scale(0.9)" },
+          "50%": { opacity: "1", transform: "scale(1.1)" },
+        },
+        "blink-caret": {
+          "0%, 49%": { opacity: "1" },
+          "50%, 100%": { opacity: "0" },
         },
         shimmer: {
           "0%": { backgroundPosition: "-200% 0" },
@@ -188,9 +221,10 @@ const config: Config = {
         },
       },
       animation: {
-        "fade-rise": "fade-rise 300ms cubic-bezier(0.22, 1, 0.36, 1) both",
-        "soft-breathe": "soft-breathe 4.5s ease-in-out infinite",
-        "dot-pulse": "dot-pulse 1.4s ease-in-out infinite",
+        "fade-rise": "fade-rise 360ms cubic-bezier(0.22, 1, 0.36, 1) both",
+        "soft-breathe": "soft-breathe 3s cubic-bezier(0.22, 1, 0.36, 1) infinite",
+        "dot-pulse": "dot-pulse 1.1s cubic-bezier(0.22, 1, 0.36, 1) infinite",
+        "blink-caret": "blink-caret 900ms step-end infinite",
         shimmer: "shimmer 2.2s ease-in-out infinite",
         marquee: "marquee 50s linear infinite",
       },

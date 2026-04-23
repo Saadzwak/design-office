@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Design Office — AI Co-Architect for Interior Designers</title>
+  <link rel="stylesheet" href="src/tokens.css"/>
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script src="src/data.js?v=2"></script>
+  <script type="text/babel" src="src/components.jsx?v=2"></script>
+  <script type="text/babel" src="src/screens-1.jsx?v=2"></script>
+  <script type="text/babel" src="src/screens-2.jsx?v=2"></script>
+  <script type="text/babel" src="src/screens-3.jsx?v=2"></script>
+
+  <script type="text/babel">
+    const ROUTES = [
+      { id: 'landing',   label: 'Landing',   eyebrow: 'HOME' },
+      { id: 'dashboard', label: 'Dashboard', eyebrow: 'PROJECT' },
+      { id: 'brief',     label: 'Brief',     eyebrow: 'I' },
+      { id: 'testfit',   label: 'Test fit',  eyebrow: 'II' },
+      { id: 'moodboard', label: 'Mood',      eyebrow: 'III' },
+      { id: 'justify',   label: 'Justify',   eyebrow: 'IV' },
+      { id: 'export',    label: 'Export',    eyebrow: 'V' },
+      { id: 'chat',      label: 'Chat',      eyebrow: 'VI' }
+    ];
+
+    function App() {
+      const initial = (typeof localStorage !== 'undefined' && localStorage.getItem('do_route')) || 'landing';
+      const [route, setRoute] = React.useState(initial);
+      const [view, setView] = React.useState('eng');
+      const [chatOpen, setChatOpen] = React.useState(false);
+
+      const go = (r) => {
+        setRoute(r);
+        try { localStorage.setItem('do_route', r); } catch (e) {}
+      };
+
+      // Global nav — hidden on landing + chat fullpage
+      const showNav = route !== 'landing' && route !== 'chat';
+
+      return (
+        <div>
+          {showNav && <GlobalNav route={route} go={go} view={view} setView={setView}/>}
+
+          {route === 'landing' && <LandingScreen go={go}/>}
+          {route === 'dashboard' && <DashboardScreen go={go} view={view} setView={setView}/>}
+          {route === 'brief' && <BriefScreen go={go}/>}
+          {route === 'testfit' && <TestFitScreen go={go}/>}
+          {route === 'moodboard' && <MoodBoardScreen go={go}/>}
+          {route === 'justify' && <JustifyScreen go={go} view={view}/>}
+          {route === 'export' && <ExportScreen go={go}/>}
+          {route === 'chat' && <ChatFullPage go={go}/>}
+
+          {/* Floating chat button (not on chat page) */}
+          {route !== 'chat' && (
+            <button
+              onClick={() => setChatOpen(true)}
+              title="Open co-architect"
+              style={{
+                position: 'fixed', bottom: 26, right: 26, zIndex: 70,
+                width: 56, height: 56, borderRadius: 28,
+                background: 'var(--forest)', color: 'var(--canvas)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: '0 8px 24px rgba(47, 74, 63, 0.35)',
+                border: '1px solid rgba(255,255,255,0.1)'
+              }}
+              className="breathe"
+            >
+              <Icon name="messages-square" size={20}/>
+            </button>
+          )}
+
+          <Drawer open={chatOpen} onClose={() => setChatOpen(false)}>
+            <ChatBody
+              expanded={false}
+              onExpand={() => { setChatOpen(false); go('chat'); }}
+            />
+          </Drawer>
+        </div>
+      );
+    }
+
+    function GlobalNav({ route, go, view, setView }) {
+      return (
+        <nav style={{
+          position: 'sticky', top: 0, zIndex: 30,
+          padding: '14px 32px',
+          background: 'rgba(250, 247, 242, 0.88)',
+          backdropFilter: 'blur(12px)',
+          borderBottom: '1px solid var(--mist-200)',
+          display: 'flex', alignItems: 'center', gap: 26
+        }}>
+          <button onClick={() => go('landing')} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ width: 10, height: 10, background: 'var(--forest)', borderRadius: 2, transform: 'rotate(45deg)' }}/>
+            <span style={{ fontFamily: 'var(--f-display)', fontSize: 17, fontWeight: 500 }}>Design Office</span>
+          </button>
+
+          <div style={{ width: 1, height: 20, background: 'var(--mist-200)' }}/>
+
+          <div style={{ display: 'flex', gap: 2, flex: 1 }}>
+            {ROUTES.filter(r => !['landing', 'chat'].includes(r.id)).map(r => {
+              const active = r.id === route;
+              return (
+                <button key={r.id} onClick={() => go(r.id)} style={{
+                  padding: '7px 13px', borderRadius: 6,
+                  background: active ? 'var(--forest-ghost)' : 'transparent',
+                  display: 'flex', alignItems: 'center', gap: 8,
+                  transition: 'all 180ms var(--ease)'
+                }}>
+                  <span className="mono" style={{
+                    color: active ? 'var(--forest)' : 'var(--mist-400)',
+                    fontSize: 10, minWidth: 14, textAlign: 'right'
+                  }}>{r.eyebrow}</span>
+                  <span style={{
+                    fontSize: 13, fontWeight: active ? 500 : 400,
+                    color: active ? 'var(--forest)' : 'var(--ink)'
+                  }}>{r.label}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          <span className="mono" style={{ color: 'var(--mist-500)' }}>
+            {window.LUMEN.project.name.toUpperCase()} · {window.LUMEN.project.ref}
+          </span>
+          <PillToggle
+            options={[{ value: 'eng', label: 'Engineering' }, { value: 'client', label: 'Client' }]}
+            value={view} onChange={setView} size="sm"
+          />
+        </nav>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App/>);
+  </script>
+</body>
+</html>
