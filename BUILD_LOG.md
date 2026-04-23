@@ -1637,3 +1637,55 @@ capability while aligning the visual surface with the bundle.
 
 Status : **ITER-18 COMPLETE**. Phase 2 delivered in full ; Saad
 can record the demo on the refreshed UI.
+
+---
+
+## iter-19 — Functional audit + fixes (2026-04-23T21:05Z)
+
+Saad ran a post-iter-18 test pass and flagged three demo blockers :
+2D visual collisions, orphan buttons ("Add to client deck", "New
+project"…), and no way to create a new project with an uploaded
+floor plan. Iter-19 is not new features — it's an exhaustive audit
++ fix of every interactive element on every route.
+
+### Commits
+
+| Phase | SHA | Scope |
+|-------|-----|-------|
+| A (inventory) | 5f05aef | docs/INTERACTIVE_AUDIT.md — 23 elements walked across 11 routes, each scored, with priority. Top-10 fix list seeded iter-19 B-E. |
+| B | a0987a1 | New Project flow : NewProjectModal (name + industry + logo + plan-PDF upload with parse preview), Landing "Start a project" → /project?new=1 deep-link, Dashboard "New project" wired, projectsIndex gains an isActive flag. Brief idle-fix : auto-promote-to-done now requires at least 1 parsed section so fresh projects keep the Synthesize CTA. New ToastHost + toast() helpers. |
+| C | e066b79 | 2D visual collisions : variantAdapter sorts zones biggest-first ; FloorPlan2D renders with lower fill opacity (0.20-0.28 uniform), 1.5 px strokes, 2 px canvas halos under every zone, smart 3-mode label placement (centre / corner-truncated / suppressed). Existing test fixture order updated ; new variantSort.test.ts. |
+| D | b25ed88 | Orphan buttons : Test Fit per-variant 2D/3D toggle actually swaps preview (2D → FloorPlan2D, 3D → committed SketchUp iso PNG with graceful fallback). Justify "Compose client deck (PPTX)" now a primary CTA that generates & serves the PPTX (was a dead nav to /export). MoodBoard CTA row : A3 PDF generate-vs-download split ; "Add to client deck" renamed "Compose client deck". Landing marketing links become anchor links with smooth-scroll ; footer GitHub points at the real repo. |
+| E | ba5309d | P1 follow-ons : Brief asset dropzones live — logo via FileReader into setClient ; plan via /api/testfit/parse into setFloorPlan with breathing-dot / shield-check / clay-error states. MoodBoard Planting "undefined species" + Light "— · fixtures" fixture-shape bugs fixed (Selection type widened, countPlantings + plantingEntries helpers). |
+| F | (this entry) | docs/FLOW_WALKTHROUGH_v3_audited.md — every interactive element exercised in preview, ticked against its expected behaviour. 17 / 23 audit rows resolved ; 6 P2 rows explicitly carried forward. |
+
+### Gates at iter-19 close
+
+- tsc -b --noEmit → clean
+- npx vitest run → 43 passed (+2 from iter-18 baseline)
+- pytest -q → 100 passed (backend untouched)
+- Live preview walk : every route at 1440 × 900 with 0 px horizontal
+  overflow, no console.error, new-project flow survives an empty-state
+  upload AND a real Lumen-plan PDF upload.
+
+### What Saad can now demo
+
+1. Landing → Start a project → NewProjectModal → drop a real plan PDF
+   → instant parse + toast → detail view with the plan attached.
+2. Full Lumen end-to-end (Brief → TestFit macro + micro → MoodBoard →
+   Justify → Export) with every CTA doing real work.
+3. 2D variant cards that are legible — smaller zones stack ON TOP of
+   the bigger ones, labels centred or truncated cleanly.
+4. Per-variant 2D/3D flip with the SketchUp iso renders from iter-15.
+
+### Remaining P2 carry-forwards (see INTERACTIVE_AUDIT.md)
+
+- Landing "Sign in" routes to /project without auth (acceptable).
+- Engineering / Client toggle duplicated between nav + project-detail
+  hero (bundle parity).
+- Recent-activity rows on project detail are decorative.
+- Chat conversations sidebar uses 5 hard-coded rows ; persistence
+  post-hackathon.
+
+Status : **ITER-19 COMPLETE**. Next session trigger : a Saad
+directive, a real bug, or the demo recording.

@@ -5,6 +5,16 @@ recording. SketchUp Pro open with the MCP server started (Extensions →
 MCP Server → Start Server) recommended for the live 3D demo, otherwise
 the screenshots pane will show the PlanSvg overlay instead.
 
+> **Post iter-19 (2026-04-23)** : every CTA in the flow below has been
+> audited + fixed. The "Start a project" Landing CTA now opens the
+> NewProjectModal on `/project`, not a blank /brief. The Test Fit 2D
+> variant cards no longer collide. Every "Download / Compose / Generate"
+> button does real work. Full walk-through + verification in
+> [`docs/FLOW_WALKTHROUGH_v3_audited.md`](./FLOW_WALKTHROUGH_v3_audited.md).
+> Pre-flight : clear localStorage first for a "fresh user" take, then
+> let the backend seed the 4 real-fixture projects on first dashboard
+> load (Lumen / Altamont & Rees / Kaito Studio / Meridian).
+
 ---
 
 ## Props to have ready
