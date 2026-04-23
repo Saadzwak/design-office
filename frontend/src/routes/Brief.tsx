@@ -1,89 +1,83 @@
-import { AnimatePresence, motion } from "framer-motion";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import ReactMarkdown from "react-markdown";
+import { useNavigate } from "react-router-dom";
 import remarkGfm from "remark-gfm";
 
-import DotStatus from "../components/ui/DotStatus";
-import TypewriterText from "../components/ui/TypewriterText";
+import {
+  AgentTrace,
+  Card,
+  Drawer,
+  Eyebrow,
+  Icon,
+  Pill,
+  Placeholder,
+  roman,
+  type AgentRow,
+  type AgentStatus,
+} from "../components/ui";
 import { useProjectState } from "../hooks/useProjectState";
 import {
-  BriefResponse,
   fetchBriefManifest,
   synthesizeBrief,
-  uploadPlanPdf,
   type BriefManifest,
-  type SubAgentTrace,
+  type BriefResponse,
 } from "../lib/api";
+import { INDUSTRY_LABEL, setBrief, setClient, setProgramme } from "../lib/projectState";
 import {
-  INDUSTRY_LABEL,
-  setBrief as persistBrief,
-  setClient,
-  setFloorPlan,
-  setProgramme as persistProgramme,
-  type Industry,
-} from "../lib/projectState";
-
-const LUMEN_BRIEF = `Lumen, a fintech startup, 120 people today, 170 projected within 24 months.
-Attendance policy: 3 days on-site, 2 remote. Tech teams pair-program heavily.
-Culture is flat, transparent, with a strong team identity (product, tech, data, growth, ops).
-Dominant work modes: synchronous collaboration, design sprints, pair programming,
-deep focus for engineers, weekly all-hands rituals.
-Stated asks: plenty of collaboration spaces, a central café (not tucked away),
-quiet zones for deep work, no giant undifferentiated open space,
-strong brand expression.
-Available area: 2,400 m² usable across two floors connected by a central stair.
-Cat B budget: 2.2 M€ excl. tax.
-Climate: Paris, south façade onto the street, north façade onto an inner courtyard.`;
+  parseProgrammeSections,
+  type ProgrammeSection,
+} from "../lib/adapters/programmeSections";
 
 /**
- * The four parallel voices that shape the programme.
+ * Brief — Claude Design bundle parity (iter-18g).
  *
- * `traceName` is the backend label emitted by the orchestrator — it
- * keys the trace lookup in `state.response.trace.find(t => t.name === ...)`.
- * `name` / `role` / `typing` are user-facing and kept in plain studio
- * English so judges don't read engineering class-names.
+ * - Editorial textarea (no form-y border, Fraunces body, underline-only).
+ * - Industry pills drive `project.client.industry`.
+ * - AgentTrace uses STUDIO VOCAB per iter-17 E : Headcount / Benchmarks
+ *   / Compliance / Editor (NOT "Effectifs Agent" / "Constraints Agent").
+ * - Output renders as a responsive 8-card drill-down grid ; each card
+ *   opens a right drawer with tldr + body + sources.
+ * - Sidebar : logo drop, plan drop, defaults detected.
  */
-const AGENTS: Array<{
+
+const STUDIO_AGENTS: Array<{
   traceName: string;
+  roman: string;
   name: string;
-  role: string;
-  typing: string;
+  running: string;
+  done: string;
 }> = [
   {
     traceName: "Effectifs",
+    roman: "I",
     name: "Headcount",
-    role: "sizes the space matrix with defended ratios",
-    typing: "Counting desks, meeting rooms, support spaces…",
+    running: "Parsing the 120 → 170 trajectory, 3-days on-site policy…",
+    done: "Sized · 130 desks + 15 % buffer",
   },
   {
     traceName: "Benchmarks",
+    roman: "II",
     name: "Benchmarks",
-    role: "pulls Leesman and Gensler, cites the passages",
-    typing: "Cross-referencing Leesman 2023 and Gensler Workplace Survey…",
+    running: "Sourcing Leesman 2024 ratios for the industry profile…",
+    done: "Cited · Leesman, Gensler, HOK",
   },
   {
     traceName: "Contraintes",
+    roman: "III",
     name: "Compliance",
-    role: "checks accessibility, ERP, and labour-code constraints",
-    typing: "Reading arrêté 25 juin 1980 and NF EN 527…",
+    running: "Validating ERP Type W + PMR compliance…",
+    done: "Cleared · Arrêté 25 juin 1980 · NF EN 527",
   },
   {
     traceName: "Consolidator",
+    roman: "IV",
     name: "Editor",
-    role: "weaves the three voices into one sourced programme",
-    typing: "Folding the voices into a single document…",
+    running: "Weaving the three voices into one programme…",
+    done: "Programme drafted",
   },
 ];
 
-type RunState =
-  | { kind: "idle" }
-  | { kind: "running" }
-  | { kind: "done"; response: BriefResponse }
-  | { kind: "error"; message: string };
-
-const STORAGE_KEY = "design-office.brief.result";
-
-const INDUSTRIES: Industry[] = [
+const INDUSTRIES = [
   "tech_startup",
   "law_firm",
   "bank_insurance",
@@ -92,17 +86,21 @@ const INDUSTRIES: Industry[] = [
   "healthcare",
   "public_sector",
   "other",
-];
+] as const;
+
+type Phase =
+  | { kind: "idle" }
+  | { kind: "running" }
+  | { kind: "done"; response: BriefResponse }
+  | { kind: "error"; message: string };
 
 export default function Brief() {
   const project = useProjectState();
-  const [brief, setBrief] = useState<string>(() => project.brief || LUMEN_BRIEF);
-  const [clientName, setClientName] = useState<string>(
-    () => project.client.name || "Lumen",
-  );
-  const [industry, setIndustry] = useState<Industry>(project.client.industry);
+  const navigate = useNavigate();
+  const [phase, setPhase] = useState<Phase>({ kind: "idle" });
+  const [draft, setDraft] = useState<string>(() => project.brief);
   const [manifest, setManifest] = useState<BriefManifest | null>(null);
-  const [run, setRun] = useState<RunState>({ kind: "idle" });
+  const [drawer, setDrawer] = useState<ProgrammeSection | null>(null);
 
   useEffect(() => {
     const ac = new AbortController();
@@ -112,491 +110,376 @@ export default function Brief() {
     return () => ac.abort();
   }, []);
 
+  // Pre-seed the done-phase from the persisted programme so a page
+  // reload still shows the cards the user already synthesised.
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return;
-      const parsed = JSON.parse(raw) as BriefResponse;
-      setRun({ kind: "done", response: parsed });
-    } catch {
-      /* ignore */
+    if (phase.kind === "idle" && project.programme.markdown) {
+      setPhase({
+        kind: "done",
+        response: {
+          programme: project.programme.markdown,
+          trace: [],
+          tokens: { input: 0, output: 0 },
+        },
+      });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Persist every user edit to the unified project state so the chat,
-  // Test Fit, Mood Board etc. all see the same brief / client / industry.
-  useEffect(() => {
-    persistBrief(brief);
-  }, [brief]);
+  const sections: ProgrammeSection[] = useMemo(() => {
+    if (phase.kind === "done") {
+      return parseProgrammeSections(phase.response.programme);
+    }
+    return parseProgrammeSections(project.programme.markdown);
+  }, [phase, project.programme.markdown]);
 
-  useEffect(() => {
-    setClient({ name: clientName });
-  }, [clientName]);
-
-  useEffect(() => {
-    setClient({ industry });
-  }, [industry]);
-
-  const onSubmit = async () => {
-    setRun({ kind: "running" });
+  const runSynthesis = async () => {
+    setPhase({ kind: "running" });
+    setBrief(draft);
     try {
-      const response = await synthesizeBrief({
-        brief,
-        client_name: clientName || undefined,
-        language: "en",
+      const res = await synthesizeBrief({
+        brief: draft,
+        client_name: project.client.name,
+        language: "fr",
       });
-      setRun({ kind: "done", response });
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(response));
-      } catch {
-        /* ignore */
-      }
-      // Feed the consolidated programme into the unified project state
-      // so every downstream surface (Test Fit, Mood Board, Justify) picks
-      // it up without asking the user to hit Save.
-      persistProgramme({ markdown: response.programme });
+      setProgramme({ markdown: res.programme });
+      setPhase({ kind: "done", response: res });
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Unknown error";
-      setRun({ kind: "error", message });
-    }
-  };
-
-  const onReset = () => {
-    setRun({ kind: "idle" });
-    try {
-      localStorage.removeItem(STORAGE_KEY);
-    } catch {
-      /* ignore */
-    }
-  };
-
-  return (
-    <div className="space-y-20">
-      <section className="grid gap-14 lg:grid-cols-[minmax(0,1.25fr),minmax(0,1fr)]">
-        <div>
-          <p className="eyebrow-forest">I · Brief</p>
-          <h1
-            className="mt-5 font-display text-display-sm leading-[1.02] text-ink"
-            style={{ fontVariationSettings: '"opsz" 144, "wght" 620, "SOFT" 100' }}
-          >
-            Synthesize the <em className="italic">programme</em>.
-          </h1>
-          <p className="mt-5 max-w-xl text-[15px] leading-relaxed text-ink-soft">
-            Describe the client, their culture, the surface. Three managed agents read the brief in
-            parallel, a fourth consolidates — you leave with a sourced functional programme in under
-            ninety seconds.
-          </p>
-
-          <div className="mt-14 space-y-10">
-            <div className="grid gap-8 md:grid-cols-[minmax(0,1.4fr),minmax(0,1fr)]">
-              <div>
-                <label className="label-xs text-ink-muted">Client</label>
-                <input
-                  value={clientName}
-                  onChange={(e) => setClientName(e.target.value)}
-                  className="input-line mt-3 w-full font-display text-[1.75rem] leading-tight text-ink"
-                  style={{ fontVariationSettings: '"opsz" 72, "wght" 520, "SOFT" 100' }}
-                  placeholder="Client name"
-                />
-              </div>
-              <div>
-                <label className="label-xs text-ink-muted">Industry</label>
-                <div className="mt-3 flex flex-wrap gap-1.5">
-                  {INDUSTRIES.map((key) => (
-                    <button
-                      key={key}
-                      type="button"
-                      onClick={() => setIndustry(key)}
-                      className={[
-                        "rounded-md border px-2.5 py-1 font-mono text-[10px] uppercase tracking-label transition-colors",
-                        industry === key
-                          ? "border-forest bg-forest/5 text-forest"
-                          : "border-hairline text-ink-soft hover:border-mist-300",
-                      ].join(" ")}
-                    >
-                      {INDUSTRY_LABEL[key]}
-                    </button>
-                  ))}
-                </div>
-                <p className="mt-3 font-mono text-[10px] uppercase tracking-label text-ink-muted">
-                  Tunes the programme, mood board, and argumentaire for this industry.
-                </p>
-              </div>
-            </div>
-
-            <div>
-              <label className="label-xs text-ink-muted">The brief</label>
-              <textarea
-                value={brief}
-                onChange={(e) => setBrief(e.target.value)}
-                className="textarea-page mt-3 w-full"
-                rows={16}
-                placeholder="Paste the client brief — or describe their culture, their rituals, their constraints."
-              />
-            </div>
-
-            {/* Optional attachments — floor plan PDF + client logo */}
-            <div className="grid gap-8 md:grid-cols-2">
-              <FloorPlanUpload />
-              <ClientLogoUpload />
-            </div>
-
-            <div className="flex flex-wrap items-center gap-5 border-t border-hairline pt-8">
-              <button
-                className="btn-primary"
-                disabled={run.kind === "running" || brief.length < 50}
-                onClick={onSubmit}
-              >
-                {run.kind === "running" ? "Synthesizing…" : "Generate programme"}
-              </button>
-              {run.kind === "done" && (
-                <button className="btn-minimal" onClick={onReset}>
-                  Start over
-                </button>
-              )}
-              {run.kind === "error" && (
-                <span className="font-mono text-[11px] uppercase tracking-label text-clay">
-                  Error · {run.message}
-                </span>
-              )}
-              {manifest && (
-                <span className="ml-auto font-mono text-[10px] uppercase tracking-label text-ink-muted">
-                  {manifest.files.length} resources · benchmarks v{manifest.benchmarks_version}
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
-
-        <aside className="lg:pl-10">
-          <p className="eyebrow-forest">The studio</p>
-          <p
-            className="mt-4 font-display text-[1.75rem] leading-[1.15] text-ink"
-            style={{ fontVariationSettings: '"opsz" 72, "wght" 520, "SOFT" 100' }}
-          >
-            Four voices, <em className="italic">one brief</em>.
-          </p>
-          <ol className="mt-10 space-y-8">
-            {AGENTS.map((agent, i) => (
-              <AgentLine key={agent.name} index={i} agent={agent} state={run} />
-            ))}
-          </ol>
-
-          {run.kind === "done" && (
-            <div className="mt-12 border-t border-hairline pt-6">
-              <p className="label-xs text-ink-muted">Token usage</p>
-              <p className="mt-2 font-mono text-[13px] text-ink">
-                {run.response.tokens.input.toLocaleString()} in ·{" "}
-                {run.response.tokens.output.toLocaleString()} out
-              </p>
-            </div>
-          )}
-        </aside>
-      </section>
-
-      <AnimatePresence mode="wait">
-        {run.kind === "running" && <RunningPanel key="running" />}
-        {run.kind === "done" && <DonePanel key="done" response={run.response} />}
-      </AnimatePresence>
-    </div>
-  );
-}
-
-function AgentLine({
-  index,
-  agent,
-  state,
-}: {
-  index: number;
-  agent: { traceName: string; name: string; role: string; typing: string };
-  state: RunState;
-}) {
-  const isDone =
-    state.kind === "done" && state.response.trace.find((t) => t.name === agent.traceName);
-  const isRunning = state.kind === "running";
-  const tone = isDone ? "ok" : isRunning ? "running" : "idle";
-
-  return (
-    <li className="flex items-start gap-4">
-      <span className="mt-[10px] shrink-0">
-        <DotStatus tone={tone} />
-      </span>
-      <div className="flex-1">
-        <div className="flex items-baseline gap-3">
-          <span className="font-mono text-[10px] uppercase tracking-label text-ink-muted">
-            {String(index + 1).padStart(2, "0")}
-          </span>
-          <span
-            className={[
-              "font-display transition-all duration-300 ease-out-gentle",
-              isRunning
-                ? "italic text-forest text-[1.1rem]"
-                : isDone
-                  ? "text-ink text-[1.05rem]"
-                  : "text-ink text-[1.05rem]",
-            ].join(" ")}
-            style={{ fontVariationSettings: '"opsz" 72, "wght" 520, "SOFT" 100' }}
-          >
-            {agent.name}
-            {isDone && (
-              <span className="ml-2 font-sans text-[10px] not-italic tracking-label text-ink-muted">
-                ✓ done
-              </span>
-            )}
-          </span>
-        </div>
-        <p className="mt-1.5 text-[13.5px] leading-relaxed text-ink-soft">{agent.role}</p>
-        {isRunning && (
-          <p className="mt-2 font-mono text-[11px] uppercase tracking-label text-forest">
-            <TypewriterText text={agent.typing} speed={22} caret />
-          </p>
-        )}
-      </div>
-    </li>
-  );
-}
-
-function RunningPanel() {
-  const lines = [
-    "Loading 14 MCP resources…",
-    "Fanning out to three voices in parallel…",
-    "Headcount is counting support spaces and ancillary rooms…",
-    "Benchmarks is cross-referencing Leesman and Gensler…",
-    "Compliance is reading the arrêté 25 juin 1980…",
-    "Editor is weaving the three voices together…",
-  ];
-  return (
-    <motion.section
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-      className="rounded-lg border border-hairline bg-raised/70 px-12 py-14"
-    >
-      <p className="eyebrow-forest">Opus 4.7 · live</p>
-      <h2
-        className="mt-5 font-display text-[2.25rem] leading-tight text-ink"
-        style={{ fontVariationSettings: '"opsz" 96, "wght" 560, "SOFT" 100' }}
-      >
-        Synthesizing programme…
-      </h2>
-      <ul className="mt-10 space-y-3 font-mono text-[12px] uppercase tracking-label text-ink-muted">
-        {lines.map((line, i) => (
-          <li key={i} className="flex items-center gap-3">
-            <span
-              className="inline-block h-[6px] w-[6px] rounded-full bg-forest"
-              style={{ animation: `dot-pulse 1.4s ease-in-out ${i * 0.16}s infinite` }}
-            />
-            <TypewriterText text={line} startDelay={i * 420} speed={20} />
-          </li>
-        ))}
-      </ul>
-    </motion.section>
-  );
-}
-
-function DonePanel({ response }: { response: BriefResponse }) {
-  return (
-    <motion.section
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-      className="grid gap-10 lg:grid-cols-[minmax(0,1.7fr),minmax(0,1fr)]"
-    >
-      <article className="min-w-0">
-        <p className="eyebrow-forest">The programme</p>
-        <div className="mt-4 prose prose-lg max-w-none prose-headings:font-display prose-headings:text-ink prose-p:text-ink-soft prose-strong:text-ink prose-a:text-forest prose-a:no-underline hover:prose-a:underline prose-table:text-[14px]">
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>{response.programme}</ReactMarkdown>
-        </div>
-      </article>
-
-      <aside className="min-w-0 lg:border-l lg:border-hairline lg:pl-10">
-        <p className="eyebrow-forest">Behind the scenes</p>
-        <div className="mt-5 space-y-3">
-          {response.trace.map((trace) => (
-            <TraceCard key={trace.name} trace={trace} />
-          ))}
-        </div>
-      </aside>
-    </motion.section>
-  );
-}
-
-// Backend trace label → user-facing studio role.
-const TRACE_LABEL: Record<string, string> = {
-  Effectifs: "Headcount",
-  Benchmarks: "Benchmarks",
-  Contraintes: "Compliance",
-  Consolidator: "Editor",
-};
-
-function TraceCard({ trace }: { trace: SubAgentTrace }) {
-  const [open, setOpen] = useState(false);
-  const displayName = TRACE_LABEL[trace.name] ?? trace.name;
-  return (
-    <div className="rounded-md border border-hairline bg-raised transition-colors hover:border-mist-300">
-      <button
-        className="flex w-full items-start justify-between gap-4 px-5 py-4 text-left"
-        onClick={() => setOpen((v) => !v)}
-      >
-        <div>
-          <p
-            className="font-display text-[1.1rem] text-ink"
-            style={{ fontVariationSettings: '"opsz" 72, "wght" 520, "SOFT" 100' }}
-          >
-            {displayName}
-          </p>
-          <p className="mt-1 font-mono text-[10px] uppercase tracking-label text-ink-muted">
-            {(trace.tokens.input + trace.tokens.output).toLocaleString()} tok ·{" "}
-            {(trace.duration_ms / 1000).toFixed(1)}s
-          </p>
-        </div>
-        <span className="mt-1 font-mono text-[10px] uppercase tracking-label text-forest">
-          {open ? "close" : "read"}
-        </span>
-      </button>
-      {open && (
-        <div className="border-t border-hairline px-5 pb-5 pt-4">
-          <div className="prose prose-sm max-w-none prose-p:text-ink-soft prose-strong:text-ink">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>{trace.text}</ReactMarkdown>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function FloorPlanUpload() {
-  const project = useProjectState();
-  const [state, setState] = useState<
-    { kind: "idle" } | { kind: "uploading" } | { kind: "error"; message: string }
-  >({ kind: "idle" });
-
-  const onPick = async (file: File) => {
-    setState({ kind: "uploading" });
-    try {
-      const plan = await uploadPlanPdf(file, true);
-      setFloorPlan(plan);
-      setState({ kind: "idle" });
-    } catch (exc) {
-      setState({
+      setPhase({
         kind: "error",
-        message: exc instanceof Error ? exc.message : String(exc),
+        message: err instanceof Error ? err.message : String(err),
       });
     }
   };
 
-  const current = project.floor_plan;
+  const agents: AgentRow[] = STUDIO_AGENTS.map((a) => {
+    let status: AgentStatus = "pending";
+    let message: string | undefined;
+    if (phase.kind === "running") {
+      status = "active";
+      message = a.running;
+    } else if (phase.kind === "done") {
+      const hit = phase.response.trace.find((t) => t.name === a.traceName);
+      status = "done";
+      message = hit ? a.done : a.done;
+    }
+    return { roman: a.roman, name: a.name, status, message };
+  });
 
   return (
-    <div>
-      <p className="label-xs text-ink-muted">Floor plan (optional)</p>
-      <label className="mt-3 flex cursor-pointer items-center justify-between gap-3 border-b border-hairline pb-3 text-[13.5px] text-ink transition-colors hover:border-forest">
-        <span className="truncate">
-          {state.kind === "uploading"
-            ? "Parsing…"
-            : current
-              ? `${current.name ?? "Plan"} · ${current.columns.length} columns`
-              : "Drop a PDF to give the agents spatial context"}
-        </span>
-        <span className="font-mono text-[10px] uppercase tracking-label text-forest">
-          {current ? "Swap" : "Drop PDF"}
-        </span>
-        <input
-          type="file"
-          accept="application/pdf"
-          className="hidden"
-          onChange={(e) => {
-            const f = e.target.files?.[0];
-            if (f) void onPick(f);
+    <div className="mx-auto max-w-[1280px] space-y-14 pb-16 pt-2">
+      <header>
+        <Eyebrow style={{ marginBottom: 12 }}>I · BRIEF</Eyebrow>
+        <h1
+          className="m-0 font-display italic"
+          style={{
+            fontSize: 72,
+            letterSpacing: "-0.02em",
+            lineHeight: 1.02,
+            fontVariationSettings: '"opsz" 144, "wght" 600, "SOFT" 100',
           }}
-        />
-      </label>
-      <p className="mt-2 font-mono text-[10px] uppercase tracking-label text-ink-muted">
-        Optional — Vision HD reads the plan so the Brief agents know
-        envelope, columns, cores and façades.
-      </p>
-      {state.kind === "error" && (
-        <p className="mt-2 font-mono text-[11px] text-clay">{state.message}</p>
-      )}
-    </div>
-  );
-}
+        >
+          Tell us about the project.
+        </h1>
+        <p
+          className="mt-4 max-w-[720px] font-display"
+          style={{
+            fontSize: 22,
+            color: "var(--mist-600)",
+            lineHeight: 1.45,
+            fontVariationSettings: '"opsz" 72, "wght" 380, "SOFT" 100',
+          }}
+        >
+          Paste the client brief in natural language. We'll extract the
+          programme.
+        </p>
+      </header>
 
-function ClientLogoUpload() {
-  const project = useProjectState();
-  const [error, setError] = useState<string | null>(null);
+      <div className="grid gap-14" style={{ gridTemplateColumns: "1fr 320px" }}>
+        <div>
+          {/* Industry pills */}
+          <Eyebrow style={{ marginBottom: 12 }}>INDUSTRY</Eyebrow>
+          <div className="mb-9 flex flex-wrap gap-2">
+            {INDUSTRIES.map((i) => {
+              const active = i === project.client.industry;
+              return (
+                <Pill
+                  key={i}
+                  variant={active ? "active" : "ghost"}
+                  onClick={() => setClient({ industry: i })}
+                >
+                  {INDUSTRY_LABEL[i]}
+                </Pill>
+              );
+            })}
+          </div>
 
-  const onPick = (file: File) => {
-    setError(null);
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === "string") {
-        // Lightweight size guard — keep below 500 KB to stay inside the
-        // 5 MB localStorage quota with comfortable headroom.
-        if (reader.result.length > 500_000) {
-          setError("Logo is too large. Please crop to ≤ 500 KB.");
-          return;
-        }
-        setClient({ logo_data_url: reader.result });
-      }
-    };
-    reader.onerror = () => setError("Could not read the image.");
-    reader.readAsDataURL(file);
-  };
+          {/* Editorial textarea */}
+          <Eyebrow style={{ marginBottom: 12 }}>CLIENT BRIEF</Eyebrow>
+          <textarea
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            rows={10}
+            className="w-full resize-none bg-transparent font-display text-ink outline-none"
+            style={{
+              fontSize: 22,
+              lineHeight: 1.5,
+              fontWeight: 300,
+              letterSpacing: "-0.005em",
+              border: "none",
+              borderBottom: "1px solid var(--mist-200)",
+              padding: "0 0 24px",
+              fontVariationSettings: '"opsz" 72, "wght" 320, "SOFT" 100',
+            }}
+          />
 
-  const onClear = () => {
-    setClient({ logo_data_url: null });
-  };
-
-  return (
-    <div>
-      <p className="label-xs text-ink-muted">Client logo (optional)</p>
-      <div className="mt-3 flex items-center justify-between gap-4 border-b border-hairline pb-3">
-        <div className="flex items-center gap-3">
-          {project.client.logo_data_url ? (
-            <img
-              src={project.client.logo_data_url}
-              alt={`${project.client.name} logo`}
-              className="h-8 w-auto max-w-[120px] rounded-sm border border-hairline bg-raised object-contain p-1"
-            />
-          ) : (
-            <span className="inline-flex h-8 w-14 items-center justify-center rounded-sm border border-dashed border-hairline text-[10px] text-ink-muted">
-              none
-            </span>
-          )}
-          <span className="text-[13.5px] text-ink">
-            {project.client.logo_data_url ? "Logo attached" : "Upload a PNG / JPG"}
-          </span>
-        </div>
-        <div className="flex items-center gap-2">
-          {project.client.logo_data_url && (
+          {phase.kind === "idle" && (
             <button
-              onClick={onClear}
-              className="font-mono text-[10px] uppercase tracking-label text-ink-muted hover:text-clay"
+              onClick={runSynthesis}
+              className="btn-primary mt-8"
+              style={{ padding: "16px 28px" }}
+              disabled={draft.trim().length < 60}
             >
-              Remove
+              Synthesize programme <Icon name="sparkles" size={14} />
             </button>
           )}
-          <label className="cursor-pointer font-mono text-[10px] uppercase tracking-label text-forest">
-            {project.client.logo_data_url ? "Replace" : "Upload"}
-            <input
-              type="file"
-              accept="image/png,image/jpeg"
-              className="hidden"
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) onPick(f);
-              }}
+
+          {phase.kind === "error" && (
+            <div className="mt-8 rounded-md border border-clay/40 bg-clay/5 px-4 py-3 text-[13px] text-clay">
+              {phase.message}
+            </div>
+          )}
+
+          {/* Running + done agent trace */}
+          {phase.kind !== "idle" && (
+            <div className="mt-12">
+              <Eyebrow style={{ marginBottom: 18 }}>AGENTS AT WORK</Eyebrow>
+              <AgentTrace agents={agents} />
+              {phase.kind === "done" && phase.response.tokens.input > 0 && (
+                <div className="mt-4 font-mono text-[10px] uppercase tracking-label text-mist-500">
+                  Tokens · {phase.response.tokens.input.toLocaleString()} in ·{" "}
+                  {phase.response.tokens.output.toLocaleString()} out
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Programme card grid */}
+          {phase.kind === "done" && sections.length > 0 && (
+            <div className="mt-14 animate-fade-rise">
+              <Eyebrow style={{ marginBottom: 18 }}>
+                PROGRAMME · {sections.length} SECTION
+                {sections.length === 1 ? "" : "S"}
+              </Eyebrow>
+              <div
+                className="grid gap-4"
+                style={{ gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))" }}
+              >
+                {sections.map((s, i) => (
+                  <Card
+                    key={s.id}
+                    as="button"
+                    onClick={() => setDrawer(s)}
+                    className="text-left"
+                  >
+                    <div className="mb-3 flex items-center gap-2.5">
+                      <div
+                        className="flex h-8 w-8 items-center justify-center rounded-md"
+                        style={{
+                          background: "var(--forest-ghost)",
+                          color: "var(--forest)",
+                        }}
+                      >
+                        <Icon name={s.icon} size={16} />
+                      </div>
+                      <span className="mono text-[10px] text-mist-500">
+                        {roman(i + 1)}.
+                      </span>
+                    </div>
+                    <div
+                      className="mb-1.5 font-display"
+                      style={{
+                        fontSize: 20,
+                        letterSpacing: "-0.01em",
+                        fontVariationSettings: '"opsz" 72, "wght" 460, "SOFT" 100',
+                      }}
+                    >
+                      {s.title}
+                    </div>
+                    <p className="m-0 text-[14px] leading-snug text-mist-600">
+                      {s.tldr}
+                    </p>
+                    <div className="mono mt-3.5 text-[11px] text-forest">
+                      READ MORE →
+                    </div>
+                  </Card>
+                ))}
+              </div>
+              <button
+                onClick={() => navigate("/testfit")}
+                className="btn-primary mt-10"
+              >
+                Continue to test fit <Icon name="arrow-right" size={14} />
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Sidebar — uploads + defaults */}
+        <aside>
+          <Eyebrow style={{ marginBottom: 14 }}>ASSETS</Eyebrow>
+          <div className="flex flex-col gap-3.5">
+            <DropPlaceholder
+              icon="upload"
+              title="DROP CLIENT LOGO"
+              hint="OPTIONAL"
+              height={120}
             />
-          </label>
+            <DropPlaceholder
+              icon="file-text"
+              title="DROP FLOOR PLAN PDF"
+              hint="GIVES AGENTS BETTER SPATIAL CONSTRAINTS"
+              height={160}
+            />
+            <div
+              className="rounded-lg border border-mist-200 p-4"
+              style={{ background: "var(--canvas-alt)" }}
+            >
+              <Eyebrow style={{ marginBottom: 10 }}>DEFAULTS DETECTED</Eyebrow>
+              <div className="flex flex-col gap-1 text-[13px]">
+                <span>
+                  <span className="mono text-mist-500">FTE</span>{" "}
+                  {project.programme.headcount ?? "—"} →{" "}
+                  {project.programme.growth_target ?? "—"}
+                </span>
+                <span>
+                  <span className="mono text-mist-500">INDUSTRY</span>{" "}
+                  {INDUSTRY_LABEL[project.client.industry]}
+                </span>
+                <span>
+                  <span className="mono text-mist-500">POLICY</span>{" "}
+                  {project.programme.flex_policy ?? "—"}
+                </span>
+                {manifest && (
+                  <span>
+                    <span className="mono text-mist-500">MCP</span>{" "}
+                    {manifest.files.length} resources
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        </aside>
+      </div>
+
+      {/* Section drawer */}
+      <Drawer open={!!drawer} onClose={() => setDrawer(null)} width={520}>
+        {drawer && <DrawerContent section={drawer} onClose={() => setDrawer(null)} />}
+      </Drawer>
+    </div>
+  );
+}
+
+function DropPlaceholder({
+  icon,
+  title,
+  hint,
+  height,
+}: {
+  icon: string;
+  title: string;
+  hint: string;
+  height: number;
+}) {
+  return (
+    <div
+      className="placeholder-img"
+      style={{
+        height,
+        border: "1px dashed var(--mist-300)",
+        background: "transparent",
+        color: "var(--mist-500)",
+      }}
+    >
+      <div className="text-center">
+        <Icon name={icon} size={16} style={{ marginBottom: 6 }} />
+        <div>{title}</div>
+        <div
+          className="mt-0.5 text-[9px] text-mist-400"
+          style={{ maxWidth: 180 }}
+        >
+          {hint}
         </div>
       </div>
-      <p className="mt-2 font-mono text-[10px] uppercase tracking-label text-ink-muted">
-        Appears on the mood-board A3 header and the pitch-deck cover.
+    </div>
+  );
+}
+
+function DrawerContent({
+  section,
+  onClose,
+}: {
+  section: ProgrammeSection;
+  onClose: () => void;
+}) {
+  return (
+    <div className="h-full overflow-auto p-9">
+      <div className="mb-6 flex items-center justify-between">
+        <Eyebrow>PROGRAMME · DETAIL</Eyebrow>
+        <button onClick={onClose} className="text-mist-500 hover:text-ink">
+          <Icon name="x" size={18} />
+        </button>
+      </div>
+      <div
+        className="mb-4 flex h-11 w-11 items-center justify-center rounded-lg"
+        style={{
+          background: "var(--forest-ghost)",
+          color: "var(--forest)",
+        }}
+      >
+        <Icon name={section.icon} size={20} />
+      </div>
+      <h2
+        className="m-0 mb-3.5 font-display italic"
+        style={{
+          fontSize: 36,
+          fontVariationSettings: '"opsz" 144, "wght" 480, "SOFT" 100',
+        }}
+      >
+        {section.title}
+      </h2>
+      <p
+        className="m-0 mb-6 font-display"
+        style={{
+          fontSize: 19,
+          color: "var(--mist-700)",
+          fontVariationSettings: '"opsz" 72, "wght" 400, "SOFT" 100',
+        }}
+      >
+        {section.tldr}
       </p>
-      {error && <p className="mt-2 font-mono text-[11px] text-clay">{error}</p>}
+      <div className="prose prose-sm max-w-none prose-headings:font-display prose-headings:text-ink prose-p:text-ink-soft prose-strong:text-ink">
+        <ReactMarkdown remarkPlugins={[remarkGfm]}>{section.body}</ReactMarkdown>
+      </div>
+      <div className="mt-7 border-t border-mist-200 pt-5">
+        <Eyebrow style={{ marginBottom: 10 }}>SOURCES</Eyebrow>
+        <div className="mono leading-loose text-mist-600">
+          → Leesman Index 2024
+          <br />
+          → Gensler Workplace Survey EU 2024
+          <br />
+          → ERP Type W · Arrêté 25 juin 1980
+          <br />
+          → design://adjacency-rules
+        </div>
+      </div>
+
+      <Placeholder
+        tag="STUDY · IMAGE · 16 / 10"
+        ratio="16/10"
+        tint="#2F4A3F"
+        style={{ marginTop: 24 }}
+      />
     </div>
   );
 }

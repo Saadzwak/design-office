@@ -84,6 +84,11 @@
   body,
   #root {
     height: 100%;
+    /* Clip any off-screen fixed drawers (right-edge panels hidden
+       via translateX(100%)) from contributing to scrollWidth.
+       Applied on html + body because fixed-positioned children of
+       body register against the html element's scroll rectangle. */
+    overflow-x: clip;
   }
 
   body {
