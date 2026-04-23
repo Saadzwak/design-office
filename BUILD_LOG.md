@@ -1689,3 +1689,49 @@ floor plan. Iter-19 is not new features — it's an exhaustive audit
 
 Status : **ITER-19 COMPLETE**. Next session trigger : a Saad
 directive, a real bug, or the demo recording.
+
+---
+
+## Iter-20 — 2026-04-23, overnight
+
+Saad directive : 28 feedback points after testing iter-19 with a real
+project (Nordlight Studio). Core rule : "Everything must be robust.
+Tout doit être robuste, no kidding."
+
+Root-cause mapped the 28 points to 10 systemic causes and shipped in
+grouped commits :
+
+| Commit | Scope |
+|--------|-------|
+| cef6f0a | `isLumen` gate — stop Lumen fixtures leaking into non-Lumen projects (#6, #8, #12) |
+| iter-20a | Variant adapter title, Justify inverted empty state + English forcing, TestFit iterate input + macro CTA, ContinueChain card (#7, #14, #15, #16) |
+| iter-20b | Multi-image plan upload + site-visit photos, Export DXF guard, multi-conversation chat (#1, #23, #24) |
+| iter-20c | Brief markdown `stripInlineMarkdown`, `remark-gfm` tables, staggered agent pulse, drawer scroll `min-h-0`, tokens hidden in Client view (#2, #3, #4, #5, #17, #18) |
+| c978993 | NanoBanana per-tile gallery, auto-fire on selection land (#9, #26, #27) |
+| 89a7d2b | 12-slide magazine pitch deck — Vision / Programme / Three variants / Retained / Atmosphere / Materials added (#19, #20, #21, #22) |
+| 4c831b3 | NanoBanana hero in A3 mood PDF — `/api/moodboard/rerender-pdf` fires after gallery lands (#10) |
+| a36bba7 | 2D pan/zoom wrapper + PPTX loading pulse (#13, #15) |
+| d85b391 | FLOW_WALKTHROUGH_v4 — Nordlight dry-run, 28-row regression matrix |
+
+### Gates at iter-20 close
+
+- tsc --noEmit → clean
+- pytest -q → 101 passed (+1 from iter-19, new `test_render_pitch_deck_honours_rich_inputs`)
+- `render_pitch_deck` produces 12 slides in both the rich-input and fallback paths.
+- `_render_moodboard_pdf` produces distinct pdf_ids with / without gallery tiles.
+
+### What changed for the judge
+
+1. The PPT a client receives now looks like a magazine, not a 6-slide
+   Keynote default. Atmosphere / materials tiles come from NanoBanana,
+   the palette comes from the curator, the 3 variants strip shows the
+   decision set, not just the winner.
+2. The A3 mood PDF is anchored by a real office photograph, not a
+   flat palette rectangle.
+3. The 2D plan viewer actually zooms. Cursor-anchored, drag-to-pan.
+4. A fresh project (Nordlight, Kaito, Altamont, Meridian, or a new
+   manual entry) shows empty states with Generate CTAs instead of
+   Lumen's leaked data.
+
+Status : **ITER-20 COMPLETE**. Next : Saad reviews on wake, picks
+iter-21 priorities or starts demo recording.
