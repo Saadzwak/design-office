@@ -196,6 +196,15 @@ industry input varies :
   Artisan. Tagline: *"A loud, plaster-white gallery where every wall
   is a weekly exhibition."*
 
+The adaptation is not limited to the Mood Board surface: Brief
+synthesis adapts too. Lumen's 0.75 flex ratio + 260 m² central café
+becomes Altamont's **1.0 seats/FTE** (defended as a deliberate counter-
+trend position), **20 private partner offices**, wine cellar and
+tasting kitchen — produced by the same Effectifs + Benchmarks +
+Contraintes + Consolidator agents, same MCP resources, only the brief
+text changes. Full proof chain with fixture pointers and regression
+guards in [`CLIENT_AWARENESS.md`](CLIENT_AWARENESS.md).
+
 Every product is a real SKU from a real manufacturer, cited inline so
 a space planner can place the order from the PDF. Each mood board is
 committed as a fixture with its full `selection.json` audit file.

@@ -349,6 +349,9 @@ aware agents infer from the text + the 13 sourced MCP resources.
 - **[`docs/PRODUCT_VISION.md`](docs/PRODUCT_VISION.md)** — who the
   product is for, the six surfaces, macro/micro/mood vocabulary,
   Engineering vs Client views.
+- **[`docs/CLIENT_AWARENESS.md`](docs/CLIENT_AWARENESS.md)** — deep-
+  dive index of the three industry-adaptation proofs, with exact
+  numbers, fixture pointers, and regression guards.
 - **[`docs/CHAT_BEHAVIOR.md`](docs/CHAT_BEHAVIOR.md)** — how the chat
   actually runs actions + enriches the project state.
 - **[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)** — deep dive on the
