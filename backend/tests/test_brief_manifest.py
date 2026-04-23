@@ -10,10 +10,11 @@ def test_brief_manifest_lists_mcp_resources() -> None:
     payload = response.json()
     assert payload["benchmarks_version"].startswith("2026-04-22")
     # 10 originals + 3 added for Iteration 16 (mood board + client profiles
-    # + material finishes).
-    assert len(payload["files"]) == 13
+    # + material finishes) + 1 added for Iteration 17 (adjacency rules).
+    assert len(payload["files"]) == 14
     expected = {
         "acoustic-standards.md",
+        "adjacency-rules.md",
         "biophilic-office.md",
         "client-profiles.md",
         "collaboration-spaces.md",

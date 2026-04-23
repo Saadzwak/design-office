@@ -14,6 +14,8 @@ from app.agents.orchestrator import Orchestration, SubAgent, SubAgentOutput
 from app.claude_client import ClaudeClient
 from app.mcp.sketchup_client import SketchUpFacade, get_backend
 from app.models import (
+    AdjacencyAudit,
+    AdjacencyViolation,
     FloorPlan,
     ReviewerVerdict,
     TestFitResponse,
@@ -40,6 +42,13 @@ REVIEWER_RESOURCES = [
     "pmr-requirements.md",
     "erp-safety.md",
     "office-programming.md",
+]
+
+# iter-17 B : adjacency validator is a 4th Level-2 agent that runs in
+# parallel with the Reviewer. It sees ONLY the adjacency-rules
+# catalogue + the variant ; the Reviewer keeps covering PMR / ERP.
+ADJACENCY_RESOURCES = [
+    "adjacency-rules.md",
 ]
 
 
@@ -138,6 +147,27 @@ Regulatory references :
 Emit the verdict JSON per your system instructions. Return only the JSON."""
 
 
+_ADJACENCY_USER = """Floor plan :
+
+<floor_plan_json>
+{floor_plan_json}
+</floor_plan_json>
+
+Variant under review :
+
+<variant_json>
+{variant_json}
+</variant_json>
+
+Adjacency-rules catalogue (cite `rule_id` verbatim in your audit) :
+
+<resources_excerpts>
+{adjacency_resources}
+</resources_excerpts>
+
+Return the adjacency audit JSON per your system instructions. Return only the JSON."""
+
+
 @dataclass
 class TestFitSurface:
     orchestration: Orchestration
@@ -164,6 +194,15 @@ class TestFitSurface:
             max_tokens=2000,
         )
 
+    def _adjacency_agent(self) -> SubAgent:
+        return SubAgent(
+            name="AdjacencyValidator",
+            system_prompt=_read(PROMPTS_DIR / "testfit_adjacency_validator.md"),
+            user_template=_ADJACENCY_USER,
+            # Adjacency audit caps at 10 violations + 3 recos ; 2 k is plenty.
+            max_tokens=2000,
+        )
+
     def generate(
         self,
         floor_plan: FloorPlan,
@@ -175,6 +214,7 @@ class TestFitSurface:
         ratios_json = (BENCHMARKS_DIR / "ratios.json").read_text(encoding="utf-8")
         variant_resources = _load_resources(VARIANT_RESOURCES)
         reviewer_resources = _load_resources(REVIEWER_RESOURCES)
+        adjacency_resources = _load_resources(ADJACENCY_RESOURCES)
         floor_plan_json = floor_plan.model_dump_json()
 
         system = _read(PROMPTS_DIR / "testfit_variant.md")
@@ -199,6 +239,7 @@ class TestFitSurface:
             "ratios_json": ratios_json,
             "variant_resources": variant_resources,
             "reviewer_resources": reviewer_resources,
+            "adjacency_resources": adjacency_resources,
             "variant_json": "",
         }
 
@@ -262,8 +303,11 @@ class TestFitSurface:
                 )
             )
 
-        # 3. Reviewer — one call per variant, in parallel.
+        # 3. Reviewer + Adjacency Validator — two calls per variant, all in
+        #    parallel. 3 variants × 2 reviewers = up to 6 threads ; the
+        #    orchestrator serialises network I/O so this stays safe.
         reviewer = self._reviewer_agent()
+        adjacency = self._adjacency_agent()
 
         def _review(style: VariantStyle, variant_json: str) -> tuple[VariantStyle, SubAgentOutput]:
             ctx = dict(base_context)
@@ -273,10 +317,20 @@ class TestFitSurface:
                 reviewer, ctx, tag="testfit.reviewer"
             )
 
+        def _adjacency(style: VariantStyle, variant_json: str) -> tuple[VariantStyle, SubAgentOutput]:
+            ctx = dict(base_context)
+            ctx["variant_json"] = variant_json
+            ctx["style_value"] = style.value
+            return style, self.orchestration.run_subagent(
+                adjacency, ctx, tag="testfit.adjacency"
+            )
+
         pairs = [(v.style, _variant_to_json(v)) for v in variants]
-        with ThreadPoolExecutor(max_workers=len(pairs)) as pool:
+        with ThreadPoolExecutor(max_workers=max(1, len(pairs) * 2)) as pool:
             rev_futures = [pool.submit(_review, s, j) for s, j in pairs]
+            adj_futures = [pool.submit(_adjacency, s, j) for s, j in pairs]
             reviewer_results = [f.result() for f in rev_futures]
+            adjacency_results = [f.result() for f in adj_futures]
 
         for style, out in reviewer_results:
             total_in += out.input_tokens
@@ -296,6 +350,27 @@ class TestFitSurface:
                     )
                 )
 
+        # 4. Adjacency audit — attach onto the matching VariantOutput.
+        audits_by_style: dict[VariantStyle, AdjacencyAudit] = {}
+        for style, out in adjacency_results:
+            total_in += out.input_tokens
+            total_out += out.output_tokens
+            try:
+                payload = json.loads(_strip_json(out.text))
+                audits_by_style[style] = _coerce_adjacency_audit(payload)
+            except Exception as exc:  # noqa: BLE001
+                audits_by_style[style] = AdjacencyAudit(
+                    score=0,
+                    summary=f"Adjacency audit parse error : {exc}",
+                    violations=[],
+                    recommendations=[],
+                )
+
+        variants = [
+            v.model_copy(update={"adjacency_audit": audits_by_style.get(v.style)})
+            for v in variants
+        ]
+
         return TestFitResponse(
             floor_plan=floor_plan,
             variants=variants,
@@ -314,6 +389,58 @@ def _variant_to_json(v: VariantOutput) -> str:
             "metrics": v.metrics.model_dump(),
         },
         ensure_ascii=False,
+    )
+
+
+def _coerce_adjacency_audit(payload: dict) -> AdjacencyAudit:
+    """Accept the LLM JSON and clean it up defensively so a minor schema
+    drift (stringy score, missing fields, extra keys) never crashes the
+    pipeline. Honours the rule-catalogue §9 caps (≤10 violations, ≤3
+    recommendations) as a final safety net.
+    """
+
+    score_raw = payload.get("score", 100)
+    try:
+        score = int(score_raw)
+    except (TypeError, ValueError):
+        score = 0
+    score = max(0, min(100, score))
+
+    violations_raw = payload.get("violations") or []
+    if not isinstance(violations_raw, list):
+        violations_raw = []
+    violations: list[AdjacencyViolation] = []
+    for v in violations_raw[:10]:
+        if not isinstance(v, dict):
+            continue
+        try:
+            violations.append(
+                AdjacencyViolation(
+                    rule_id=str(v.get("rule_id", "unknown")),
+                    severity=str(v.get("severity", "minor")).lower()
+                    if str(v.get("severity", "minor")).lower()
+                    in {"info", "minor", "major", "critical"}
+                    else "minor",  # type: ignore[arg-type]
+                    zones=[str(z) for z in (v.get("zones") or []) if z],
+                    description=str(v.get("description", "")).strip(),
+                    suggestion=str(v.get("suggestion", "")).strip(),
+                    source=str(v.get("source", "")).strip(),
+                )
+            )
+        except Exception:  # noqa: BLE001
+            continue
+
+    recos_raw = payload.get("recommendations") or []
+    recommendations = [
+        str(r).strip() for r in recos_raw[:3] if isinstance(r, (str, int, float))
+    ]
+    recommendations = [r for r in recommendations if r]
+
+    return AdjacencyAudit(
+        score=score,
+        summary=str(payload.get("summary", "")).strip(),
+        violations=violations,
+        recommendations=recommendations,
     )
 
 

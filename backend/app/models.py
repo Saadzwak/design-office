@@ -125,6 +125,36 @@ class VariantMetrics(BaseModel):
     notes: list[str] = Field(default_factory=list)
 
 
+class AdjacencyViolation(BaseModel):
+    """A single adjacency rule violation detected on a variant."""
+
+    rule_id: str  # e.g. "acoustic.open_desks_next_to_boardroom"
+    severity: Literal["info", "minor", "major", "critical"] = "minor"
+    zones: list[str] = Field(
+        default_factory=list,
+        description="Zone labels or ids the rule involves (2+ typically).",
+    )
+    description: str  # human-readable statement of the violation
+    suggestion: str = ""  # recommended correction
+    source: str = ""  # citation e.g. "WELL Feature S02 — Sound Mapping"
+
+
+class AdjacencyAudit(BaseModel):
+    """Aggregate adjacency-rules score for a variant or a micro-zoning."""
+
+    score: int = Field(
+        100,
+        ge=0,
+        le=100,
+        description="0 = catastrophic, 100 = textbook adjacencies.",
+    )
+    summary: str = ""
+    violations: list[AdjacencyViolation] = Field(default_factory=list)
+    # Non-blocking recommendations that aren't strict rule violations
+    # (e.g. "consider moving plants along the south façade to mitigate glare").
+    recommendations: list[str] = Field(default_factory=list)
+
+
 class VariantOutput(BaseModel):
     """What a variant generator produces."""
 
@@ -137,6 +167,9 @@ class VariantOutput(BaseModel):
         description="Recorded tool calls to SketchUp MCP (mockable).",
     )
     screenshot_paths: list[str] = Field(default_factory=list)
+    # iter-17 B : adjacency audit is optional so older fixtures
+    # deserialize unchanged. Newly generated variants include it.
+    adjacency_audit: AdjacencyAudit | None = None
 
 
 class ReviewerVerdict(BaseModel):
