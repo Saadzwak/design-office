@@ -35,26 +35,43 @@ Available area: 2,400 m² usable across two floors connected by a central stair.
 Cat B budget: 2.2 M€ excl. tax.
 Climate: Paris, south façade onto the street, north façade onto an inner courtyard.`;
 
-const AGENTS: Array<{ name: string; role: string; typing: string }> = [
+/**
+ * The four parallel voices that shape the programme.
+ *
+ * `traceName` is the backend label emitted by the orchestrator — it
+ * keys the trace lookup in `state.response.trace.find(t => t.name === ...)`.
+ * `name` / `role` / `typing` are user-facing and kept in plain studio
+ * English so judges don't read engineering class-names.
+ */
+const AGENTS: Array<{
+  traceName: string;
+  name: string;
+  role: string;
+  typing: string;
+}> = [
   {
-    name: "Effectifs",
+    traceName: "Effectifs",
+    name: "Headcount",
     role: "sizes the space matrix with defended ratios",
     typing: "Counting desks, meeting rooms, support spaces…",
   },
   {
+    traceName: "Benchmarks",
     name: "Benchmarks",
-    role: "pulls Leesman & Gensler and cites the passages",
+    role: "pulls Leesman and Gensler, cites the passages",
     typing: "Cross-referencing Leesman 2023 and Gensler Workplace Survey…",
   },
   {
-    name: "Contraintes",
-    role: "checks PMR, ERP, code du travail",
+    traceName: "Contraintes",
+    name: "Compliance",
+    role: "checks accessibility, ERP, and labour-code constraints",
     typing: "Reading arrêté 25 juin 1980 and NF EN 527…",
   },
   {
-    name: "Consolidator",
-    role: "merges the three into one sourced programme",
-    typing: "Folding the three voices into a single document…",
+    traceName: "Consolidator",
+    name: "Editor",
+    role: "weaves the three voices into one sourced programme",
+    typing: "Folding the voices into a single document…",
   },
 ];
 
@@ -252,12 +269,12 @@ export default function Brief() {
         </div>
 
         <aside className="lg:pl-10">
-          <p className="eyebrow-forest">Managed agents</p>
+          <p className="eyebrow-forest">The studio</p>
           <p
             className="mt-4 font-display text-[1.75rem] leading-[1.15] text-ink"
             style={{ fontVariationSettings: '"opsz" 72, "wght" 520, "SOFT" 100' }}
           >
-            Three readers, <em className="italic">one editor</em>.
+            Four voices, <em className="italic">one brief</em>.
           </p>
           <ol className="mt-10 space-y-8">
             {AGENTS.map((agent, i) => (
@@ -291,11 +308,11 @@ function AgentLine({
   state,
 }: {
   index: number;
-  agent: { name: string; role: string; typing: string };
+  agent: { traceName: string; name: string; role: string; typing: string };
   state: RunState;
 }) {
   const isDone =
-    state.kind === "done" && state.response.trace.find((t) => t.name === agent.name);
+    state.kind === "done" && state.response.trace.find((t) => t.name === agent.traceName);
   const isRunning = state.kind === "running";
   const tone = isDone ? "ok" : isRunning ? "running" : "idle";
 
@@ -341,12 +358,12 @@ function AgentLine({
 
 function RunningPanel() {
   const lines = [
-    "Loading 10 MCP resources…",
-    "Fanning out to three sub-agents in parallel…",
-    "Effectifs is counting support spaces and ancillary rooms…",
+    "Loading 14 MCP resources…",
+    "Fanning out to three voices in parallel…",
+    "Headcount is counting support spaces and ancillary rooms…",
     "Benchmarks is cross-referencing Leesman and Gensler…",
-    "Contraintes is reading the arrêté 25 juin 1980…",
-    "Consolidator is weaving the three voices together…",
+    "Compliance is reading the arrêté 25 juin 1980…",
+    "Editor is weaving the three voices together…",
   ];
   return (
     <motion.section
@@ -395,7 +412,7 @@ function DonePanel({ response }: { response: BriefResponse }) {
       </article>
 
       <aside className="min-w-0 lg:border-l lg:border-hairline lg:pl-10">
-        <p className="eyebrow-forest">Agent trace</p>
+        <p className="eyebrow-forest">Behind the scenes</p>
         <div className="mt-5 space-y-3">
           {response.trace.map((trace) => (
             <TraceCard key={trace.name} trace={trace} />
@@ -406,8 +423,17 @@ function DonePanel({ response }: { response: BriefResponse }) {
   );
 }
 
+// Backend trace label → user-facing studio role.
+const TRACE_LABEL: Record<string, string> = {
+  Effectifs: "Headcount",
+  Benchmarks: "Benchmarks",
+  Contraintes: "Compliance",
+  Consolidator: "Editor",
+};
+
 function TraceCard({ trace }: { trace: SubAgentTrace }) {
   const [open, setOpen] = useState(false);
+  const displayName = TRACE_LABEL[trace.name] ?? trace.name;
   return (
     <div className="rounded-md border border-hairline bg-raised transition-colors hover:border-mist-300">
       <button
@@ -419,7 +445,7 @@ function TraceCard({ trace }: { trace: SubAgentTrace }) {
             className="font-display text-[1.1rem] text-ink"
             style={{ fontVariationSettings: '"opsz" 72, "wght" 520, "SOFT" 100' }}
           >
-            {trace.name}
+            {displayName}
           </p>
           <p className="mt-1 font-mono text-[10px] uppercase tracking-label text-ink-muted">
             {(trace.tokens.input + trace.tokens.output).toLocaleString()} tok ·{" "}
