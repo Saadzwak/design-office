@@ -195,7 +195,7 @@ export default function ChatPanel({ mode, onClose }: Props) {
   };
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
+    <div className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-hairline px-5 py-4">
         <div className="flex items-center gap-3">
@@ -413,7 +413,7 @@ function ProjectSummaryStrip() {
   if (programme.flex_policy) bits.push(`flex ${programme.flex_policy}`);
   if (retained) bits.push(`retained: ${retained.style}`);
   return (
-    <div className="border-b border-hairline bg-canvas/80 px-5 py-2">
+    <div className="min-w-0 overflow-hidden border-b border-hairline bg-canvas/80 px-5 py-2">
       <p className="truncate font-mono text-[10px] uppercase tracking-label text-ink-muted">
         Working on · {bits.join(" · ")}
       </p>

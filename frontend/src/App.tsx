@@ -26,17 +26,20 @@ export default function App() {
   return (
     <div className="min-h-screen bg-canvas text-ink">
       <header className="sticky top-0 z-20 border-b border-hairline/60 bg-canvas/85 backdrop-blur">
-        <div className="mx-auto flex h-16 max-w-[1440px] items-center justify-between px-10">
+        <div className="mx-auto flex h-16 max-w-[1440px] items-center justify-between px-4 md:px-10">
           <NavLink
             to="/"
-            className="group flex items-baseline gap-2.5 font-display text-[1.375rem] leading-none text-ink transition-colors hover:text-forest"
+            className="group flex items-baseline gap-2.5 font-display text-[1.125rem] leading-none text-ink transition-colors hover:text-forest md:text-[1.375rem]"
             style={{ fontVariationSettings: '"opsz" 72, "wght" 520, "SOFT" 100' }}
           >
             <span className="inline-block h-[7px] w-[7px] translate-y-[-3px] rounded-full bg-forest transition-transform duration-300 ease-out-gentle group-hover:scale-125" />
             <span>Design&nbsp;Office</span>
           </NavLink>
-          <div className="flex items-center gap-8">
-            <nav className="flex items-center gap-5">
+          <div className="flex items-center gap-3 md:gap-8">
+            {/* Main nav hidden below lg — mobile users navigate via the
+                chat drawer's action dispatch or the content-embedded
+                links. Desktop-priority per the product brief. */}
+            <nav className="hidden items-center gap-5 lg:flex">
               {nav.map((item) => (
                 <NavLink
                   key={item.to}
@@ -60,17 +63,19 @@ export default function App() {
               ))}
             </nav>
             <ViewModeToggle />
-            <IntegrationBadge />
+            <div className="hidden md:block">
+              <IntegrationBadge />
+            </div>
           </div>
         </div>
       </header>
 
-      <main className="mx-auto max-w-[1440px] px-10 pb-28 pt-12 animate-fade-rise">
+      <main className="mx-auto max-w-[1440px] px-4 pb-28 pt-8 animate-fade-rise md:px-10 md:pt-12">
         <Outlet />
       </main>
 
-      <footer className="mx-auto max-w-[1440px] border-t border-hairline/60 px-10 py-6">
-        <div className="flex items-center justify-between">
+      <footer className="mx-auto max-w-[1440px] border-t border-hairline/60 px-4 py-6 md:px-10">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <p className="font-mono text-[10px] uppercase tracking-label text-ink-muted">
             Built with Opus 4.7 · MIT License · Hackathon 2026
           </p>

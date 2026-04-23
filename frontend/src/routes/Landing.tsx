@@ -83,7 +83,7 @@ export default function Landing() {
               AI co-architect · tertiary fit-out
             </p>
             <h1
-              className="mt-10 font-display text-[72px] leading-[0.98] tracking-[-0.035em] text-ink md:text-[104px]"
+              className="mt-6 font-display text-[44px] leading-[1.02] tracking-[-0.03em] text-ink sm:text-[56px] sm:leading-[0.98] sm:tracking-[-0.035em] md:mt-10 md:text-[72px] lg:text-[104px]"
               style={{ fontVariationSettings: '"opsz" 144, "wght" 620, "SOFT" 100' }}
             >
               A quiet
