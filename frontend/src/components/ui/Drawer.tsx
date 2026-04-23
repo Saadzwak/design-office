@@ -62,12 +62,15 @@ export default function Drawer({
           pointerEvents: open ? "auto" : "none",
         }}
       />
-      {/* Panel */}
+      {/* Panel. Iter-20c (Saad #5, #18) : children use `flex-1 min-h-0
+          overflow-y-auto` now, so the panel itself must give them a
+          real flex context to shrink against. `min-h-0` on the aside
+          is the piece that lets the inner scroll kick in. */}
       <aside
         role="dialog"
         aria-modal="true"
         aria-label={ariaLabel ?? "Drawer"}
-        className="fixed inset-y-0 right-0 z-[90] flex flex-col overflow-hidden bg-canvas"
+        className="fixed inset-y-0 right-0 z-[90] flex min-h-0 flex-col overflow-hidden bg-canvas"
         style={{
           width,
           borderLeft: "1px solid var(--mist-200)",

@@ -49,10 +49,38 @@ function pickIcon(title: string): string {
 function firstSentence(text: string): string {
   const trimmed = text.trim();
   if (!trimmed) return "";
+  // Iter-20c (Saad #4) : if the section body starts with a markdown
+  // table header ("| col | col | …"), the first "sentence" would
+  // otherwise be the raw pipe-characters dump. Skip tables + the
+  // separator row underneath, resume extraction on the first real
+  // prose line.
+  const lines = trimmed.split(/\r?\n/);
+  const firstRealLine = lines.find((line) => {
+    const t = line.trim();
+    if (!t) return false;
+    if (t.startsWith("|")) return false; // table row
+    if (/^[:\-\s|]+$/.test(t)) return false; // table separator
+    if (t.startsWith("#")) return false; // heading (already consumed)
+    return true;
+  });
+  const source = firstRealLine || lines[0] || trimmed;
   // Stop at the first `.`, `!`, `?` followed by whitespace / end.
-  const match = trimmed.match(/^(.+?[.!?])(\s|$)/s);
-  const first = match ? match[1] : trimmed.split("\n")[0] ?? trimmed;
+  const match = source.match(/^(.+?[.!?])(\s|$)/s);
+  const first = match ? match[1] : source;
   return first.length > 160 ? first.slice(0, 157).trimEnd() + "…" : first;
+}
+
+/** Iter-20c (Saad #3) : strip markdown emphasis markers from a string
+ * so inline-rendered tldrs don't show `**foo**` verbatim. Used by
+ * ProgrammeCard in Brief where we can't afford a full markdown
+ * renderer for a one-line preview. */
+export function stripInlineMarkdown(text: string): string {
+  return text
+    .replace(/\*\*([^*]+)\*\*/g, "$1")
+    .replace(/\*([^*]+)\*/g, "$1")
+    .replace(/`([^`]+)`/g, "$1")
+    .replace(/_([^_]+)_/g, "$1")
+    .trim();
 }
 
 function slugify(s: string): string {

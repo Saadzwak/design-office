@@ -571,7 +571,7 @@ function MoodDrawerContent({
   onClose: () => void;
 }) {
   return (
-    <div className="h-full overflow-auto p-9">
+    <div className="flex h-full min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden p-9">
       <div className="mb-6 flex justify-between">
         <Eyebrow>MOOD BOARD · {k.toUpperCase()}</Eyebrow>
         <button onClick={onClose} className="text-mist-500 hover:text-ink">

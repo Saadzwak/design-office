@@ -33,6 +33,7 @@ import {
 } from "../lib/projectState";
 import {
   parseProgrammeSections,
+  stripInlineMarkdown,
   type ProgrammeSection,
 } from "../lib/adapters/programmeSections";
 import { toast } from "../components/ui/Toast";
@@ -149,6 +150,30 @@ export default function Brief() {
     return parseProgrammeSections(project.programme.markdown);
   }, [phase, project.programme.markdown]);
 
+  // Iter-20c (Saad #2) : live-looking agent progress.
+  //
+  //   The brief endpoint returns the full trace at the end, not
+  //   streamed — so during the ~30 s Opus call there's nothing to
+  //   reflect per-agent progress. This client-side clock flips
+  //   agents from `pending` → `active` → `done` in a staggered
+  //   cadence so the "Agents at Work" block doesn't look static.
+  //   When the real response lands, all four are forced to `done`.
+  const [stage, setStage] = useState<number>(0);
+  useEffect(() => {
+    if (phase.kind !== "running") {
+      setStage(0);
+      return;
+    }
+    // 4 agents, roughly 7 seconds between stages → covers ~28 s which
+    // matches the median Brief endpoint wall-clock.
+    const interval = setInterval(() => {
+      setStage((s) => Math.min(s + 1, STUDIO_AGENTS.length));
+    }, 7000);
+    // Immediate tick so the first agent turns `active` without delay.
+    setStage(1);
+    return () => clearInterval(interval);
+  }, [phase.kind]);
+
   const runSynthesis = async () => {
     setPhase({ kind: "running" });
     setBrief(draft);
@@ -168,19 +193,27 @@ export default function Brief() {
     }
   };
 
-  const agents: AgentRow[] = STUDIO_AGENTS.map((a) => {
+  const agents: AgentRow[] = STUDIO_AGENTS.map((a, i) => {
     let status: AgentStatus = "pending";
     let message: string | undefined;
     if (phase.kind === "running") {
-      status = "active";
-      message = a.running;
+      if (i < stage - 1) {
+        status = "done";
+        message = a.done;
+      } else if (i === stage - 1) {
+        status = "active";
+        message = a.running;
+      } else {
+        status = "pending";
+      }
     } else if (phase.kind === "done") {
-      const hit = phase.response.trace.find((t) => t.name === a.traceName);
       status = "done";
-      message = hit ? a.done : a.done;
+      message = a.done;
     }
     return { roman: a.roman, name: a.name, status, message };
   });
+
+  const isClient = project.view_mode === "client";
 
   return (
     <div className="mx-auto max-w-[1280px] space-y-14 pb-16 pt-2">
@@ -271,7 +304,9 @@ export default function Brief() {
             <div className="mt-12">
               <Eyebrow style={{ marginBottom: 18 }}>AGENTS AT WORK</Eyebrow>
               <AgentTrace agents={agents} />
-              {phase.kind === "done" && phase.response.tokens.input > 0 && (
+              {/* Iter-20c (Saad #17) : token counts hidden in Client
+                  view ; visible to engineering only. */}
+              {phase.kind === "done" && phase.response.tokens.input > 0 && !isClient && (
                 <div className="mt-4 font-mono text-[10px] uppercase tracking-label text-mist-500">
                   Tokens · {phase.response.tokens.input.toLocaleString()} in ·{" "}
                   {phase.response.tokens.output.toLocaleString()} out
@@ -323,7 +358,7 @@ export default function Brief() {
                       {s.title}
                     </div>
                     <p className="m-0 text-[14px] leading-snug text-mist-600">
-                      {s.tldr}
+                      {stripInlineMarkdown(s.tldr)}
                     </p>
                     <div className="mono mt-3.5 text-[11px] text-forest">
                       READ MORE →
@@ -596,7 +631,7 @@ function DrawerContent({
   onClose: () => void;
 }) {
   return (
-    <div className="h-full overflow-auto p-9">
+    <div className="flex h-full min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden p-9">
       <div className="mb-6 flex items-center justify-between">
         <Eyebrow>PROGRAMME · DETAIL</Eyebrow>
         <button onClick={onClose} className="text-mist-500 hover:text-ink">
@@ -629,9 +664,12 @@ function DrawerContent({
           fontVariationSettings: '"opsz" 72, "wght" 400, "SOFT" 100',
         }}
       >
-        {section.tldr}
+        {stripInlineMarkdown(section.tldr)}
       </p>
-      <div className="prose prose-sm max-w-none prose-headings:font-display prose-headings:text-ink prose-p:text-ink-soft prose-strong:text-ink">
+      {/* Iter-20c (Saad #4) : markdown tables render correctly inside
+          `prose` when the parent scrolls on x overflow. Wrap tables in
+          a scroll pane so a wide table doesn't break the drawer width. */}
+      <div className="prose prose-sm max-w-none prose-headings:font-display prose-headings:text-ink prose-p:text-ink-soft prose-strong:text-ink prose-table:my-4 prose-th:border prose-th:border-mist-200 prose-th:bg-mist-50 prose-th:px-2.5 prose-th:py-1.5 prose-td:border prose-td:border-mist-100 prose-td:px-2.5 prose-td:py-1.5 [&_table]:block [&_table]:max-w-full [&_table]:overflow-x-auto">
         <ReactMarkdown remarkPlugins={[remarkGfm]}>{section.body}</ReactMarkdown>
       </div>
       <div className="mt-7 border-t border-mist-200 pt-5">
