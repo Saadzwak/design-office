@@ -1457,3 +1457,51 @@ Still outside the code's control, per BLOCKERS.md :
 - AutoCAD install (optional — ezdxf already ships a real DXF)
 - Demo-video recording by Saad
 
+---
+
+## iter-19 — SUBMISSION-READY (2026-04-23T10:25Z)
+
+Freeze point. Final gates, no new code.
+
+### Fresh-state sanity pass (post-compaction verification)
+
+Advisor flagged one concern after iter-18 : "does the judge experience
+work from an empty localStorage?". Verified manually on the live dev
+preview after `localStorage.clear()` :
+
+- **Landing at 1440×900** → h1 renders, hero intact
+- **Brief at 1440×900** → h1 renders, textarea present,
+  `document.body.scrollWidth === clientWidth` (0 overflow)
+- **Landing at 375×812 (mobile)** → 0 overflow
+- **Brief at 375×812 (mobile)** → 0 overflow, textarea present
+
+The cold-start paths committed in iter-17 (Mood Board auto-fetches
+`/api/testfit/sample`) + iter-18 (chat ProjectStrip + header
+responsive fixes) hold up without any seeded project state.
+
+### Final gate readings
+
+- `pytest -q` → **42 passed, 7 warnings** in ~6s
+- `npx tsc -b --noEmit` → clean (no output, zero diagnostics)
+- `scripts/demo_preflight.ps1` → **29 pass / 0 warn / 0 fail**,
+  "READY - every surface is green. Hit Record."
+- Backend /health → `status=ok model=claude-opus-4-7`
+- Anthropic API key loaded, SketchUp MCP on :9876 reachable
+
+### Repo state
+
+- **53 commits** on `main`
+- Working tree clean after this BUILD_LOG commit
+- 6 surfaces + /chat route + Engineering/Client toggle + client-aware
+  Brief/Mood Board + live chat regression fixtures + 7 UI screenshots
+  + mobile captures + full doc set
+
+### Loop discipline
+
+This is the terminal entry for the autonomous build phase. Next
+write-gate : a new Saad directive or a real bug report.
+`ScheduleWakeup` is intentionally **not** called at the end of this
+turn — self-pacing loop ends here.
+
+Status : **SUBMISSION-READY**. Saad can record the demo.
+
