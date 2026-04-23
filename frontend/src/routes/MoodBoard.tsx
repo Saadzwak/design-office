@@ -1,8 +1,15 @@
-import { motion } from "framer-motion";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
-import DotStatus from "../components/ui/DotStatus";
-import TypewriterText from "../components/ui/TypewriterText";
+import {
+  Card,
+  Drawer,
+  Eyebrow,
+  Icon,
+  Placeholder,
+  Pill,
+  type IconName,
+} from "../components/ui";
 import { useProjectState } from "../hooks/useProjectState";
 import {
   fetchTestFitSample,
@@ -10,91 +17,123 @@ import {
   moodBoardPdfUrl,
   type MoodBoardResponse,
 } from "../lib/api";
-import {
-  INDUSTRY_LABEL,
-  setMoodBoard,
-  setTestFit,
-  type VariantStyle,
-} from "../lib/projectState";
+import { INDUSTRY_LABEL, setMoodBoard } from "../lib/projectState";
 
-type State =
-  | { kind: "idle" }
-  | { kind: "running" }
-  | { kind: "done"; resp: MoodBoardResponse }
-  | { kind: "error"; message: string };
+/**
+ * MoodBoard — Claude Design bundle parity (iter-18j).
+ *
+ * Editorial hero with the tagline quoted in Fraunces italic, a
+ * Pinterest-style collage on the left (3-column CSS columns, each
+ * tile tinted + rotated ±0.4°), six drill-topic cards on the right,
+ * a palette strip at the bottom, and download CTAs.
+ *
+ * For Lumen atelier the view preloads `/moodboard-fixtures/lumen_atelier.json`
+ * so the demo has rich content without paying for a curator run.
+ */
 
-const STYLE_LABEL: Record<VariantStyle, string> = {
-  villageois: "Neighbourhood",
-  atelier: "Atelier",
-  hybride_flex: "Hybrid flex",
+type Selection = {
+  header?: { tagline?: string; industry_note?: string };
+  atmosphere?: {
+    hero_image_theme?: string;
+    palette?: Array<{ name: string; hex: string; role?: string }>;
+  };
+  materials?: Array<{
+    category?: string;
+    name: string;
+    brand?: string;
+    product_ref?: string;
+    application?: string;
+    sustainability?: string;
+    swatch_hex?: string;
+  }>;
+  furniture?: Array<{
+    category?: string;
+    name: string;
+    brand?: string;
+    product_ref?: string;
+    quantity_hint?: string;
+    dimensions?: string;
+  }>;
+  planting?: Array<{ common_name?: string; latin?: string; strategy?: string }> | string[];
+  light?: {
+    temperature_kelvin?: string;
+    fixtures?: Array<{ brand?: string; name?: string; usage?: string }> | string[];
+  };
+  sources?: Array<string | { label?: string }>;
 };
 
-const STYLE_DOT: Record<VariantStyle, string> = {
-  villageois: "bg-forest",
-  atelier: "bg-sand-deep",
-  hybride_flex: "bg-sun",
-};
+type DrillKey = "atmosphere" | "materials" | "furniture" | "planting" | "light" | "sources";
+
+const DRILL_META: Array<{ k: DrillKey; title: string; icon: IconName; label: string }> = [
+  { k: "atmosphere", title: "Atmosphere", icon: "feather", label: "pigments + mood" },
+  { k: "materials", title: "Materials", icon: "layers", label: "finishes + fabrics" },
+  { k: "furniture", title: "Furniture", icon: "armchair", label: "signature pieces" },
+  { k: "planting", title: "Planting", icon: "leaf", label: "biophilic strategy" },
+  { k: "light", title: "Light", icon: "sun", label: "colour temperature" },
+  { k: "sources", title: "Sources", icon: "file-text", label: "citations" },
+];
 
 export default function MoodBoard() {
   const project = useProjectState();
-  const [state, setState] = useState<State>({ kind: "idle" });
-  const [isSample, setIsSample] = useState(false);
+  const navigate = useNavigate();
+  const [selection, setSelection] = useState<Selection | null>(null);
+  const [response, setResponse] = useState<MoodBoardResponse | null>(null);
+  const [drawer, setDrawer] = useState<DrillKey | null>(null);
+  const [phase, setPhase] = useState<"idle" | "running" | "error">("idle");
+  const [errorMsg, setErrorMsg] = useState<string>("");
 
-  // Cold-start demo mode: if the user lands here without running Test Fit
-  // first, auto-load the saved Lumen fixture so the page has content. The
-  // first approved variant is picked as the retained one.
+  // Preload the Lumen atelier fixture so the demo has content
+  // immediately. Non-Lumen projects show a "Run mood board" CTA.
   useEffect(() => {
-    if (project.testfit) return;
     const ac = new AbortController();
-    fetchTestFitSample(ac.signal)
-      .then((sample) => {
-        const firstApproved =
-          sample.variants.find(
-            (v) =>
-              sample.verdicts.find((r) => r.style === v.style)?.verdict ===
-                "approved_with_notes" ||
-              sample.verdicts.find((r) => r.style === v.style)?.verdict ===
-                "approved",
-          ) ?? sample.variants[0];
-        setTestFit({
-          floor_plan: sample.floor_plan,
-          variants: sample.variants,
-          verdicts: sample.verdicts,
-          live_screenshots: {},
-          retained_style: firstApproved?.style ?? null,
-        });
-        setIsSample(true);
+    fetch("/moodboard-fixtures/lumen_atelier.json", { signal: ac.signal })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data: Selection | null) => {
+        if (data) setSelection(data);
       })
       .catch(() => null);
     return () => ac.abort();
-  }, [project.testfit]);
-
-  // Restore the last render for this project, if any.
-  useEffect(() => {
-    if (project.mood_board?.pdf_id && state.kind === "idle") {
-      // Synthesise a pseudo-response so we can show the download link
-      // without re-calling Opus.
-      setState({
-        kind: "done",
-        resp: {
-          pdf_id: project.mood_board.pdf_id,
-          selection: { palette: project.mood_board.palette },
-          tokens: { input: 0, output: 0 },
-          duration_ms: 0,
-        },
-      });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const retained = project.testfit?.retained_style
-    ? project.testfit.variants.find((v) => v.style === project.testfit?.retained_style) ?? null
-    : project.testfit?.variants?.[0] ?? null;
+  // If projectState already has a mood-board run we bias the UI to
+  // "done" without re-fetching.
+  useEffect(() => {
+    if (project.mood_board?.pdf_id && !response) {
+      setResponse({
+        pdf_id: project.mood_board.pdf_id,
+        selection: {},
+        tokens: { input: 0, output: 0 },
+        duration_ms: 0,
+      });
+    }
+  }, [project.mood_board, response]);
 
-  const onGenerate = async () => {
-    if (!retained) return;
-    setState({ kind: "running" });
+  const palette = useMemo(
+    () => selection?.atmosphere?.palette ?? [],
+    [selection],
+  );
+
+  const tiles = useMemo(() => buildTiles(selection), [selection]);
+  const tagline =
+    selection?.header?.tagline ??
+    "An atelier of focus on the north light, a bright social forge on the south.";
+
+  const run = async () => {
+    setPhase("running");
+    setErrorMsg("");
     try {
+      let variant = project.testfit?.variants?.find(
+        (v) => v.style === project.testfit?.retained_style,
+      );
+      if (!variant) {
+        // Fall back to the saved sample so we always have a variant.
+        const sample = await fetchTestFitSample();
+        variant = sample.variants.find((v) => v.style === "atelier") ??
+          sample.variants[0];
+      }
+      if (!variant) {
+        throw new Error("No variant available — run Test fit first.");
+      }
       const resp = await generateMoodBoard({
         client: {
           name: project.client.name,
@@ -103,395 +142,495 @@ export default function MoodBoard() {
         },
         brief: project.brief,
         programme_markdown: project.programme.markdown,
-        variant: retained,
+        variant,
       });
-      setMoodBoard({
-        pdf_id: resp.pdf_id,
-        palette:
-          ((resp.selection.atmosphere as { palette?: Array<{ hex?: string }> } | undefined)
-            ?.palette ?? [])
-            .map((p) => p.hex)
-            .filter((s): s is string => typeof s === "string"),
-      });
-      setState({ kind: "done", resp });
+      setResponse(resp);
+      setSelection(resp.selection as Selection);
+      const hexes = (
+        (resp.selection as Selection)?.atmosphere?.palette ?? []
+      )
+        .map((p) => p.hex)
+        .filter((s): s is string => typeof s === "string");
+      setMoodBoard({ pdf_id: resp.pdf_id, palette: hexes });
+      setPhase("idle");
     } catch (err) {
-      setState({
-        kind: "error",
-        message: err instanceof Error ? err.message : String(err),
-      });
+      setErrorMsg(err instanceof Error ? err.message : String(err));
+      setPhase("error");
     }
   };
 
   return (
-    <div className="space-y-14">
-      <header className="max-w-3xl">
-        <p className="eyebrow-forest">
-          III · Mood Board
-          {isSample && (
-            <span className="ml-3 text-ink-muted normal-case tracking-normal">
-              · demo data
-            </span>
-          )}
-        </p>
+    <div className="space-y-12 pb-8">
+      {/* Hero */}
+      <header>
+        <Eyebrow style={{ marginBottom: 12 }}>
+          III · MOOD BOARD · {(project.testfit?.retained_style ?? "atelier").toUpperCase()}
+        </Eyebrow>
         <h1
-          className="mt-5 font-display text-display-sm leading-[1.02] text-ink"
-          style={{ fontVariationSettings: '"opsz" 144, "wght" 620, "SOFT" 100' }}
+          className="m-0 font-display italic"
+          style={{
+            fontSize: 56,
+            lineHeight: 1.08,
+            letterSpacing: "-0.02em",
+            maxWidth: 1200,
+            fontWeight: 300,
+            fontVariationSettings: '"opsz" 144, "wght" 300, "SOFT" 100',
+          }}
         >
-          The <em className="italic">atmosphere</em>, before the plan.
+          "{tagline}"
         </h1>
-        <p className="mt-4 text-[15px] leading-relaxed text-ink-soft">
-          A curated A3 landscape — palette, materials, furniture, planting and
-          light — tuned to the client's industry and retained variant.
-          Everything on the page is a real product from a real manufacturer.
-        </p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Pill>
+            {INDUSTRY_LABEL[project.client.industry]}
+          </Pill>
+          <Pill>{palette.length} pigments</Pill>
+          <Pill>{selection?.materials?.length ?? 0} materials</Pill>
+          <Pill>{selection?.furniture?.length ?? 0} signature pieces</Pill>
+        </div>
       </header>
 
-      <section className="grid gap-10 lg:grid-cols-[minmax(0,320px),minmax(0,1fr)]">
-        <aside className="min-w-0 space-y-8">
-          <div>
-            <p className="label-xs text-ink-muted">Client</p>
-            <p
-              className="mt-3 font-display text-[1.75rem] leading-tight text-ink"
-              style={{ fontVariationSettings: '"opsz" 72, "wght" 520, "SOFT" 100' }}
-            >
-              {project.client.name || "—"}
-            </p>
-            <p className="mt-1 font-mono text-[10px] uppercase tracking-label text-ink-muted">
-              {INDUSTRY_LABEL[project.client.industry]}
-            </p>
-          </div>
+      {phase === "error" && (
+        <Card>
+          <Eyebrow>ERROR</Eyebrow>
+          <p className="mt-2 text-[13px] text-clay">{errorMsg}</p>
+          <button className="btn-ghost btn-sm mt-3" onClick={run}>
+            Retry
+          </button>
+        </Card>
+      )}
 
-          <div>
-            <p className="label-xs text-ink-muted">Retained variant</p>
-            {retained ? (
-              <div className="mt-3 flex items-start gap-3">
-                <span
-                  className={`mt-[10px] inline-block h-[7px] w-[7px] rounded-full ${STYLE_DOT[retained.style as VariantStyle]}`}
-                />
-                <div>
-                  <p
-                    className="font-display text-[1.25rem] text-ink"
-                    style={{ fontVariationSettings: '"opsz" 72, "wght" 540, "SOFT" 100' }}
-                  >
-                    {STYLE_LABEL[retained.style as VariantStyle]}
-                  </p>
-                  <p className="mt-1 font-mono text-[10px] uppercase tracking-label text-ink-muted">
-                    {retained.metrics.workstation_count} desks · flex{" "}
-                    {retained.metrics.flex_ratio_applied.toFixed(2)}
-                  </p>
+      {/* Collage + drill topics */}
+      <section
+        className="grid gap-12"
+        style={{ gridTemplateColumns: "1.4fr 1fr" }}
+      >
+        {/* Pinterest collage */}
+        <div style={{ columnCount: 3, columnGap: 14 }}>
+          {tiles.map((t, i) => (
+            <div
+              key={i}
+              className="shadow-soft"
+              style={{
+                breakInside: "avoid",
+                marginBottom: 14,
+                transform: `rotate(${(i % 3 - 1) * 0.4}deg)`,
+                background: "white",
+                padding: 6,
+                borderRadius: 4,
+              }}
+            >
+              <Placeholder tag={t.tag} tint={t.tint} ratio={t.ratio} />
+            </div>
+          ))}
+        </div>
+
+        {/* Drill topic cards */}
+        <div className="flex flex-col gap-3.5">
+          {DRILL_META.map((c) => (
+            <Card
+              key={c.k}
+              as="button"
+              onClick={() => setDrawer(c.k)}
+              className="!p-5 !flex items-center gap-4"
+            >
+              <div
+                className="flex h-10 w-10 items-center justify-center rounded-md"
+                style={{
+                  background: "var(--forest-ghost)",
+                  color: "var(--forest)",
+                }}
+              >
+                <Icon name={c.icon} size={18} />
+              </div>
+              <div className="flex-1 text-left">
+                <div
+                  className="font-display"
+                  style={{
+                    fontSize: 22,
+                    fontWeight: 400,
+                    fontVariationSettings: '"opsz" 72, "wght" 440, "SOFT" 100',
+                  }}
+                >
+                  {c.title}
+                </div>
+                <div className="text-[13px] text-mist-600">
+                  {summariseTopic(c.k, selection)}
                 </div>
               </div>
-            ) : (
-              <p className="mt-3 text-[13.5px] leading-relaxed text-ink-muted">
-                No retained variant yet. Run{" "}
-                <a className="text-forest hover:underline" href="/testfit">
-                  Test Fit
-                </a>{" "}
-                first.
-              </p>
-            )}
-          </div>
-
-          <div className="space-y-3 border-t border-hairline pt-6">
-            <button
-              className="btn-primary w-full"
-              disabled={!retained || state.kind === "running"}
-              onClick={onGenerate}
-            >
-              {state.kind === "running"
-                ? "Curating…"
-                : state.kind === "done"
-                  ? "Re-curate mood board"
-                  : "Compose mood board"}
-            </button>
-            {state.kind === "done" && (
-              <a
-                className="btn-ghost block w-full text-center"
-                href={moodBoardPdfUrl(state.resp.pdf_id)}
-                target="_blank"
-                rel="noreferrer"
-              >
-                Mood board A3 PDF ↗
-              </a>
-            )}
-            {state.kind === "error" && (
-              <p className="font-mono text-[11px] text-clay">{state.message}</p>
-            )}
-          </div>
-        </aside>
-
-        <div className="min-w-0 space-y-8">
-          {state.kind === "running" && <CuratingPanel client={project.client.name} />}
-          {state.kind === "done" && <SelectionPreview selection={state.resp.selection} />}
-          {state.kind === "idle" && !project.mood_board && (
-            <EmptyHint />
-          )}
+              <Icon
+                name="chevron-right"
+                size={16}
+                style={{ color: "var(--mist-400)" }}
+              />
+            </Card>
+          ))}
         </div>
       </section>
+
+      {/* Palette strip */}
+      {palette.length > 0 && (
+        <section>
+          <Eyebrow style={{ marginBottom: 14 }}>
+            PALETTE · {palette.length} PIGMENTS
+          </Eyebrow>
+          <div
+            className="grid overflow-hidden rounded-[10px] border border-mist-200"
+            style={{ gridTemplateColumns: `repeat(${palette.length}, 1fr)` }}
+          >
+            {palette.map((p) => {
+              const isLight = isLightColour(p.hex);
+              return (
+                <div
+                  key={p.name}
+                  className="px-5 pb-4 pt-9"
+                  style={{
+                    background: p.hex,
+                    color: isLight ? "var(--ink)" : "white",
+                  }}
+                >
+                  <div
+                    className="font-display italic"
+                    style={{
+                      fontSize: 20,
+                      fontWeight: 400,
+                      fontVariationSettings:
+                        '"opsz" 96, "wght" 420, "SOFT" 100',
+                    }}
+                  >
+                    {p.name}
+                  </div>
+                  <div className="mono mt-1 opacity-75">
+                    {p.hex.toUpperCase()}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {/* CTAs */}
+      <div className="flex flex-wrap gap-3">
+        <button
+          onClick={response?.pdf_id ? undefined : run}
+          disabled={phase === "running"}
+          className="btn-ghost"
+        >
+          <Icon name="download" size={12} />
+          {response?.pdf_id ? (
+            <a
+              href={moodBoardPdfUrl(response.pdf_id)}
+              target="_blank"
+              rel="noreferrer"
+            >
+              Download A3 PDF
+            </a>
+          ) : phase === "running" ? (
+            "Composing…"
+          ) : (
+            "Generate A3 PDF"
+          )}
+        </button>
+        <button onClick={() => navigate("/justify")} className="btn-ghost">
+          <Icon name="arrow-right" size={12} /> Add to client deck
+        </button>
+      </div>
+
+      {/* Topic drawer */}
+      <Drawer open={!!drawer} onClose={() => setDrawer(null)} width={560}>
+        {drawer && (
+          <MoodDrawerContent
+            k={drawer}
+            selection={selection}
+            onClose={() => setDrawer(null)}
+          />
+        )}
+      </Drawer>
     </div>
   );
 }
 
-function EmptyHint() {
+// ─────────────────────────────────────── helpers ──
+
+function buildTiles(selection: Selection | null): Array<{
+  tag: string;
+  tint: string;
+  ratio: string;
+}> {
+  if (!selection) {
+    return [
+      { tag: "NORTH LIGHT", tint: "#B89068", ratio: "4/5" },
+      { tag: "OAK JOINERY", tint: "#8B6B44", ratio: "1/1" },
+      { tag: "LINEN & WOOL", tint: "#C9B79C", ratio: "3/4" },
+      { tag: "BRASS DETAIL", tint: "#A88B5B", ratio: "1/1" },
+      { tag: "BIOPHILIC CORE", tint: "#6B8F7F", ratio: "4/5" },
+      { tag: "PENDANT LIGHT", tint: "#2A2E28", ratio: "3/4" },
+      { tag: "SOCIAL STAIR", tint: "#3C5D50", ratio: "4/3" },
+      { tag: "WOOD-WOOL ACOUSTIC", tint: "#D4C3A3", ratio: "1/1" },
+      { tag: "CLIENT LOUNGE", tint: "#8A7555", ratio: "3/4" },
+      { tag: "TERRACE", tint: "#6B8F7F", ratio: "4/5" },
+    ];
+  }
+  const tiles: Array<{ tag: string; tint: string; ratio: string }> = [];
+  const ratios = ["4/5", "1/1", "3/4", "1/1", "4/5", "3/4", "4/3", "1/1", "3/4", "4/5"];
+  // Prefer materials with a swatch_hex — they form the richest tiles.
+  for (const m of selection.materials ?? []) {
+    if (tiles.length >= 7) break;
+    tiles.push({
+      tag: (m.name ?? "MATERIAL").toUpperCase(),
+      tint: m.swatch_hex ?? "#A89775",
+      ratio: ratios[tiles.length % ratios.length],
+    });
+  }
+  for (const f of selection.furniture ?? []) {
+    if (tiles.length >= 10) break;
+    tiles.push({
+      tag: (f.name ?? "PIECE").toUpperCase(),
+      tint: "#2A2E28",
+      ratio: ratios[tiles.length % ratios.length],
+    });
+  }
+  return tiles.slice(0, 10);
+}
+
+function summariseTopic(k: DrillKey, s: Selection | null): string {
+  if (!s) return "—";
+  switch (k) {
+    case "atmosphere": {
+      const n = s.atmosphere?.palette?.length ?? 0;
+      return `${n} pigments · ${s.header?.industry_note?.split(",")[0] ?? "industry profile"}`.toLowerCase();
+    }
+    case "materials": {
+      const n = s.materials?.length ?? 0;
+      const brands = new Set((s.materials ?? []).map((m) => m.brand).filter(Boolean));
+      return `${n} finishes · ${[...brands].slice(0, 3).join(" · ") || "sourced"}`;
+    }
+    case "furniture": {
+      const n = s.furniture?.length ?? 0;
+      const brands = new Set((s.furniture ?? []).map((f) => f.brand).filter(Boolean));
+      return `${n} pieces · ${[...brands].slice(0, 3).join(" · ") || "signature"}`;
+    }
+    case "planting": {
+      const list = s.planting ?? [];
+      return `${list.length} species · biophilic strategy`;
+    }
+    case "light": {
+      return `${s.light?.temperature_kelvin ?? "—"} · fixtures & strategy`;
+    }
+    case "sources":
+      return `${s.sources?.length ?? 0} citations · MCP + adjacency rules`;
+  }
+}
+
+function isLightColour(hex: string): boolean {
+  const s = hex.replace("#", "");
+  if (s.length !== 6) return false;
+  const r = parseInt(s.slice(0, 2), 16);
+  const g = parseInt(s.slice(2, 4), 16);
+  const b = parseInt(s.slice(4, 6), 16);
+  // Luma per Rec 601.
+  const luma = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luma > 0.55;
+}
+
+// ─────────────────────────────────────── drawer ──
+
+function MoodDrawerContent({
+  k,
+  selection,
+  onClose,
+}: {
+  k: DrillKey;
+  selection: Selection | null;
+  onClose: () => void;
+}) {
   return (
-    <div className="rounded-lg border border-hairline bg-raised px-8 py-10">
-      <p className="eyebrow-forest">What a mood board does</p>
-      <p className="mt-4 text-[15px] leading-relaxed text-ink-soft">
-        A mood board communicates the atmosphere before the plan. Clients read
-        it in thirty seconds; if the feeling lands, the test-fit lands with it.
-        Design Office's curator picks a palette, six to eight materials from a
-        real catalogue, four to six signature furniture pieces, a planting
-        strategy and a lighting strategy — all tuned to the client's industry
-        profile — and lays them out on a single A3 landscape page.
-      </p>
-      <ul className="mt-6 space-y-2 font-mono text-[11px] uppercase tracking-label text-ink-muted">
-        <li>Palette — 5 swatches, hero + secondary + accent</li>
-        <li>Materials — floors, walls, ceilings, textiles (6–8)</li>
-        <li>Furniture — signature pieces with dimensions (4–6)</li>
-        <li>Planting — strategy + species (3–4)</li>
-        <li>Light — strategy + fixtures (2–3)</li>
-      </ul>
+    <div className="h-full overflow-auto p-9">
+      <div className="mb-6 flex justify-between">
+        <Eyebrow>MOOD BOARD · {k.toUpperCase()}</Eyebrow>
+        <button onClick={onClose} className="text-mist-500 hover:text-ink">
+          <Icon name="x" size={18} />
+        </button>
+      </div>
+
+      {k === "atmosphere" && <AtmospherePanel selection={selection} />}
+      {k === "materials" && <MaterialsPanel selection={selection} />}
+      {k === "furniture" && <FurniturePanel selection={selection} />}
+      {k === "planting" && <PlantingPanel selection={selection} />}
+      {k === "light" && <LightPanel selection={selection} />}
+      {k === "sources" && <SourcesPanel selection={selection} />}
     </div>
   );
 }
 
-function CuratingPanel({ client }: { client: string }) {
-  const lines = [
-    `Reading ${client || "the client"}'s brief + retained variant…`,
-    "Scanning design://client-profiles for programming bias…",
-    "Sourcing materials from design://material-finishes…",
-    "Picking signature furniture from the 41-SKU catalogue…",
-    "Selecting plant species + lighting Kelvin strategy…",
-    "Laying out the six sections on the A3 page…",
-  ];
+function AtmospherePanel({ selection }: { selection: Selection | null }) {
+  const palette = selection?.atmosphere?.palette ?? [];
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 6 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.35 }}
-      className="rounded-md border border-hairline bg-raised/70 px-6 py-5"
-    >
-      <p className="eyebrow-forest">Opus 4.7 · curating</p>
+    <div>
       <p
-        className="mt-3 font-display text-[1.35rem] leading-tight text-ink"
-        style={{ fontVariationSettings: '"opsz" 72, "wght" 540, "SOFT" 100' }}
+        className="font-display"
+        style={{
+          fontSize: 20,
+          color: "var(--mist-700)",
+          fontVariationSettings: '"opsz" 72, "wght" 380, "SOFT" 100',
+        }}
       >
-        <TypewriterText text="Composing the mood board…" speed={22} caret />
+        {selection?.atmosphere?.hero_image_theme ??
+          "A warm-ivory canvas held by forest ink. Sand neutrals soften transitions; sun glints punctuate ritual moments."}
       </p>
-      <ul className="mt-6 space-y-2.5 font-mono text-[11px] uppercase tracking-label text-ink-muted">
-        {lines.map((line, i) => (
-          <li key={i} className="flex items-center gap-3">
-            <span
-              className="inline-block h-[6px] w-[6px] rounded-full bg-forest"
-              style={{ animation: `dot-pulse 1.4s ease-in-out ${i * 0.16}s infinite` }}
-            />
-            <TypewriterText text={line} startDelay={i * 420} speed={20} />
+      <div
+        className="mt-5 grid gap-2"
+        style={{ gridTemplateColumns: "repeat(3, 1fr)" }}
+      >
+        {palette.map((p) => (
+          <div
+            key={p.name}
+            className="h-20 rounded-md"
+            style={{ background: p.hex }}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function MaterialsPanel({ selection }: { selection: Selection | null }) {
+  const items = selection?.materials ?? [];
+  return (
+    <div className="grid gap-3.5" style={{ gridTemplateColumns: "repeat(2, 1fr)" }}>
+      {items.map((m, i) => (
+        <div key={i}>
+          <Placeholder
+            tag={(m.name ?? "MATERIAL").toUpperCase()}
+            tint={m.swatch_hex}
+            ratio="1/1"
+          />
+          <div className="mt-2 text-[13px]">{m.name}</div>
+          <div className="mono text-[10px] text-mist-500">
+            SOURCE · {(m.brand ?? "—").toUpperCase()}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function FurniturePanel({ selection }: { selection: Selection | null }) {
+  const items = selection?.furniture ?? [];
+  return (
+    <div className="flex flex-col gap-4">
+      {items.map((f, i) => (
+        <div
+          key={i}
+          className="flex gap-3.5 rounded-lg border border-mist-100 p-3.5"
+        >
+          <div className="w-[100px] shrink-0">
+            <Placeholder tag="PRODUCT" ratio="1/1" />
+          </div>
+          <div>
+            <div className="mono text-mist-500">
+              {(f.brand ?? "BRAND").toUpperCase()}
+            </div>
+            <div
+              className="font-display"
+              style={{
+                fontSize: 20,
+                fontVariationSettings: '"opsz" 72, "wght" 440, "SOFT" 100',
+              }}
+            >
+              {f.name}
+            </div>
+            <div className="mono mt-1.5 text-mist-600">
+              {f.dimensions ?? f.product_ref ?? ""}
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function PlantingPanel({ selection }: { selection: Selection | null }) {
+  const items = selection?.planting ?? [];
+  return (
+    <div className="flex flex-col gap-2.5">
+      {items.map((p, i) => {
+        const label =
+          typeof p === "string"
+            ? p
+            : `${p.common_name ?? ""}${p.latin ? ` — ${p.latin}` : ""}`;
+        return (
+          <div
+            key={i}
+            className="rounded p-3.5 font-display italic"
+            style={{
+              background: "rgba(107, 143, 127, 0.12)",
+              borderLeft: "3px solid var(--mint)",
+              fontSize: 16,
+              fontVariationSettings: '"opsz" 72, "wght" 380, "SOFT" 100',
+            }}
+          >
+            {label}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function LightPanel({ selection }: { selection: Selection | null }) {
+  const light = selection?.light ?? {};
+  const fixtures = Array.isArray(light.fixtures) ? light.fixtures : [];
+  return (
+    <div>
+      <div className="mono mb-1.5 text-mist-500">COLOUR TEMPERATURE</div>
+      <div
+        className="font-display"
+        style={{
+          fontSize: 36,
+          fontVariationSettings: '"opsz" 144, "wght" 480, "SOFT" 100',
+        }}
+      >
+        {light.temperature_kelvin ?? "—"}
+      </div>
+      <Eyebrow style={{ marginBottom: 10, marginTop: 24 }}>FIXTURES</Eyebrow>
+      <ul className="pl-4 leading-loose">
+        {fixtures.map((f, i) => (
+          <li key={i} className="text-[14px]">
+            {typeof f === "string"
+              ? f
+              : `${f.name ?? ""}${f.brand ? ` (${f.brand})` : ""}${f.usage ? ` — ${f.usage}` : ""}`}
           </li>
         ))}
       </ul>
-    </motion.div>
+    </div>
   );
 }
 
-function SelectionPreview({ selection }: { selection: Record<string, unknown> }) {
-  const atmosphere = (selection.atmosphere as
-    | { palette?: Array<{ name?: string; hex?: string; role?: string }> }
-    | undefined) ?? {};
-  const palette = atmosphere.palette ?? [];
-  const materials = (selection.materials as Array<{
-    name?: string;
-    brand?: string;
-    category?: string;
-    application?: string;
-    swatch_hex?: string;
-    sustainability?: string;
-  }>) ?? [];
-  const furniture = (selection.furniture as Array<{
-    brand?: string;
-    model?: string;
-    category?: string;
-    application?: string;
-    dimensions_mm?: { w?: number; d?: number; h?: number };
-  }>) ?? [];
-  const planting = (selection.planting as {
-    strategy?: string;
-    species?: Array<{ name?: string; light?: string; care?: string }>;
-  }) ?? {};
-  const light = (selection.light as {
-    strategy?: string;
-    fixtures?: Array<{ brand?: string; model?: string; category?: string; application?: string }>;
-  }) ?? {};
-  const tagline =
-    (selection.header as { tagline?: string } | undefined)?.tagline ?? "";
-
+function SourcesPanel({ selection }: { selection: Selection | null }) {
+  const items = selection?.sources ?? [
+    "Leesman 2024 · Fintech subset",
+    "Gensler Workplace Survey EU 2024",
+    "Human Spaces Report 2023",
+    "Kvadrat · Textiles catalogue",
+    "BAUX · Wood-wool acoustics spec",
+    "Framery · O pod dimensions",
+    "Farrow & Ball · Lime Plaster",
+    "Amtico · Worn Oak plank",
+    "NF S 31-080 · acoustic performance",
+    "ERP Type W · Arrêté 25 juin 1980",
+    "design://adjacency-rules",
+  ];
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-      className="space-y-12"
-    >
-      {tagline && (
-        <section>
-          <p className="eyebrow-forest">Tagline</p>
-          <p
-            className="mt-4 font-display text-[1.75rem] leading-[1.15] text-ink"
-            style={{ fontVariationSettings: '"opsz" 96, "wght" 460, "SOFT" 100' }}
-          >
-            <em className="italic">"</em>
-            {tagline}
-            <em className="italic">"</em>
-          </p>
-        </section>
-      )}
-
-      {palette.length > 0 && (
-        <section>
-          <p className="eyebrow-forest">Atmosphere palette</p>
-          <div className="mt-5 flex flex-wrap gap-4">
-            {palette.map((sw, i) => (
-              <div key={i} className="flex min-w-[120px] items-center gap-3">
-                <span
-                  className="inline-block h-10 w-10 rounded-md border border-hairline"
-                  style={{ backgroundColor: sw.hex ?? "#E8E3D8" }}
-                />
-                <div>
-                  <p className="font-display text-[14px] text-ink">{sw.name}</p>
-                  <p className="font-mono text-[10px] uppercase tracking-label text-ink-muted">
-                    {sw.hex} · {sw.role}
-                  </p>
-                </div>
-              </div>
-            ))}
+    <div className="mono leading-loose text-[12px] text-mist-700">
+      {items.map((s, i) => {
+        const label = typeof s === "string" ? s : s.label ?? "";
+        return (
+          <div key={i}>
+            → {label}
           </div>
-        </section>
-      )}
-
-      {materials.length > 0 && (
-        <section>
-          <p className="eyebrow-forest">Materials</p>
-          <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {materials.map((m, i) => (
-              <div key={i} className="rounded-md border border-hairline bg-raised p-4">
-                <div className="flex items-center gap-3">
-                  <span
-                    className="inline-block h-8 w-8 rounded border border-hairline"
-                    style={{ backgroundColor: m.swatch_hex ?? "#C9B79C" }}
-                  />
-                  <div>
-                    <p className="font-mono text-[9px] uppercase tracking-label text-ink-muted">
-                      {m.category}
-                    </p>
-                    <p
-                      className="font-display text-[13.5px] leading-tight text-ink"
-                      style={{ fontVariationSettings: '"opsz" 36, "wght" 540, "SOFT" 100' }}
-                    >
-                      {m.name}
-                    </p>
-                  </div>
-                </div>
-                <p className="mt-3 text-[12px] leading-relaxed text-ink-soft">
-                  {m.application}
-                </p>
-                {m.sustainability && (
-                  <p className="mt-1 font-mono text-[10px] uppercase tracking-label text-forest">
-                    {m.sustainability}
-                  </p>
-                )}
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {furniture.length > 0 && (
-        <section>
-          <p className="eyebrow-forest">Furniture</p>
-          <div className="mt-5 grid gap-4 sm:grid-cols-2">
-            {furniture.map((f, i) => (
-              <div
-                key={i}
-                className="flex items-start gap-4 rounded-md border border-hairline bg-raised p-4"
-              >
-                <span className="mt-1 inline-block h-6 w-1 rounded-sm bg-sand-deep" />
-                <div className="flex-1">
-                  <p className="font-mono text-[9px] uppercase tracking-label text-ink-muted">
-                    {f.category}
-                  </p>
-                  <p
-                    className="mt-1 font-display text-[15px] leading-tight text-ink"
-                    style={{ fontVariationSettings: '"opsz" 48, "wght" 540, "SOFT" 100' }}
-                  >
-                    {f.brand} — {f.model}
-                  </p>
-                  <p className="mt-2 text-[12px] leading-relaxed text-ink-soft">
-                    {f.application}
-                  </p>
-                  {f.dimensions_mm && (
-                    <p className="mt-2 font-mono text-[10px] uppercase tracking-label text-ink-muted">
-                      {f.dimensions_mm.w ?? "—"} × {f.dimensions_mm.d ?? "—"} ×{" "}
-                      {f.dimensions_mm.h ?? "—"} mm
-                    </p>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {(planting.strategy || (planting.species && planting.species.length > 0)) && (
-        <section>
-          <p className="eyebrow-forest">Planting</p>
-          {planting.strategy && (
-            <p className="mt-4 max-w-3xl text-[14px] italic leading-relaxed text-ink-soft">
-              {planting.strategy}
-            </p>
-          )}
-          <ul className="mt-4 space-y-2 text-[13px] text-ink">
-            {(planting.species ?? []).map((sp, i) => (
-              <li key={i} className="flex items-center gap-3">
-                <DotStatus tone="ok" />
-                <span className="font-display text-[14px]" style={{ fontVariationSettings: '"opsz" 36, "wght" 520, "SOFT" 100' }}>
-                  {sp.name}
-                </span>
-                <span className="font-mono text-[10px] uppercase tracking-label text-ink-muted">
-                  {sp.light} · care {sp.care}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
-      {(light.strategy || (light.fixtures && light.fixtures.length > 0)) && (
-        <section>
-          <p className="eyebrow-forest">Light</p>
-          {light.strategy && (
-            <p className="mt-4 max-w-3xl text-[14px] italic leading-relaxed text-ink-soft">
-              {light.strategy}
-            </p>
-          )}
-          <ul className="mt-4 space-y-3">
-            {(light.fixtures ?? []).map((fx, i) => (
-              <li key={i} className="flex items-start gap-3">
-                <span className="mt-2 inline-block h-4 w-[3px] rounded-sm bg-sand-deep" />
-                <div>
-                  <p
-                    className="font-display text-[14px] leading-tight text-ink"
-                    style={{ fontVariationSettings: '"opsz" 36, "wght" 540, "SOFT" 100' }}
-                  >
-                    {fx.brand} — {fx.model}
-                  </p>
-                  <p className="font-mono text-[10px] uppercase tracking-label text-ink-muted">
-                    {fx.category} · {fx.application}
-                  </p>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-    </motion.div>
+        );
+      })}
+    </div>
   );
 }

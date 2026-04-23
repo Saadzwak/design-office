@@ -1,0 +1,238 @@
+{
+  "header": {
+    "tagline": "An atelier of focus on the north light, a bright social forge on the south.",
+    "industry_note": "Tech-startup fintech — warm minimal palette, oak + linen + black steel, Lumen-yellow accent, flex 0.75 with generous collab and a single café-townhall social heart."
+  },
+  "atmosphere": {
+    "hero_image_theme": "atelier-bibliothèque office with continuous north-facing oak workbenches, black steel partitions, linen acoustic panels, and a generous south-facing café with daylight and planted anchors",
+    "palette": [
+      {
+        "name": "Linen canvas",
+        "hex": "#F2ECE0",
+        "role": "hero"
+      },
+      {
+        "name": "Pale oak",
+        "hex": "#CDB28A",
+        "role": "hero"
+      },
+      {
+        "name": "Atelier ink",
+        "hex": "#1F1E1B",
+        "role": "secondary"
+      },
+      {
+        "name": "Studio putty",
+        "hex": "#8A8578",
+        "role": "secondary"
+      },
+      {
+        "name": "Lumen sun",
+        "hex": "#E8C547",
+        "role": "accent"
+      }
+    ]
+  },
+  "materials": [
+    {
+      "category": "floor",
+      "name": "Worn Oak LVT",
+      "brand": "Amtico",
+      "product_ref": "Signature — Worn Oak",
+      "application": "North workbench neighbourhoods + central spine",
+      "sustainability": "Class 33 commercial, low-VOC, 25 y wear",
+      "swatch_hex": "#C9A878"
+    },
+    {
+      "category": "floor",
+      "name": "Carpet tile — warm putty",
+      "brand": "Interface",
+      "product_ref": "Composure — SKOA Grey",
+      "application": "Meeting rooms, boardrooms, war-rooms (acoustic floor)",
+      "sustainability": "Carbon-neutral, 100 % recyclable",
+      "swatch_hex": "#8A8578"
+    },
+    {
+      "category": "wall",
+      "name": "Linen acoustic panel",
+      "brand": "Kvadrat",
+      "product_ref": "Soft Cells + Remix 3 / 123",
+      "application": "Café-townhall feature wall + phone-booth alcoves",
+      "sustainability": "Cradle-to-Cradle, wool/flax blend, NRC ≈ 0.90",
+      "swatch_hex": "#D8C9A8"
+    },
+    {
+      "category": "wall",
+      "name": "Wood-wool acoustic tile",
+      "brand": "BAUX",
+      "product_ref": "Acoustic Pulp — Natural",
+      "application": "Spine wall between collab and focus zones",
+      "sustainability": "Bio-based, Class A fire, NRC ≈ 0.85",
+      "swatch_hex": "#E0D3B5"
+    },
+    {
+      "category": "wall",
+      "name": "Deep-pigment paint — atelier ink",
+      "brand": "Farrow & Ball",
+      "product_ref": "Railings No.31",
+      "application": "Black steel-look partitions, door frames, signage rail",
+      "sustainability": "Low-VOC eggshell, durable for office wear",
+      "swatch_hex": "#1F1E1B"
+    },
+    {
+      "category": "partition",
+      "name": "Double-glazed acoustic partition",
+      "brand": "Maars",
+      "product_ref": "Living Walls Momentum — black slim frame",
+      "application": "Meeting rooms, war-rooms, boardrooms (DnT,A ≥ 40 dB)",
+      "sustainability": "Demountable, reusable system, 44 dB Rw",
+      "swatch_hex": "#2A2A28"
+    },
+    {
+      "category": "ceiling",
+      "name": "Acoustic ceiling — Class A",
+      "brand": "Ecophon",
+      "product_ref": "Solo Circle + Rectangle islands",
+      "application": "Floating islands over workbench neighbourhoods (αw ≥ 0.90)",
+      "sustainability": "Recyclable glass wool, low-VOC",
+      "swatch_hex": "#F2ECE0"
+    },
+    {
+      "category": "textile",
+      "name": "Upholstery — Lumen yellow accent",
+      "brand": "Kvadrat",
+      "product_ref": "Steelcut Trio 3 / 453",
+      "application": "Alcove banquettes and café booths — brand expression",
+      "sustainability": "100 % virgin wool, Martindale 100 000",
+      "swatch_hex": "#E8C547"
+    }
+  ],
+  "furniture": [
+    {
+      "category": "workbench desk",
+      "product_id": "millerknoll_jarvis_1524",
+      "brand": "Herman Miller",
+      "model": "Jarvis 27x60 (sit-stand)",
+      "application": "128 north-façade workstations — 8 neighbourhoods of 16",
+      "dimensions_mm": {
+        "w": 1524,
+        "d": 686,
+        "h": 1270
+      }
+    },
+    {
+      "category": "task chair",
+      "product_id": "vitra_id_chair_mesh",
+      "brand": "Vitra",
+      "model": "ID Chair Mesh",
+      "application": "All workstations — pair-programming ergonomic default",
+      "dimensions_mm": {
+        "w": 680,
+        "d": 680,
+        "h": 540
+      }
+    },
+    {
+      "category": "phone booth",
+      "product_id": "framery_one_compact",
+      "brand": "Framery",
+      "model": "One Compact",
+      "application": "14 booths along the central spine (y = 12 500)",
+      "dimensions_mm": {
+        "w": 1030,
+        "d": 1000,
+        "h": 2250
+      }
+    },
+    {
+      "category": "lounge sofa",
+      "product_id": "vitra_alcove_2264",
+      "brand": "Vitra",
+      "model": "Alcove High Back",
+      "application": "Café transition islands + lounge tampon south",
+      "dimensions_mm": {
+        "w": 2264,
+        "d": 840,
+        "h": 1280
+      }
+    },
+    {
+      "category": "informal sofa",
+      "product_id": "hay_mags_soft_3s",
+      "brand": "Hay",
+      "model": "Mags Soft 3-seater",
+      "application": "Central lounge bande + huddle cluster edges",
+      "dimensions_mm": {
+        "w": 2280,
+        "d": 955,
+        "h": 760
+      }
+    },
+    {
+      "category": "event chair",
+      "product_id": "vitra_tip_ton",
+      "brand": "Vitra",
+      "model": "Tip Ton",
+      "application": "Town hall stackable seating (120 pax theatre)",
+      "dimensions_mm": {
+        "w": 470,
+        "d": 555,
+        "h": 800
+      }
+    }
+  ],
+  "planting": {
+    "strategy": "Moderate tier (3–5 %) concentrated on the south café-townhall (direct sun anchors) and the east-west spine at y ≈ 11 500–12 500 as a filter between collab and focus. Workbenches kept deliberately sober — atelier discipline.",
+    "species": [
+      {
+        "name": "Ficus lyrata",
+        "light": "direct sun / bright indirect",
+        "care": "medium"
+      },
+      {
+        "name": "Strelitzia nicolai",
+        "light": "direct sun south façade",
+        "care": "medium"
+      },
+      {
+        "name": "Kentia palm (Howea forsteriana)",
+        "light": "medium indirect",
+        "care": "easy"
+      },
+      {
+        "name": "ZZ plant (Zamioculcas zamiifolia)",
+        "light": "low",
+        "care": "easy"
+      }
+    ]
+  },
+  "light": {
+    "strategy": "3000 K warm in café + lounge, 3500 K in meeting rooms and collab spine, 4000 K CRI ≥ 90 at north workbenches (EN 12464-1 @ 500 lux, screen-friendly). One statement pendant line over the town hall doubles as event light.",
+    "fixtures": [
+      {
+        "category": "pendant",
+        "brand": "Muuto",
+        "model": "Ambit Rail",
+        "application": "Linear run over the café bar and the town hall cloison mobile"
+      },
+      {
+        "category": "task",
+        "brand": "Artemide",
+        "model": "Tolomeo LED",
+        "application": "Individual task light at every workbench + focus rooms"
+      },
+      {
+        "category": "feature",
+        "brand": "Bocci",
+        "model": "28 series",
+        "application": "Central stair void — biophilic cluster seen from both floors"
+      }
+    ]
+  },
+  "notes": [
+    "Industry bias applied: tech_startup → warm minimal, oak + linen + black steel, Lumen-yellow as single brand accent.",
+    "Atelier parti enforced: planting kept off the workbenches, concentrated on café + central spine per design://biophilic-office §1.2.",
+    "All meeting-room glazing specified at 44 dB Rw to meet DnT,A ≥ 40 dB target stated in the variant narrative.",
+    "[TO VERIFY] exact Kvadrat Steelcut Trio 3 colour reference against Lumen brand deck before ordering."
+  ]
+}
