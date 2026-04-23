@@ -1,12 +1,15 @@
 /**
  * Unified project state — single source of truth across pages.
  *
- * Replaces the scatter of `design-office.brief`, `design-office.programme`,
- * `design-office.testfit.result`, `design-office.testfit.live_screenshots`
- * etc. with one JSON payload at `design-office.project_state.v1`.
+ * v2 (iter-17) : append-only run history so regenerating a macro-zoning
+ * no longer wipes the micro-zonings and mood boards that were drilled
+ * on the previous run. The `testfit`, `justify`, `mood_board` fields
+ * are now **derived views** of the latest active run, kept on the state
+ * object so every existing consumer continues to read them unchanged.
  *
- * Existing keys are migrated on first load (see `loadProjectState`). This
- * keeps older sessions working after deploy.
+ * New writes go through the `runs` arrays. The v1-shaped mirrors are
+ * re-computed on every save. Iteration-18 (frontend UX refactor) will
+ * add the history-browsing UI that consumes the raw arrays.
  *
  * Updates are published via a `storage`-like custom event so every mounted
  * page reacts in real time, including chat-driven updates from the drawer
@@ -44,6 +47,7 @@ export type ViewMode = "engineering" | "client";
 
 export type VariantStyle = "villageois" | "atelier" | "hybride_flex";
 
+/** v1-shape view, still consumed by every page. Kept as derived state. */
 export type TestFitState = {
   floor_plan: FloorPlan;
   variants: VariantOutput[];
@@ -63,8 +67,64 @@ export type MoodBoardState = {
   palette: string[];
 };
 
+// ──────────────────────────────── Runs ────────────────────────────────
+
+export type MacroZoningRun = {
+  run_id: string;
+  timestamp: string;
+  label?: string;
+  floor_plan: FloorPlan;
+  variants: VariantOutput[];
+  verdicts: ReviewerVerdict[];
+  live_screenshots: Partial<Record<VariantStyle, string>>;
+  retained_style: VariantStyle | null;
+};
+
+export type MicroZoningRun = {
+  run_id: string;
+  parent_macro_run_id: string;
+  parent_variant_style: VariantStyle;
+  timestamp: string;
+  markdown: string;
+  // iter-17 additive — optional structured sections. The existing UI
+  // reads `markdown`; iter-18 cards will consume `sections` when present.
+  sections?: Array<{ id: string; title: string; tldr?: string; detail?: string }>;
+};
+
+export type MoodBoardRun = {
+  run_id: string;
+  parent_macro_run_id: string | null;
+  parent_variant_style: VariantStyle | null;
+  timestamp: string;
+  pdf_id: string | null;
+  visual_image_id: string | null;
+  palette: string[];
+};
+
+export type JustifyRun = {
+  run_id: string;
+  parent_macro_run_id: string | null;
+  parent_variant_style: VariantStyle | null;
+  timestamp: string;
+  argumentaire_markdown: string;
+  pdf_id: string | null;
+  pptx_id: string | null;
+};
+
+export type ExportRun = {
+  run_id: string;
+  parent_macro_run_id: string | null;
+  parent_variant_style: VariantStyle | null;
+  timestamp: string;
+  dxf_id: string | null;
+  dwg_id: string | null;
+};
+
+// ──────────────────────────────── State ────────────────────────────────
+
 export type ProjectState = {
-  version: 1;
+  version: 2;
+  project_id: string;
   client: {
     name: string;
     industry: Industry;
@@ -79,9 +139,21 @@ export type ProjectState = {
     constraints: string[];
   };
   floor_plan: FloorPlan | null;
+
+  // Raw history — newest last. Iter-18 UX will expose browsing.
+  macro_zoning_runs: MacroZoningRun[];
+  active_macro_run_id: string | null;
+  micro_zoning_runs: MicroZoningRun[];
+  moodboard_runs: MoodBoardRun[];
+  justify_runs: JustifyRun[];
+  export_runs: ExportRun[];
+
+  // v1-shape derived views. Re-computed on every save. Safe to read
+  // from the existing pages unchanged.
   testfit: TestFitState | null;
   justify: JustifyState | null;
   mood_board: MoodBoardState | null;
+
   view_mode: ViewMode;
 };
 
@@ -115,9 +187,22 @@ const DEFAULT_PROGRAMME = `# Functional programme — Lumen
 - 1 town-hall space 120 m², central café 260 m².
 - Sources: design://office-programming, design://flex-ratios, design://collaboration-spaces.`;
 
+function newId(prefix: string): string {
+  const rnd =
+    typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID().slice(0, 8)
+      : Math.random().toString(36).slice(2, 10);
+  return `${prefix}-${rnd}`;
+}
+
+function isoNow(): string {
+  return new Date().toISOString();
+}
+
 export function defaultProjectState(): ProjectState {
   return {
-    version: 1,
+    version: 2,
+    project_id: newId("lumen"),
     client: {
       name: "Lumen",
       industry: "tech_startup",
@@ -132,6 +217,12 @@ export function defaultProjectState(): ProjectState {
       constraints: [],
     },
     floor_plan: null,
+    macro_zoning_runs: [],
+    active_macro_run_id: null,
+    micro_zoning_runs: [],
+    moodboard_runs: [],
+    justify_runs: [],
+    export_runs: [],
     testfit: null,
     justify: null,
     mood_board: null,
@@ -139,7 +230,148 @@ export function defaultProjectState(): ProjectState {
   };
 }
 
-function migrateLegacy(existing: ProjectState): ProjectState {
+/**
+ * Recompute the v1-shape derived views from the raw run arrays.
+ * Called on every save so consumers that still read `state.testfit`
+ * keep observing the latest active run.
+ */
+export function reconcileDerivedViews(state: ProjectState): ProjectState {
+  const active = state.macro_zoning_runs.find(
+    (r) => r.run_id === state.active_macro_run_id,
+  );
+  const testfit: TestFitState | null = active
+    ? {
+        floor_plan: active.floor_plan,
+        variants: active.variants,
+        verdicts: active.verdicts,
+        live_screenshots: active.live_screenshots,
+        retained_style: active.retained_style,
+      }
+    : null;
+
+  // Justify / mood board — last entry tied to the active macro run if
+  // any, otherwise the last entry at all. This matches the v1 semantics
+  // where those fields always pointed at "the current artefact".
+  const justifyRun = latestForActive(state.justify_runs, state.active_macro_run_id);
+  const justify: JustifyState | null = justifyRun
+    ? {
+        argumentaire_markdown: justifyRun.argumentaire_markdown,
+        pdf_id: justifyRun.pdf_id,
+        pptx_id: justifyRun.pptx_id,
+      }
+    : null;
+
+  const mbRun = latestForActive(state.moodboard_runs, state.active_macro_run_id);
+  const mood_board: MoodBoardState | null = mbRun
+    ? { pdf_id: mbRun.pdf_id, palette: mbRun.palette }
+    : null;
+
+  return {
+    ...state,
+    floor_plan: state.floor_plan ?? active?.floor_plan ?? null,
+    testfit,
+    justify,
+    mood_board,
+  };
+}
+
+function latestForActive<T extends { parent_macro_run_id: string | null; timestamp: string }>(
+  runs: T[],
+  activeMacroId: string | null,
+): T | null {
+  if (runs.length === 0) return null;
+  // Prefer runs tied to the active macro; fall back to the latest of any.
+  const tied = runs.filter((r) => r.parent_macro_run_id === activeMacroId);
+  const pool = tied.length > 0 ? tied : runs;
+  return [...pool].sort((a, b) => (a.timestamp < b.timestamp ? 1 : -1))[0] ?? null;
+}
+
+// ──────────────────────────────── Migration ────────────────────────────────
+
+/**
+ * Promote a legacy v1 payload to v2 : wrap its `testfit`, `justify`,
+ * `mood_board` (if present) into single-entry runs so the user doesn't
+ * see a blank slate after this deploy.
+ */
+function migrateV1ToV2(raw: unknown): ProjectState | null {
+  if (!raw || typeof raw !== "object") return null;
+  const v1 = raw as Record<string, unknown>;
+  // Already v2
+  if (v1.version === 2) return raw as ProjectState;
+  if (v1.version !== 1) return null;
+
+  const base = defaultProjectState();
+  // Copy scalar groups straight over.
+  base.project_id = (v1.project_id as string | undefined) ?? base.project_id;
+  base.client = { ...base.client, ...(v1.client as ProjectState["client"]) };
+  if (typeof v1.brief === "string") base.brief = v1.brief;
+  if (v1.programme && typeof v1.programme === "object") {
+    base.programme = {
+      ...base.programme,
+      ...(v1.programme as ProjectState["programme"]),
+    };
+  }
+  if (v1.floor_plan) base.floor_plan = v1.floor_plan as FloorPlan;
+  if (v1.view_mode === "client" || v1.view_mode === "engineering") {
+    base.view_mode = v1.view_mode;
+  }
+
+  // Promote legacy testfit → one macro run.
+  const legacyTestfit = v1.testfit as TestFitState | null | undefined;
+  let macroId: string | null = null;
+  if (legacyTestfit && legacyTestfit.variants?.length) {
+    macroId = newId("macro");
+    base.macro_zoning_runs = [
+      {
+        run_id: macroId,
+        timestamp: isoNow(),
+        label: "Migrated from v1",
+        floor_plan: legacyTestfit.floor_plan,
+        variants: legacyTestfit.variants,
+        verdicts: legacyTestfit.verdicts ?? [],
+        live_screenshots: legacyTestfit.live_screenshots ?? {},
+        retained_style: legacyTestfit.retained_style ?? null,
+      },
+    ];
+    base.active_macro_run_id = macroId;
+  }
+
+  // Legacy justify → one run.
+  const legacyJustify = v1.justify as JustifyState | null | undefined;
+  if (legacyJustify && legacyJustify.argumentaire_markdown) {
+    base.justify_runs = [
+      {
+        run_id: newId("justify"),
+        parent_macro_run_id: macroId,
+        parent_variant_style: legacyTestfit?.retained_style ?? null,
+        timestamp: isoNow(),
+        argumentaire_markdown: legacyJustify.argumentaire_markdown,
+        pdf_id: legacyJustify.pdf_id,
+        pptx_id: legacyJustify.pptx_id,
+      },
+    ];
+  }
+
+  // Legacy mood board → one run.
+  const legacyMood = v1.mood_board as MoodBoardState | null | undefined;
+  if (legacyMood && (legacyMood.pdf_id || legacyMood.palette?.length)) {
+    base.moodboard_runs = [
+      {
+        run_id: newId("moodboard"),
+        parent_macro_run_id: macroId,
+        parent_variant_style: legacyTestfit?.retained_style ?? null,
+        timestamp: isoNow(),
+        pdf_id: legacyMood.pdf_id,
+        visual_image_id: null,
+        palette: legacyMood.palette ?? [],
+      },
+    ];
+  }
+
+  return reconcileDerivedViews(base);
+}
+
+function migrateStaleStorageKeys(existing: ProjectState): ProjectState {
   const next: ProjectState = { ...existing };
 
   try {
@@ -151,50 +383,75 @@ function migrateLegacy(existing: ProjectState): ProjectState {
       next.programme = { ...next.programme, markdown: legacyProg };
     }
 
-    const rawTestfit = localStorage.getItem("design-office.testfit.result");
-    if (rawTestfit && !next.testfit) {
-      const parsed = JSON.parse(rawTestfit) as {
-        floor_plan: FloorPlan;
-        variants: VariantOutput[];
-        verdicts: ReviewerVerdict[];
-      };
-      next.floor_plan = parsed.floor_plan;
-      next.testfit = {
-        floor_plan: parsed.floor_plan,
-        variants: parsed.variants,
-        verdicts: parsed.verdicts,
-        live_screenshots: {},
-        retained_style: null,
-      };
-    }
-
-    const rawShots = localStorage.getItem("design-office.testfit.live_screenshots");
-    if (rawShots && next.testfit) {
-      next.testfit = {
-        ...next.testfit,
-        live_screenshots: JSON.parse(rawShots),
-      };
+    // Only promote legacy testfit if we don't already have a macro run
+    // from the v1→v2 migration step above.
+    if (next.macro_zoning_runs.length === 0) {
+      const rawTestfit = localStorage.getItem("design-office.testfit.result");
+      if (rawTestfit) {
+        const parsed = JSON.parse(rawTestfit) as {
+          floor_plan: FloorPlan;
+          variants: VariantOutput[];
+          verdicts: ReviewerVerdict[];
+        };
+        if (parsed?.floor_plan && parsed?.variants?.length) {
+          const rawShots = localStorage.getItem(
+            "design-office.testfit.live_screenshots",
+          );
+          const shots: Partial<Record<VariantStyle, string>> = rawShots
+            ? JSON.parse(rawShots)
+            : {};
+          const macroId = newId("macro");
+          next.floor_plan = parsed.floor_plan;
+          next.macro_zoning_runs = [
+            {
+              run_id: macroId,
+              timestamp: isoNow(),
+              label: "Migrated from legacy keys",
+              floor_plan: parsed.floor_plan,
+              variants: parsed.variants,
+              verdicts: parsed.verdicts,
+              live_screenshots: shots,
+              retained_style: null,
+            },
+          ];
+          next.active_macro_run_id = macroId;
+        }
+      }
     }
   } catch {
     // Corrupt legacy values — keep defaults.
   }
 
-  return next;
+  return reconcileDerivedViews(next);
 }
 
 export function loadProjectState(): ProjectState {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
-      const parsed = JSON.parse(raw) as ProjectState;
-      if (parsed.version === 1) return parsed;
+      const parsed = JSON.parse(raw) as unknown;
+      const asAny = parsed as { version?: number };
+      if (asAny?.version === 2) {
+        return reconcileDerivedViews(parsed as ProjectState);
+      }
+      if (asAny?.version === 1) {
+        const migrated = migrateV1ToV2(parsed);
+        if (migrated) {
+          try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
+          } catch {
+            /* ignore quota */
+          }
+          return migrated;
+        }
+      }
     }
   } catch {
     // fall through to defaults
   }
   // First load on this machine. Seed with defaults and attempt a legacy
   // migration so returning users don't lose their in-flight project.
-  const seeded = migrateLegacy(defaultProjectState());
+  const seeded = migrateStaleStorageKeys(defaultProjectState());
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(seeded));
   } catch {
@@ -204,9 +461,12 @@ export function loadProjectState(): ProjectState {
 }
 
 export function saveProjectState(state: ProjectState): void {
+  const reconciled = reconcileDerivedViews(state);
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    window.dispatchEvent(new CustomEvent(PROJECT_STATE_EVENT, { detail: state }));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(reconciled));
+    window.dispatchEvent(
+      new CustomEvent(PROJECT_STATE_EVENT, { detail: reconciled }),
+    );
   } catch {
     // Quota full or storage disabled. UI will still work in-memory for this tab.
   }
@@ -252,60 +512,259 @@ export function setFloorPlan(plan: FloorPlan | null): ProjectState {
   return patchProjectState({ floor_plan: plan });
 }
 
-export function setTestFit(testfit: TestFitState | null): ProjectState {
-  return patchProjectState({ testfit });
-}
+// ──────────────────────────── Macro-zoning runs ────────────────────────────
 
-export function setTestFitRetained(style: VariantStyle | null): ProjectState {
+/**
+ * Start a new macro-zoning run. Append-only : previous runs stay on
+ * `state.macro_zoning_runs` so the micro-zoning and mood-board artefacts
+ * tied to them via `parent_macro_run_id` remain retrievable.
+ *
+ * Back-compat : still reachable as `setTestFit(...)` from every existing
+ * caller — the v1-shape payload is promoted to a run here.
+ */
+export function startMacroZoningRun(payload: {
+  floor_plan: FloorPlan;
+  variants: VariantOutput[];
+  verdicts: ReviewerVerdict[];
+  live_screenshots?: Partial<Record<VariantStyle, string>>;
+  retained_style?: VariantStyle | null;
+  label?: string;
+}): ProjectState {
   const current = loadProjectState();
-  if (!current.testfit) return current;
+  const run: MacroZoningRun = {
+    run_id: newId("macro"),
+    timestamp: isoNow(),
+    label: payload.label,
+    floor_plan: payload.floor_plan,
+    variants: payload.variants,
+    verdicts: payload.verdicts,
+    live_screenshots: payload.live_screenshots ?? {},
+    retained_style: payload.retained_style ?? null,
+  };
   const next: ProjectState = {
     ...current,
-    testfit: { ...current.testfit, retained_style: style },
+    floor_plan: payload.floor_plan,
+    macro_zoning_runs: [...current.macro_zoning_runs, run],
+    active_macro_run_id: run.run_id,
   };
   saveProjectState(next);
   return next;
 }
 
-export function setLiveScreenshot(style: VariantStyle, url: string): ProjectState {
+/** v1-compat setter. Creates a new run if there is none, else replaces it
+ * in place only when the payload shape matches (identical variants).
+ * Callers that want append-only history should use `startMacroZoningRun`.
+ */
+export function setTestFit(testfit: TestFitState | null): ProjectState {
+  if (testfit === null) {
+    // Hard-reset requested — drop the active pointer but KEEP the run
+    // history so the parent_macro_run_id links on micro/moodboard still
+    // resolve if the user scrolls back.
+    const current = loadProjectState();
+    const next: ProjectState = { ...current, active_macro_run_id: null };
+    saveProjectState(next);
+    return next;
+  }
+  return startMacroZoningRun(testfit);
+}
+
+export function setActiveMacroRunId(run_id: string | null): ProjectState {
+  return patchProjectState({ active_macro_run_id: run_id });
+}
+
+export function setTestFitRetained(style: VariantStyle | null): ProjectState {
   const current = loadProjectState();
-  if (!current.testfit) return current;
-  const next: ProjectState = {
-    ...current,
-    testfit: {
-      ...current.testfit,
-      live_screenshots: { ...current.testfit.live_screenshots, [style]: url },
-    },
-  };
+  if (!current.active_macro_run_id) return current;
+  const macro_zoning_runs = current.macro_zoning_runs.map((r) =>
+    r.run_id === current.active_macro_run_id
+      ? { ...r, retained_style: style }
+      : r,
+  );
+  const next: ProjectState = { ...current, macro_zoning_runs };
+  saveProjectState(next);
+  return next;
+}
+
+export function setLiveScreenshot(
+  style: VariantStyle,
+  url: string,
+): ProjectState {
+  const current = loadProjectState();
+  if (!current.active_macro_run_id) return current;
+  const macro_zoning_runs = current.macro_zoning_runs.map((r) =>
+    r.run_id === current.active_macro_run_id
+      ? {
+          ...r,
+          live_screenshots: { ...r.live_screenshots, [style]: url },
+        }
+      : r,
+  );
+  const next: ProjectState = { ...current, macro_zoning_runs };
   saveProjectState(next);
   return next;
 }
 
 export function upsertVariant(updated: VariantOutput): ProjectState {
   const current = loadProjectState();
-  if (!current.testfit) return current;
-  const variants = current.testfit.variants.map((v) =>
-    v.style === updated.style ? updated : v,
-  );
+  if (!current.active_macro_run_id) return current;
+  const macro_zoning_runs = current.macro_zoning_runs.map((r) => {
+    if (r.run_id !== current.active_macro_run_id) return r;
+    return {
+      ...r,
+      variants: r.variants.map((v) => (v.style === updated.style ? updated : v)),
+    };
+  });
+  const next: ProjectState = { ...current, macro_zoning_runs };
+  saveProjectState(next);
+  return next;
+}
+
+// ──────────────────────────── Micro-zoning runs ────────────────────────────
+
+export function appendMicroZoningRun(payload: {
+  parent_variant_style: VariantStyle;
+  markdown: string;
+  sections?: MicroZoningRun["sections"];
+}): ProjectState {
+  const current = loadProjectState();
+  if (!current.active_macro_run_id) return current;
+  const run: MicroZoningRun = {
+    run_id: newId("micro"),
+    parent_macro_run_id: current.active_macro_run_id,
+    parent_variant_style: payload.parent_variant_style,
+    timestamp: isoNow(),
+    markdown: payload.markdown,
+    sections: payload.sections,
+  };
   const next: ProjectState = {
     ...current,
-    testfit: { ...current.testfit, variants },
+    micro_zoning_runs: [...current.micro_zoning_runs, run],
   };
   saveProjectState(next);
   return next;
 }
 
-export function setJustify(justify: JustifyState | null): ProjectState {
-  return patchProjectState({ justify });
+export function selectLatestMicroZoningFor(
+  state: ProjectState,
+  variantStyle: VariantStyle,
+): MicroZoningRun | null {
+  if (!state.active_macro_run_id) return null;
+  const tied = state.micro_zoning_runs.filter(
+    (r) =>
+      r.parent_macro_run_id === state.active_macro_run_id &&
+      r.parent_variant_style === variantStyle,
+  );
+  if (tied.length === 0) return null;
+  return [...tied].sort((a, b) => (a.timestamp < b.timestamp ? 1 : -1))[0] ?? null;
 }
 
-export function setMoodBoard(mb: MoodBoardState | null): ProjectState {
-  return patchProjectState({ mood_board: mb });
+// ──────────────────────────── Mood board runs ────────────────────────────
+
+export function appendMoodBoardRun(payload: {
+  parent_variant_style?: VariantStyle | null;
+  pdf_id: string | null;
+  visual_image_id?: string | null;
+  palette: string[];
+}): ProjectState {
+  const current = loadProjectState();
+  const run: MoodBoardRun = {
+    run_id: newId("moodboard"),
+    parent_macro_run_id: current.active_macro_run_id,
+    parent_variant_style: payload.parent_variant_style ?? null,
+    timestamp: isoNow(),
+    pdf_id: payload.pdf_id,
+    visual_image_id: payload.visual_image_id ?? null,
+    palette: payload.palette,
+  };
+  const next: ProjectState = {
+    ...current,
+    moodboard_runs: [...current.moodboard_runs, run],
+  };
+  saveProjectState(next);
+  return next;
 }
+
+/** v1-compat setter. Appends a new mood-board run. */
+export function setMoodBoard(mb: MoodBoardState | null): ProjectState {
+  if (mb === null) {
+    // Intentional reset — do NOT delete the run history; flip the
+    // derived view off by clearing the last entry's pdf_id would lie.
+    // The UI should just open a fresh generation flow instead.
+    return loadProjectState();
+  }
+  return appendMoodBoardRun({
+    pdf_id: mb.pdf_id,
+    palette: mb.palette,
+  });
+}
+
+// ──────────────────────────── Justify runs ────────────────────────────
+
+export function appendJustifyRun(payload: {
+  parent_variant_style?: VariantStyle | null;
+  argumentaire_markdown: string;
+  pdf_id: string | null;
+  pptx_id: string | null;
+}): ProjectState {
+  const current = loadProjectState();
+  const run: JustifyRun = {
+    run_id: newId("justify"),
+    parent_macro_run_id: current.active_macro_run_id,
+    parent_variant_style: payload.parent_variant_style ?? null,
+    timestamp: isoNow(),
+    argumentaire_markdown: payload.argumentaire_markdown,
+    pdf_id: payload.pdf_id,
+    pptx_id: payload.pptx_id,
+  };
+  const next: ProjectState = {
+    ...current,
+    justify_runs: [...current.justify_runs, run],
+  };
+  saveProjectState(next);
+  return next;
+}
+
+/** v1-compat setter. Appends a new justify run. */
+export function setJustify(justify: JustifyState | null): ProjectState {
+  if (justify === null) return loadProjectState();
+  return appendJustifyRun({
+    argumentaire_markdown: justify.argumentaire_markdown,
+    pdf_id: justify.pdf_id,
+    pptx_id: justify.pptx_id,
+  });
+}
+
+// ──────────────────────────── Export runs ────────────────────────────
+
+export function appendExportRun(payload: {
+  parent_variant_style?: VariantStyle | null;
+  dxf_id: string | null;
+  dwg_id?: string | null;
+}): ProjectState {
+  const current = loadProjectState();
+  const run: ExportRun = {
+    run_id: newId("export"),
+    parent_macro_run_id: current.active_macro_run_id,
+    parent_variant_style: payload.parent_variant_style ?? null,
+    timestamp: isoNow(),
+    dxf_id: payload.dxf_id,
+    dwg_id: payload.dwg_id ?? null,
+  };
+  const next: ProjectState = {
+    ...current,
+    export_runs: [...current.export_runs, run],
+  };
+  saveProjectState(next);
+  return next;
+}
+
+// ──────────────────────────── View mode ────────────────────────────
 
 export function setViewMode(mode: ViewMode): ProjectState {
   return patchProjectState({ view_mode: mode });
 }
+
+// ──────────────────────────── Subscription ────────────────────────────
 
 /**
  * Subscribe to project-state changes. Fires on both same-tab updates

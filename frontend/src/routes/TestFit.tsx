@@ -22,6 +22,8 @@ import {
   type VariantOutput,
 } from "../lib/api";
 import {
+  appendMicroZoningRun,
+  selectLatestMicroZoningFor,
   setFloorPlan,
   setLiveScreenshot,
   setProgramme as persistProgramme,
@@ -98,9 +100,32 @@ export default function TestFit() {
     return params.get("tab") === "micro" ? "micro" : "macro";
   }, [location.search]);
   const [tab, setTab] = useState<"macro" | "micro">(initialTab);
+  // Hydrate the micro-zoning panel from the persisted history so a macro
+  // regeneration never wipes the last drill-down the user ran. If there
+  // is a stored MicroZoningRun tied to the active macro + current variant,
+  // we reopen it; otherwise we start idle.
+  const persistedMicro = useMemo(
+    () => selectLatestMicroZoningFor(project, active),
+    [project, active],
+  );
   const [microState, setMicroState] = useState<
     { kind: "idle" } | { kind: "running" } | { kind: "done"; markdown: string } | { kind: "error"; message: string }
-  >({ kind: "idle" });
+  >(() =>
+    persistedMicro
+      ? { kind: "done", markdown: persistedMicro.markdown }
+      : { kind: "idle" },
+  );
+  // Keep the panel in sync when the active variant or active macro run changes.
+  useEffect(() => {
+    if (persistedMicro) {
+      setMicroState({ kind: "done", markdown: persistedMicro.markdown });
+    } else {
+      setMicroState({ kind: "idle" });
+    }
+    // We deliberately depend on the run_id/markdown so we don't thrash on
+    // unrelated state changes. `persistedMicro?.run_id` is stable within a run.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [persistedMicro?.run_id]);
   const [programme, setProgramme] = useState(() => project.programme.markdown ?? "");
   const [showProgramme, setShowProgramme] = useState(false);
   const [instruction, setInstruction] = useState("");
@@ -885,6 +910,17 @@ function MicroPanel({
       if (!r.ok) throw new Error(await r.text());
       const body = (await r.json()) as { markdown: string };
       setMicroState({ kind: "done", markdown: body.markdown });
+      // Persist to the run history so a subsequent macro regeneration
+      // doesn't wipe this drill-down. Ties back to the active macro via
+      // parent_macro_run_id inside appendMicroZoningRun.
+      try {
+        appendMicroZoningRun({
+          parent_variant_style: style,
+          markdown: body.markdown,
+        });
+      } catch {
+        /* non-fatal — in-memory state still works */
+      }
     } catch (exc) {
       setMicroState({
         kind: "error",
