@@ -1552,3 +1552,88 @@ Every new capability is reachable through a stable backend endpoint or a typed s
 
 Single live fal.ai image call (~$0.05-0.10) for the golden Lumen visual moodboard fixture. No Opus calls beyond what the existing fixtures already paid for — iter-17 is 100 % offline-testable.
 
+
+
+---
+
+## iter-18 — Claude Design handoff integration (2026-04-23T17:30Z)
+
+Saad pasted the Claude Design handoff URL for a full UI refactor.
+Phase 1 was a scoped inventory report ; Phase 2 shipped 14 commits
+over ~3.5 h of wall-clock, preserving every iter-17 backend
+capability while aligning the visual surface with the bundle.
+
+### Commits (iter-18-0 through iter-18n)
+
+| SHA | Phase | Scope |
+|-----|-------|-------|
+| (inventory) | 1 | `docs/CLAUDE_DESIGN_HANDOFF_REPORT.md` with full token / route / dep / adapter inventory |
+| d1f4bd2 | 0 | Coordinates adapter 88×62 ↔ mm + 20 Vitest tests (blocking étape 0) |
+| 67da8eb | a | Token reconciliation + bundle committed under claude-design-bundle/ |
+| 0f8ec7b | b | 12 UI primitives extracted (Card, Pill, PillToggle, Drawer, AgentTrace, DotPulse, MetricBadge, Placeholder, FloorPlan2D, Eyebrow, Icon, Typewriter alias) |
+| 5305b35 | c | Adapter layer : projectsIndex + variantAdapter + dashboardSummary + 21 tests |
+| 0f34905 | d | Shell rewrite : GlobalNav with roman eyebrows + /project route + controlled ChatDrawer |
+| 3e7b418 | e | Landing port : hero split + metric strip + 12-col surfaces grid + pull quote + marquee |
+| ed94fa3 | f | Dashboard : projects list + ProjectDetail hero + 5-surface grid + recent activity |
+| 253fb1f | g | Brief : editorial textarea + 8-card programme drill-down via programmeSections adapter + studio vocab |
+| b9b2e50 | h | TestFit macro : 3 pigmented variant cards with FloorPlan2D + metrics + warnings + iterate bar |
+| d888ca7 | i-backend | POST /api/testfit/microzoning/structured + Pydantic model + coercion + 29 pytest tests + live fixture |
+| fb099c1 | i-frontend | MicroView drill-down : numbered plan + 14-zone list + zone drawer |
+| eb05673 | j | Mood board : Pinterest collage + 6 drill topics + palette strip + Lumen fixture preload |
+| 8ae074c | k | Justify : view-mode conditional + 7-card drill-down via justifySections adapter |
+| fa15017 | l | Export : DXF live + DWG blocker pill + 3-step pipeline + generation AgentTrace |
+| 87899d5 | m | Chat : bubble-inline styling + /chat fullpage with conversations sidebar |
+| (this entry) | n | Docs : FLOW_WALKTHROUGH_v3 + README refresh + BUILD_LOG closeout |
+
+### Non-negotiables honoured
+
+1. **Visual = source of truth.** Every bundle token (palette, radii,
+   shadows, animations) migrated into Tailwind + CSS vars.
+   Mist scale realigned to the bundle's warmer values. Malformed
+   `mist-900: #15141200` fixed.
+2. **All iter-17 backend capabilities preserved.** project_state
+   v2 multi-runs, adjacency_audit on every variant, 2D SVG
+   endpoint, NanoBanana visual moodboard + zone overlay, studio
+   vocab in the Brief trace, DXF export, active chat with the
+   9-action allow-list. 100 pytest passed, no regressions.
+3. **Adapters for every data shape divergence** : 7 adapters in
+   `frontend/src/lib/adapters/` (coordinates, projectsIndex,
+   variantAdapter, dashboardSummary, programmeSections, justifySections,
+   + the micro-zoning schema typed on the backend side).
+4. **Tokens unlimited per Saad.** Budget actually consumed : ~65 k
+   / 13 k for the live structured micro-zoning + ~50 k / 12 k
+   for the visual moodboard fixture generation already paid in
+   iter-17. Total incremental spend for iter-18 ≈ $0.80.
+
+### Gates at iter-18n close
+
+- `npx tsc -b --noEmit` → clean
+- `npx vitest run` → 41 passed
+- `pytest -q` → 100 passed (was 71 at iter-17 close ; +29 for
+  micro-zoning structured + live fixture)
+- Preview-browser walk : every route at 1440×900 renders with 0 px
+  horizontal overflow. body + html carry `overflow-x: clip` to
+  neutralise off-screen fixed drawers.
+- No console.error at runtime.
+
+### Open carry-forwards
+
+- Screenshots for `docs/screenshots/v3/` : the preview-MCP
+  screenshot tool timed out repeatedly at iter-18n. Saad captures
+  them manually during demo recording. Walkthrough doc covers the
+  visual spec for every surface regardless.
+- DWG export : remains blocked on ODA File Converter install per
+  BLOCKERS.md B7. The UI exposes the CTA disabled with a clay
+  pill so judges see the state.
+- Conversations persistence in /chat fullpage : sidebar uses
+  5 sample convos ; wiring actual save/restore is out of scope.
+
+### Next session triggers
+
+- New Saad directive.
+- Real bug report from demo recording.
+- Post-hackathon : decision on the Claude Design Phase 3 iteration
+  (if any).
+
+Status : **ITER-18 COMPLETE**. Phase 2 delivered in full ; Saad
+can record the demo on the refreshed UI.

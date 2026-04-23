@@ -145,17 +145,31 @@ design-office/
 │   │   │   └── fixtures/     # Lumen fictitious plan PDF
 │   │   ├── prompts/agents/   # 14 system prompts across the 3 levels
 │   │   └── out/              # Generated PDFs (Justify) + DXFs (Export)
-│   ├── tests/                # pytest, 15 tests covering all 4 surfaces
+│   ├── tests/                # pytest, 100 tests covering all surfaces + the
+│   │                         #   adjacency validator + structured micro-zoning
 │   │   └── fixtures/         # Saved Lumen live outputs for replay / inspection
 │   └── scripts/              # run_lumen_full.py, run_lumen_justify.py,
 │                             # run_lumen_export.py, sketchup_smoke_cube.py,
 │                             # run_lumen_sketchup.py
 │
-├── frontend/                 # Vite + React 18 + TS strict + Tailwind + Framer + tailwindcss-typography
+├── frontend/                 # Vite + React 18 + TS strict + Tailwind + Framer + tailwindcss-typography + Vitest
 │   └── src/
-│       ├── routes/           # Landing, Brief, TestFit, Justify, Export
+│       ├── routes/           # Landing / ProjectDashboard / Brief / TestFit (macro+micro) /
+│       │                     #   MoodBoard / Justify / Export / Chat
+│       ├── components/ui/    # 12 shared primitives from the Claude Design handoff
+│       │                     #   (Card, Pill, PillToggle, Drawer, AgentTrace,
+│       │                     #    FloorPlan2D, Eyebrow, Icon, …)
 │       ├── components/viewer # PlanSvg (envelope + columns + cores + zones)
-│       └── lib/api.ts        # Typed client for all 4 surfaces
+│       ├── components/chat/  # ChatDrawer + ChatPanel + enrichment + action allow-list
+│       ├── lib/adapters/     # 7 adapters : coordinates (88×62 ↔ mm),
+│       │                     #   projectsIndex, variantAdapter,
+│       │                     #   dashboardSummary, programmeSections,
+│       │                     #   justifySections (+ coordinates.test.ts
+│       │                     #   and adapters.test.ts with 41 Vitest tests)
+│       └── lib/api.ts        # Typed client for the 6 surfaces + chat
+│
+├── claude-design-bundle/     # Source-of-truth handoff from claude.ai/design
+│   └── opus-4-7/             # Tokens, screens, components the frontend ports from
 │
 ├── vendor/
 │   ├── sketchup-mcp/         # Forked mhyrr/sketchup-mcp
