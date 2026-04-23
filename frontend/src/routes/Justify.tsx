@@ -73,6 +73,7 @@ const AGENT_TYPING: Record<string, string> = {
 
 export default function Justify() {
   const project = useProjectState();
+  const isClient = project.view_mode === "client";
   const [stored, setStored] = useState<PersistedTestFit | null>(() => {
     try {
       const raw = localStorage.getItem("design-office.testfit.result");
@@ -174,7 +175,7 @@ export default function Justify() {
     <div className="space-y-14">
       <header className="max-w-3xl">
         <p className="eyebrow-forest">
-          IV · Justify
+          {isClient ? "IV · Story" : "IV · Justify"}
           {isSample && (
             <span className="ml-3 text-ink-muted normal-case tracking-normal">
               · demo data
@@ -185,12 +186,16 @@ export default function Justify() {
           className="mt-5 font-display text-display-sm leading-[1.02] text-ink"
           style={{ fontVariationSettings: '"opsz" 144, "wght" 620, "SOFT" 100' }}
         >
-          A sourced <em className="italic">argumentaire</em>, in the client's language.
+          {isClient ? (
+            <>The <em className="italic">story</em> behind this space.</>
+          ) : (
+            <>A sourced <em className="italic">argumentaire</em>, in the client's language.</>
+          )}
         </h1>
         <p className="mt-4 text-[15px] leading-relaxed text-ink-soft">
-          Four research agents — Acoustic, Biophilic &amp; neuroarchitecture, Regulatory,
-          Programming — run in parallel over the retained variant. A consolidator weaves
-          them into a single document you can hand to the client.
+          {isClient
+            ? "Every move — the lit workbench, the quiet spine, the cafe at the sun — has a reason. Here is the studio's reading of the brief, in the client's language."
+            : "Four research agents — Acoustic, Biophilic & neuroarchitecture, Regulatory, Programming — run in parallel over the retained variant. A consolidator weaves them into a single document you can hand to the client."}
         </p>
       </header>
 
@@ -242,28 +247,30 @@ export default function Justify() {
                           >
                             {STYLE_LABEL[v.style]}
                           </span>
-                          <p className="mt-1 font-mono text-[10px] uppercase tracking-label text-ink-muted">
-                            {v.metrics.workstation_count} desks · flex{" "}
-                            {v.metrics.flex_ratio_applied.toFixed(2)}
-                            {verdict && (
-                              <>
-                                {" · "}
-                                <span
-                                  className={
-                                    verdict.verdict === "approved"
-                                      ? "text-forest"
-                                      : verdict.verdict === "approved_with_notes"
-                                        ? "text-sand-deep"
-                                        : verdict.verdict === "rejected"
-                                          ? "text-clay"
-                                          : "text-ink-muted"
-                                  }
-                                >
-                                  {verdict.verdict.replace(/_/g, " ")}
-                                </span>
-                              </>
-                            )}
-                          </p>
+                          {!isClient && (
+                            <p className="mt-1 font-mono text-[10px] uppercase tracking-label text-ink-muted">
+                              {v.metrics.workstation_count} desks · flex{" "}
+                              {v.metrics.flex_ratio_applied.toFixed(2)}
+                              {verdict && (
+                                <>
+                                  {" · "}
+                                  <span
+                                    className={
+                                      verdict.verdict === "approved"
+                                        ? "text-forest"
+                                        : verdict.verdict === "approved_with_notes"
+                                          ? "text-sand-deep"
+                                          : verdict.verdict === "rejected"
+                                            ? "text-clay"
+                                            : "text-ink-muted"
+                                    }
+                                  >
+                                    {verdict.verdict.replace(/_/g, " ")}
+                                  </span>
+                                </>
+                              )}
+                            </p>
+                          )}
                         </div>
                       </button>
                     </li>
@@ -310,7 +317,9 @@ export default function Justify() {
               disabled={!chosenVariant || !floorPlan || state.kind === "running"}
               onClick={onGenerate}
             >
-              {state.kind === "running" ? "Researching…" : "Generate argumentaire"}
+              {state.kind === "running"
+                ? isClient ? "Weaving…" : "Researching…"
+                : isClient ? "Compose the story" : "Generate argumentaire"}
             </button>
 
             {state.kind === "done" && state.response.pdf_id && (
@@ -473,32 +482,46 @@ export default function Justify() {
             transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
             className="border-t border-hairline pt-14"
           >
-            <div className="grid gap-16 lg:grid-cols-[minmax(0,1.6fr),minmax(0,1fr)]">
+            <div
+              className={
+                isClient
+                  ? "max-w-3xl"
+                  : "grid gap-16 lg:grid-cols-[minmax(0,1.6fr),minmax(0,1fr)]"
+              }
+            >
               <article className="min-w-0">
-                <p className="eyebrow-forest">Argumentaire</p>
+                <p className="eyebrow-forest">
+                  {isClient ? "The story" : "Argumentaire"}
+                </p>
                 <div className="mt-4 prose prose-lg max-w-none prose-headings:font-display prose-headings:text-ink prose-h1:text-[2.75rem] prose-h1:leading-tight prose-h2:text-[1.75rem] prose-p:text-ink-soft prose-p:leading-relaxed prose-strong:text-ink prose-a:text-forest prose-a:no-underline hover:prose-a:underline prose-blockquote:border-l-forest prose-blockquote:bg-mist-50/70 prose-blockquote:px-6 prose-blockquote:py-4 prose-blockquote:italic prose-blockquote:font-display prose-blockquote:text-ink prose-blockquote:text-[1.25rem] prose-blockquote:leading-snug">
                   <ReactMarkdown remarkPlugins={[remarkGfm]}>
                     {state.response.argumentaire}
                   </ReactMarkdown>
                 </div>
-                <hr className="my-10 border-hairline" />
-                <p className="font-mono text-[10px] uppercase tracking-label text-ink-muted">
-                  {state.response.tokens.input.toLocaleString()} in ·{" "}
-                  {state.response.tokens.output.toLocaleString()} out ·{" "}
-                  {state.response.sub_outputs.length} agents
-                </p>
+                {!isClient && (
+                  <>
+                    <hr className="my-10 border-hairline" />
+                    <p className="font-mono text-[10px] uppercase tracking-label text-ink-muted">
+                      {state.response.tokens.input.toLocaleString()} in ·{" "}
+                      {state.response.tokens.output.toLocaleString()} out ·{" "}
+                      {state.response.sub_outputs.length} agents
+                    </p>
+                  </>
+                )}
               </article>
 
-              <aside className="min-w-0 lg:border-l lg:border-hairline lg:pl-10">
-                <p className="eyebrow-forest">Research trace</p>
-                <div className="mt-5 space-y-3">
-                  {state.response.sub_outputs
-                    .filter((s) => s.name !== "Consolidator")
-                    .map((s) => (
-                      <TraceCard key={s.name} sub={s} />
-                    ))}
-                </div>
-              </aside>
+              {!isClient && (
+                <aside className="min-w-0 lg:border-l lg:border-hairline lg:pl-10">
+                  <p className="eyebrow-forest">Research trace</p>
+                  <div className="mt-5 space-y-3">
+                    {state.response.sub_outputs
+                      .filter((s) => s.name !== "Consolidator")
+                      .map((s) => (
+                        <TraceCard key={s.name} sub={s} />
+                      ))}
+                  </div>
+                </aside>
+              )}
             </div>
           </motion.section>
         )}

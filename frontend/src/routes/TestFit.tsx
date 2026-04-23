@@ -87,6 +87,7 @@ export default function TestFit() {
   const project = useProjectState();
   const location = useLocation();
   const navigate = useNavigate();
+  const isClient = project.view_mode === "client";
   const [state, setState] = useState<State>({ kind: "idle" });
   const [catalog, setCatalog] = useState<CatalogPreview | null>(null);
   const [active, setActive] = useState<VariantStyle>(
@@ -285,19 +286,27 @@ export default function TestFit() {
   return (
     <div className="space-y-12">
       <header>
-        <p className="eyebrow-forest">II · Test fit</p>
+        <p className="eyebrow-forest">
+          {isClient ? "III · Concept" : "II · Test fit"}
+        </p>
         <h1
           className="mt-5 font-display text-display-sm leading-[1.02] text-ink"
           style={{ fontVariationSettings: '"opsz" 144, "wght" 620, "SOFT" 100' }}
         >
-          Three variants, <em className="italic">one plan</em>.
+          {isClient ? (
+            <>Three concepts, <em className="italic">one space</em>.</>
+          ) : (
+            <>Three variants, <em className="italic">one plan</em>.</>
+          )}
         </h1>
         <p className="mt-4 max-w-2xl text-[15px] leading-relaxed text-ink-soft">
-          Opus Vision HD reads the plan. Three sub-agents compose contrasted variants in
-          parallel. A Reviewer tests each against PMR, ERP and the programme.
+          {isClient
+            ? "Three spatial stories for the same plate, each with a different daily rhythm. Pick the one that speaks — the studio carries the technical detail behind it."
+            : "Opus Vision HD reads the plan. Three sub-agents compose contrasted variants in parallel. A Reviewer tests each against PMR, ERP and the programme."}
         </p>
 
-        {/* Macro / Micro tabs */}
+        {/* Macro / Micro tabs — engineering only */}
+        {!isClient && (
         <div className="mt-8 inline-flex items-center gap-0.5 rounded-full border border-hairline bg-raised p-0.5">
           {(
             [
@@ -332,6 +341,7 @@ export default function TestFit() {
             </button>
           ))}
         </div>
+        )}
       </header>
 
       <div className="grid gap-10 lg:grid-cols-[minmax(0,340px),minmax(0,1fr)]">
@@ -452,7 +462,7 @@ export default function TestFit() {
                         <p className="mt-1 text-[12.5px] leading-relaxed text-ink-muted">
                           {STYLE_TAGLINE[s]}
                         </p>
-                        {variant && (
+                        {variant && !isClient && (
                           <p className="mt-2 font-mono text-[10px] uppercase tracking-label text-ink-muted">
                             {variant.metrics.workstation_count} desks ·{" "}
                             {variant.metrics.meeting_room_count} rooms ·{" "}
@@ -574,7 +584,11 @@ export default function TestFit() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.35 }}
-              className="grid gap-10 lg:grid-cols-[minmax(0,1.55fr),minmax(0,1fr)]"
+              className={
+                isClient
+                  ? "max-w-3xl"
+                  : "grid gap-10 lg:grid-cols-[minmax(0,1.55fr),minmax(0,1fr)]"
+              }
             >
               <article className="min-w-0">
                 <div className="flex items-baseline gap-4">
@@ -600,6 +614,7 @@ export default function TestFit() {
                 </div>
               </article>
 
+              {!isClient && (
               <aside className="min-w-0 lg:border-l lg:border-hairline lg:pl-8">
                 <p className="label-xs text-ink-muted">Metrics</p>
                 <dl className="mt-5 grid grid-cols-2 gap-x-6 gap-y-5">
@@ -663,6 +678,7 @@ export default function TestFit() {
                   </div>
                 )}
               </aside>
+              )}
             </motion.div>
           )}
 
