@@ -277,9 +277,9 @@ export default function ExportRoute() {
                         className="input-line mt-2 w-full font-mono text-[13px] text-ink"
                       />
                     </div>
-                    <div className="flex-1 min-w-[200px]">
+                    <div className="min-w-0 basis-full sm:basis-auto sm:flex-1 sm:min-w-[180px]">
                       <p className="label-xs text-ink-muted">Variant</p>
-                      <div className="mt-2 flex gap-2">
+                      <div className="mt-2 flex flex-wrap gap-2">
                         {variants.map((v) => (
                           <button
                             key={v.style}
