@@ -266,6 +266,32 @@ export async function generateMoodBoardGallery(
   return r.json();
 }
 
+// iter-20e (Saad #10) — re-render the A3 PDF once gallery tiles land,
+// embedding the atmosphere photograph in the hero block. The backend
+// resolves ids to absolute paths server-side; the frontend only sends
+// the cache ids so the request stays small.
+export type MoodBoardRerenderRequest = {
+  client: { name: string; industry: string; logo_data_url?: string | null; tagline?: string | null };
+  variant: VariantOutput;
+  selection: Record<string, unknown>;
+  project_reference?: string | null;
+  gallery_tile_ids: Record<string, string>;
+};
+
+export type MoodBoardRerenderResponse = { pdf_id: string };
+
+export async function rerenderMoodBoardPdf(
+  req: MoodBoardRerenderRequest,
+): Promise<MoodBoardRerenderResponse> {
+  const r = await fetch("/api/moodboard/rerender-pdf", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(req),
+  });
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+
 /** Serve a generated NanoBanana image by id. Backend whitelists the
  *  cache-key pattern, so arbitrary ids 404 cleanly. */
 export function generatedImageUrl(imageId: string): string {

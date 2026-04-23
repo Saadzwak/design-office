@@ -17,6 +17,7 @@ import {
   generateMoodBoardGallery,
   generatedImageUrl,
   moodBoardPdfUrl,
+  rerenderMoodBoardPdf,
   type MoodBoardResponse,
   type VisualMoodBoardGalleryResponse,
   type VisualMoodBoardGalleryTile,
@@ -184,6 +185,43 @@ export default function MoodBoard() {
         });
       setGallery(resp.tiles);
       setGalleryPhase("idle");
+
+      // iter-20e (Saad #10) : once the tiles are cached, upgrade the
+      // A3 PDF so the atmosphere hero uses a real NanoBanana photo
+      // instead of the flat palette wash. Fire-and-forget — the page
+      // keeps working with the old pdf_id if the re-render fails.
+      try {
+        const tile_ids: Record<string, string> = {};
+        for (const t of resp.tiles) {
+          tile_ids[t.label] = t.visual_image_id;
+        }
+        const rerender = await rerenderMoodBoardPdf({
+          client: {
+            name: project.client.name,
+            industry: project.client.industry,
+            logo_data_url: project.client.logo_data_url ?? null,
+          },
+          variant,
+          selection: selection as Record<string, unknown>,
+          gallery_tile_ids: tile_ids,
+        });
+        if (rerender.pdf_id) {
+          const hexes = (selection.atmosphere?.palette ?? [])
+            .map((p) => p.hex)
+            .filter((s): s is string => typeof s === "string");
+          setMoodBoard({
+            pdf_id: rerender.pdf_id,
+            palette: hexes,
+            selection: selection as Record<string, unknown>,
+          });
+          setResponse((prev) =>
+            prev ? { ...prev, pdf_id: rerender.pdf_id } : prev,
+          );
+        }
+      } catch (rerenderErr) {
+        // eslint-disable-next-line no-console
+        console.warn("Mood-board PDF re-render failed", rerenderErr);
+      }
     } catch (err) {
       // Non-fatal : the page still renders Placeholder tiles. Log so
       // Engineering view users can see what happened if they check

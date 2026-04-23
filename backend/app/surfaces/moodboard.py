@@ -80,6 +80,30 @@ class MoodBoardRequest(BaseModel):
     project_reference: str | None = None
 
 
+class MoodBoardRerenderRequest(BaseModel):
+    """Iter-20e (Saad #10) : re-render the A3 PDF from an already-curated
+    selection + a NanoBanana gallery. Lets the frontend upgrade the PDF
+    once the tiles land, without re-running the (expensive) curator.
+    """
+
+    client: ClientInfo
+    variant: VariantOutput
+    selection: dict[str, Any]
+    project_reference: str | None = None
+    gallery_tile_ids: dict[str, str] = Field(
+        default_factory=dict,
+        description=(
+            "Keys: atmosphere|materials|furniture|biophilic → NanoBanana "
+            "cache ids (32 hex chars). Resolved server-side to absolute "
+            "image paths so the PDF can embed them."
+        ),
+    )
+
+
+class MoodBoardRerenderResponse(BaseModel):
+    pdf_id: str
+
+
 class MoodBoardResponse(BaseModel):
     pdf_id: str
     selection: dict[str, Any]  # parsed curator JSON (for preview + debugging)
@@ -201,10 +225,17 @@ def _render_moodboard_pdf(
     variant: VariantOutput,
     selection: dict[str, Any],
     project_reference: str | None,
+    gallery_tile_paths: dict[str, str] | None = None,
 ) -> str:
     """Lay out the six mandatory sections from design://mood-board-method on
     a single A3 landscape page. Returns the pdf_id (hash) the endpoint uses
     to stream the file back.
+
+    iter-20e (Saad #10, #26, #27) : when `gallery_tile_paths` is
+    supplied (keys `atmosphere|materials|furniture|biophilic` → absolute
+    image path), the renderer uses the real NanoBanana tiles instead of
+    the flat palette wash. Fallback is the legacy block-colour layout,
+    so the function stays safe in offline / test contexts.
     """
 
     from reportlab.lib.colors import HexColor
@@ -213,8 +244,13 @@ def _render_moodboard_pdf(
     from reportlab.pdfgen import canvas
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
+    # iter-20e : include the gallery signature in the hash so a richer
+    # PDF (same selection, new tiles) gets a distinct pdf_id.
+    gallery_sig = ",".join(
+        f"{k}:{Path(v).name}" for k, v in sorted((gallery_tile_paths or {}).items())
+    )
     pdf_id = hashlib.sha1(
-        f"moodboard:{client.name}:{variant.style.value}:{json.dumps(selection, sort_keys=True)[:500]}".encode(
+        f"moodboard:{client.name}:{variant.style.value}:{json.dumps(selection, sort_keys=True)[:500]}:{gallery_sig}".encode(
             "utf-8"
         )
     ).hexdigest()[:16]
@@ -293,8 +329,6 @@ def _render_moodboard_pdf(
     # Atmosphere — 7/12 columns
     col_w = (usable_w - gutter) / 2
     atm_left = margin
-    # Placeholder "image" with an evocative solid wash; the renderer doesn't
-    # pull external images but paints a gradient suggestive of the theme.
     atm_top = row1_top
     atm_bottom = atm_top - row1_h
     palette_list = selection.get("atmosphere", {}).get("palette", [])
@@ -302,15 +336,58 @@ def _render_moodboard_pdf(
         hero_hex = palette_list[0].get("hex", "#2F4A3F")
     else:
         hero_hex = "#2F4A3F"
-    c.setFillColor(HexColor(hero_hex))
-    c.rect(atm_left, atm_bottom, col_w, row1_h, fill=1, stroke=0)
+
+    # iter-20e (Saad #10) : use the NanoBanana atmosphere tile if
+    # available — real photograph-grade mood. Fallback is the legacy
+    # block-colour wash so the PDF still lays out without images.
+    atmosphere_image_path = (gallery_tile_paths or {}).get("atmosphere")
+    atmosphere_image_used = False
+    if atmosphere_image_path and Path(atmosphere_image_path).exists():
+        try:
+            c.drawImage(
+                atmosphere_image_path,
+                atm_left,
+                atm_bottom,
+                width=col_w,
+                height=row1_h,
+                preserveAspectRatio=True,
+                anchor="c",
+                mask="auto",
+            )
+            atmosphere_image_used = True
+        except Exception:  # noqa: BLE001
+            atmosphere_image_used = False
+
+    if not atmosphere_image_used:
+        # Legacy flat-colour wash (kept for offline / test / no-API runs).
+        c.setFillColor(HexColor(hero_hex))
+        c.rect(atm_left, atm_bottom, col_w, row1_h, fill=1, stroke=0)
+    else:
+        # iter-20e : paint a narrow ink scrim at the top (eyebrow + theme)
+        # and bottom (industry note) so the overlay text is legible
+        # regardless of the photograph's luminance. 22 mm top, 22 mm
+        # bottom, 25 % opacity simulated via a low-alpha fill.
+        scrim_color = HexColor("#1C1F1A")
+        try:
+            c.saveState()
+            c.setFillColorRGB(0.11, 0.12, 0.10, alpha=0.55)
+            c.rect(atm_left, atm_top - 26 * mm, col_w, 26 * mm, fill=1, stroke=0)
+            c.setFillColorRGB(0.11, 0.12, 0.10, alpha=0.45)
+            c.rect(atm_left, atm_bottom, col_w, 22 * mm, fill=1, stroke=0)
+        finally:
+            c.restoreState()
     # Pick the overlay text colour so it reads on the hero fill. Use
     # relative luminance (WCAG) — a dark hero (Chambers green, Atelier ink)
     # takes ivory text; a light hero (Linen canvas, Parchment) takes ink
     # text. Without this the Lumen mood board had invisible ivory-on-ivory
     # text in the ATMOSPHERE block.
-    overlay_text_color = _contrast_overlay(hero_hex, on_dark=CANVAS_BG, on_light=INK)
-    overlay_muted_color = _contrast_overlay(hero_hex, on_dark=HAIRLINE, on_light=INK_SOFT)
+    # When we have an image we draw a dark scrim, so force ivory text.
+    if atmosphere_image_used:
+        overlay_text_color = CANVAS_BG
+        overlay_muted_color = HAIRLINE
+    else:
+        overlay_text_color = _contrast_overlay(hero_hex, on_dark=CANVAS_BG, on_light=INK)
+        overlay_muted_color = _contrast_overlay(hero_hex, on_dark=HAIRLINE, on_light=INK_SOFT)
     c.setFillColor(overlay_text_color)
     c.setFont("Helvetica-Bold", 14)
     c.drawString(atm_left + 8 * mm, atm_top - 12 * mm, "ATMOSPHERE")
@@ -458,6 +535,32 @@ def _render_moodboard_pdf(
 def pdf_path_for(pdf_id: str) -> Path | None:
     candidate = OUT_DIR / f"{pdf_id}.pdf"
     return candidate if candidate.exists() else None
+
+
+def render_pdf_from_selection(
+    *,
+    client: ClientInfo,
+    variant: VariantOutput,
+    selection: dict[str, Any],
+    project_reference: str | None = None,
+    gallery_tile_paths: dict[str, str] | None = None,
+) -> str:
+    """Public wrapper around `_render_moodboard_pdf`.
+
+    Used by iter-20e's re-render endpoint : once the NanoBanana gallery
+    has landed on the frontend, we POST the curator selection + the 4
+    image ids back to the server so the A3 PDF regenerates with real
+    photographs in the ATMOSPHERE block instead of the block-colour
+    wash. Returns the fresh `pdf_id` (stable hash of inputs).
+    """
+
+    return _render_moodboard_pdf(
+        client=client,
+        variant=variant,
+        selection=selection,
+        project_reference=project_reference,
+        gallery_tile_paths=gallery_tile_paths,
+    )
 
 
 # ---------------------------------------------------------------------------

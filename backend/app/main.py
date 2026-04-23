@@ -34,9 +34,12 @@ from app.surfaces.justify import (
 from app.surfaces.justify_pptx import pptx_path_for
 from app.surfaces.moodboard import (
     MoodBoardRequest,
+    MoodBoardRerenderRequest,
+    MoodBoardRerenderResponse,
     MoodBoardResponse,
     compile_default_surface as compile_moodboard_surface,
     pdf_path_for as moodboard_pdf_path_for,
+    render_pdf_from_selection as moodboard_render_pdf_from_selection,
 )
 from app.surfaces.visual_moodboard import (
     VisualMoodBoardGalleryResponse,
@@ -437,6 +440,38 @@ def moodboard_pdf(pdf_id: str) -> FileResponse:
         media_type="application/pdf",
         filename=f"design-office-moodboard-{pdf_id}.pdf",
     )
+
+
+@app.post(
+    "/api/moodboard/rerender-pdf",
+    response_model=MoodBoardRerenderResponse,
+)
+def moodboard_rerender_pdf(
+    payload: MoodBoardRerenderRequest,
+) -> MoodBoardRerenderResponse:
+    """Iter-20e (Saad #10) : regenerate the A3 PDF with real NanoBanana
+    tiles embedded. Called by the frontend once the gallery has landed —
+    the PDF then uses the atmosphere photograph as the hero block
+    instead of the flat palette wash. Returns a fresh `pdf_id`; the
+    old id stays valid (PDFs are content-addressed)."""
+
+    # Resolve cache ids to absolute paths, skipping unsafe / missing ids.
+    resolved: dict[str, str] = {}
+    for label, image_id in payload.gallery_tile_ids.items():
+        if not isinstance(image_id, str):
+            continue
+        p = visual_moodboard_path_for(image_id)
+        if p is not None:
+            resolved[label] = str(p)
+
+    pdf_id = moodboard_render_pdf_from_selection(
+        client=payload.client,
+        variant=payload.variant,
+        selection=payload.selection,
+        project_reference=payload.project_reference,
+        gallery_tile_paths=resolved or None,
+    )
+    return MoodBoardRerenderResponse(pdf_id=pdf_id)
 
 
 # ---------------------------------------------------------------------------
