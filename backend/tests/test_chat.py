@@ -107,3 +107,61 @@ def test_to_anthropic_messages_drops_trailing_assistant() -> None:
     assert out[-1]["role"] == "user"
     assert out[-1]["content"] == "what's up"
     assert len(out) == 3
+
+
+# ---------------------------------------------------------------------------
+# Live transcript shape assertions
+#
+# Three representative live Opus 4.7 responses are committed under
+# `tests/fixtures/chat/` after being captured against the running backend
+# in iteration 17. These tests don't replay them — they assert the shape
+# so that if the allow-list or the system prompt drifts we notice the
+# demo-critical behaviours breaking before Saad does.
+# ---------------------------------------------------------------------------
+
+
+def _load_chat_fixture(name: str) -> dict[str, Any]:
+    from pathlib import Path
+
+    fx = Path(__file__).resolve().parent / "fixtures" / "chat" / name
+    return json.loads(fx.read_text(encoding="utf-8"))
+
+
+def test_live_fixture_enrichment_headcount_emits_update_project_field() -> None:
+    """Chat detects a natural-language headcount change and proposes the
+    right action. Canonical for the "chat enriches the project" beat of
+    the demo.
+    """
+
+    data = _load_chat_fixture("enrichment_headcount.json")
+    resp = data["response"]
+    action = resp["suggested_action"]
+    assert action is not None
+    assert action["type"] == "update_project_field"
+    assert action["params"]["field"] == "headcount"
+    assert action["params"]["value"] == "160"
+    # The reply should reference the sizing impact, not just echo.
+    assert "flex" in resp["reply"].lower()
+
+
+def test_live_fixture_action_start_brief_is_dispatched() -> None:
+    """Asking the chat to run the brief must emit `start_brief` — not
+    some hallucinated variant."""
+
+    data = _load_chat_fixture("action_start_brief.json")
+    action = data["response"]["suggested_action"]
+    assert action is not None
+    assert action["type"] == "start_brief"
+    assert action["params"] == {}
+
+
+def test_live_fixture_out_of_domain_refused_without_action() -> None:
+    """Out-of-domain electrical / TGBT request must be refused with
+    no suggested action (this is the exact bug from iter-16 that the
+    tightened allow-list fixed)."""
+
+    data = _load_chat_fixture("out_of_domain_tgbt.json")
+    resp = data["response"]
+    assert resp["suggested_action"] is None
+    lowered = resp["reply"].lower()
+    assert "outside my scope" in lowered or "not electrical" in lowered or "mep" in lowered

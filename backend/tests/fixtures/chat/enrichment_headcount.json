@@ -1,0 +1,26 @@
+{
+  "description": "Chat detects natural-language headcount change and emits update_project_field action",
+  "request": {
+    "messages": [
+      {"role": "user", "content": "Actually Lumen has 160 staff now, not 120. Please update the programme."}
+    ],
+    "page_context": {
+      "page": "brief",
+      "data": {
+        "client": {"name": "Lumen", "industry": "tech_startup"},
+        "brief": "Lumen, a fintech startup, 120 people today",
+        "programme_markdown": "# Programme - 120 FTE, flex 0.75"
+      }
+    }
+  },
+  "response": {
+    "reply": "Got it — bumping headcount from 120 to 160 is a material change. At flex ratio 0.75 that means ~120 workstations (up from 90), plus proportional scaling of meeting rooms, phone booths, and social areas per typical programming ratios (Leesman 2024, `design://office-programming`).\n\nI'll persist the new headcount first; after you confirm, re-run the brief synthesis so the programme reflects 160 FTE.",
+    "tokens": {"input": 3185, "output": 208},
+    "duration_ms": 4694,
+    "suggested_action": {
+      "type": "update_project_field",
+      "label": "Update headcount to 160",
+      "params": {"field": "headcount", "value": "160"}
+    }
+  }
+}

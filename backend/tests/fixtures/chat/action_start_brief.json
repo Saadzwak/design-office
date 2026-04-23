@@ -1,0 +1,19 @@
+{
+  "description": "Chat dispatches start_brief action when user asks to run the brief synthesis",
+  "request": {
+    "messages": [
+      {"role": "user", "content": "Please run the brief synthesis for Lumen now."}
+    ],
+    "page_context": {"page": "landing", "data": {}}
+  },
+  "response": {
+    "reply": "I don't have a brief in context yet — the landing page doesn't hold a programme draft. To run the synthesis, head to the Brief surface and paste (or write) Lumen's programme there: headcount, growth target, flex policy, industry, site constraints, any cultural cues. Once the text is in, I can trigger the Level-1 orchestration from there.\n\nWant me to take you to the Brief surface to get started?",
+    "tokens": {"input": 3099, "output": 191},
+    "duration_ms": 4521,
+    "suggested_action": {
+      "type": "start_brief",
+      "label": "Open the Brief surface to draft Lumen's programme",
+      "params": {}
+    }
+  }
+}
