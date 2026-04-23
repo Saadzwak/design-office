@@ -280,7 +280,13 @@ labels. The aesthetic reference is Kinfolk magazine, Saguez & Partners,
 MoreySmith — never a SaaS dashboard.
 
 The seven page captures below come from headless Chrome at 1 440 × 900.
-(Seven = six surfaces + the dedicated /chat fullpage route.)
+(Seven = six surfaces + the dedicated /chat fullpage route.) Two mobile
+captures at 375 × 812 live under
+[`docs/screenshots/mobile/`](docs/screenshots/mobile) — the main nav
+collapses below `lg`, the integration-status badge is hidden below
+`md`, the hero headline re-scales (`44px → 56px → 72px → 104px`), and
+mobile users still reach every surface through the chat drawer's
+`start_*` action dispatch.
 Full principles + palette + motion tokens live in
 **[`docs/UI_DESIGN.md`](docs/UI_DESIGN.md)**.
 
