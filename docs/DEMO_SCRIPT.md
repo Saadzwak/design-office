@@ -168,15 +168,24 @@ the screenshots pane will show the PlanSvg overlay instead.
   "Design Office — Built with Opus 4.7".
 - ~30 s.
 
-## 02:45 – 03:00 Outro
+## 02:45 – 03:00 Outro · the client-aware flex
 
-> *"Three levels of managed agents. Opus 4.7 Vision HD on the plans.
-> Two MCPs, SketchUp and AutoCAD, orchestrated in parallel. Built from
-> scratch during the Built with Opus 4.7 hackathon. MIT licensed."*
+> *"Same code, same orchestration — change the industry, change the
+> palette. Lumen is a fintech. Here's the same plate fit out for a
+> City-of-London law firm, and for a creative agency in Amsterdam."*
 
-- **Visual** : back to Landing hero, overlay with :
+- **Visual** : a 3-card compositing pass showing the three Mood
+  Board PDFs side-by-side — Lumen (tech_startup, linen + oak + sun),
+  Altamont & Rees (law_firm, Chambers green + walnut + brass), Kaito
+  Miró (creative_agency, plaster + kiln terracotta + acid yellow).
+  All three PDFs live in `backend/tests/fixtures/` and were produced
+  by the same `/api/moodboard/generate` endpoint with different
+  `client_industry` inputs.
+- Cross-fade to Landing hero with the closing titles :
+  - *"Three levels of managed agents. Opus 4.7 Vision HD on the plans.
+    Two MCPs, SketchUp and AutoCAD. Built from scratch during the
+    Built with Opus 4.7 hackathon."*
   - Repo URL
-  - `designoffice.so` or the submission link
   - Stack logos : Claude Opus 4.7 · FastAPI · React · SketchUp ·
     AutoCAD
   - License badge : MIT

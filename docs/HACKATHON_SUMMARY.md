@@ -170,8 +170,35 @@ Saguez & Partners, MoreySmith. The downloadable A4 PDF and 6-slide
 pitch deck carry the same identity — ivory page, forest eyebrows,
 sand rules — so the exported artefacts read as a continuation of the
 app rather than a separate template. Principles, tokens and motion
-documented in [`UI_DESIGN.md`](UI_DESIGN.md) ; five page captures
+documented in [`UI_DESIGN.md`](UI_DESIGN.md) ; six page captures
 in [`screenshots/`](screenshots/).
+
+## Proof the client-aware system works
+
+The product adapts to the client's industry — not cosmetically but at
+the level of palette, materials, furniture, planting and lighting.
+Three live Opus 4.7 runs on the same orchestration code, only the
+industry input varies :
+
+- **Lumen · tech startup** → Linen canvas + Pale oak + Lumen sun.
+  Amtico Worn Oak LVT, Kvadrat Remix, BAUX wood-wool, Framery One
+  Compact. Tagline: *"An atelier of focus on the north light, a bright
+  social forge on the south."*
+- **Altamont & Rees · City of London law firm** → Chambers green +
+  Walnut leather + Aged brass. Dinesen Douglas plank, Farrow & Ball
+  Card Room Green, Mutina Margarita terrazzo, Gustafs walnut
+  bookwalls, Création Baumann Hush acoustic curtain. Tagline: *"A
+  discreet enfilade of chambers — where light is filtered,
+  conversations stay, and every material earns its patina."*
+- **Kaito Miró · creative agency** → Plaster ivory + Kiln terracotta
+  + Acid yellow. Polished concrete, Clayworks clay plaster, BAUX
+  terracotta tiles, Woven Image EchoPanel in acid yellow, Bolon
+  Artisan. Tagline: *"A loud, plaster-white gallery where every wall
+  is a weekly exhibition."*
+
+Every product is a real SKU from a real manufacturer, cited inline so
+a space planner can place the order from the PDF. Each mood board is
+committed as a fixture with its full `selection.json` audit file.
 
 ## Artefacts to inspect
 
@@ -186,6 +213,15 @@ Everything is in the public repo :
 - [`backend/tests/fixtures/lumen_export_atelier.dxf`](../backend/tests/fixtures/lumen_export_atelier.dxf)
   — live A1 DXF at 1:100, all 5 Design Office layers populated, title
   block cartouche, 168 KB
+- [`backend/tests/fixtures/lumen_microzoning_atelier.md`](../backend/tests/fixtures/lumen_microzoning_atelier.md)
+  — zone-by-zone drill-down on the Atelier variant, 11 KB
+- [`backend/tests/fixtures/lumen_moodboard.pdf`](../backend/tests/fixtures/lumen_moodboard.pdf),
+  [`altamont_moodboard.pdf`](../backend/tests/fixtures/altamont_moodboard.pdf),
+  [`kaito_moodboard.pdf`](../backend/tests/fixtures/kaito_moodboard.pdf)
+  — three A3-landscape mood boards, one per industry, all Opus-curated
+- [`backend/tests/fixtures/sketchup_variant_*_*.png`](../backend/tests/fixtures/)
+  — 21 SketchUp iso captures (3 variants × 6 angles + 3 back-compat
+  aliases) with realistic textures, shadows at 14:00
 - [`backend/logs/api_calls.jsonl`](../backend/logs/api_calls.jsonl) —
   complete audit log of every Opus call ; each line has tag, tokens,
   attempts, outcome

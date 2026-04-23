@@ -279,13 +279,40 @@ SOFT + opsz axes) for display + body, Inter for UI, JetBrains Mono for
 labels. The aesthetic reference is Kinfolk magazine, Saguez & Partners,
 MoreySmith — never a SaaS dashboard.
 
-The five page captures below come from headless Chrome at 1 440 × 900.
+The six page captures below come from headless Chrome at 1 440 × 900.
 Full principles + palette + motion tokens live in
 **[`docs/UI_DESIGN.md`](docs/UI_DESIGN.md)**.
 
 | I · Landing | II · Brief | III · Test Fit | IV · Mood Board | V · Justify | VI · Export |
 |:-:|:-:|:-:|:-:|:-:|:-:|
 | [![Landing](docs/screenshots/01-landing.png)](docs/screenshots/01-landing.png) | [![Brief](docs/screenshots/02-brief.png)](docs/screenshots/02-brief.png) | [![Test Fit](docs/screenshots/03-testfit.png)](docs/screenshots/03-testfit.png) | [![Mood Board](docs/screenshots/04-moodboard.png)](docs/screenshots/04-moodboard.png) | [![Justify](docs/screenshots/05-justify.png)](docs/screenshots/05-justify.png) | [![Export](docs/screenshots/06-export.png)](docs/screenshots/06-export.png) |
+
+## Client-aware — the same system, three very different outputs
+
+A fintech, a law firm and a creative agency ask for the same floor to
+be fit out. Design Office reads the industry profile from the brief,
+picks palette, materials, furniture and lighting from the right
+catalogues, and produces a mood board that actually reads as
+industry-appropriate rather than as beige LLM output. Every product
+below comes from a real manufacturer, cited inline.
+
+| Client · industry | Hero palette | Signature materials | Tagline (Opus-generated) |
+|---|---|---|---|
+| **Lumen · tech startup** | Linen canvas · Pale oak · Atelier ink · Studio putty · Lumen sun | Amtico Worn Oak, Kvadrat Remix, BAUX wood-wool, Farrow & Ball Railings, Framery One Compact | *An atelier of focus on the north light, a bright social forge on the south.* |
+| **Altamont & Rees · law firm** | Chambers green · Walnut leather · Parchment · Ink graphite · Aged brass | Dinesen Douglas plank, Farrow & Ball Card Room Green, Mutina Margarita terrazzo, Gustafs walnut, Création Baumann Hush | *A discreet enfilade of chambers — where light is filtered, conversations stay, and every material earns its patina.* |
+| **Kaito Miró · creative agency** | Plaster ivory · Kiln terracotta · Raw plywood · Concrete brut · Acid yellow | Polished concrete, Clayworks clay plaster, BAUX terracotta tiles, Woven Image EchoPanel (acid yellow), Bolon Artisan | *A loud, plaster-white gallery where every wall is a weekly exhibition.* |
+
+Each one is a live Opus 4.7 run against the same orchestration code —
+only the `client_industry` input and the brief text change. All three
+A3 landscape PDFs are committed as fixtures and replayable without
+another call:
+
+- `backend/tests/fixtures/lumen_moodboard.pdf`
+- `backend/tests/fixtures/altamont_moodboard.pdf`
+- `backend/tests/fixtures/kaito_moodboard.pdf`
+
+Each PDF is paired with a `*_selection.json` audit file containing the
+structured curator output that fed the renderer.
 
 ## Documentation
 
