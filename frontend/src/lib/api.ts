@@ -280,6 +280,8 @@ export type JustifyRequest = {
   floor_plan: FloorPlan;
   variant: VariantOutput;
   language?: "fr" | "en";
+  client_logo_data_url?: string | null;
+  sketchup_iso_path?: string | null;
 };
 
 export async function generateJustify(req: JustifyRequest): Promise<JustifyResponse> {

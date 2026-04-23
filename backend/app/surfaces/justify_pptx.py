@@ -54,14 +54,23 @@ def render_pitch_deck(
     variant: VariantOutput,
     argumentaire_markdown: str,
     project_reference: str | None = None,
+    client_logo_data_url: str | None = None,
+    sketchup_iso_path: str | None = None,
 ) -> PptxBuild:
     """Render the 6-slide pitch deck. Returns a `PptxBuild` summary with the
     id + on-disk path.
+
+    Optional extras:
+    - `client_logo_data_url` : `data:image/png;base64,…` from the Brief page.
+      When provided, it is decoded and placed on the cover slide + footer.
+    - `sketchup_iso_path` : absolute path to a PNG iso render of the
+      retained variant. When provided, it is embedded on the cover slide
+      as a full-bleed right column to give the deck a flagship image.
     """
 
     PPTX_OUT_DIR.mkdir(parents=True, exist_ok=True)
     pptx_id = hashlib.sha1(
-        f"pptx:{client_name}:{variant.style.value}:{argumentaire_markdown[:400]}".encode("utf-8")
+        f"pptx:{client_name}:{variant.style.value}:{argumentaire_markdown[:400]}:{bool(client_logo_data_url)}:{bool(sketchup_iso_path)}".encode("utf-8")
     ).hexdigest()[:16]
     target = PPTX_OUT_DIR / f"{pptx_id}.pptx"
 
@@ -70,13 +79,25 @@ def render_pitch_deck(
     prs.slide_height = Inches(7.5)
 
     sections = _split_argumentaire(argumentaire_markdown)
+    logo_bytes = _decode_data_url(client_logo_data_url) if client_logo_data_url else None
 
-    _build_cover_slide(prs, client_name=client_name, variant=variant)
+    _build_cover_slide(
+        prs,
+        client_name=client_name,
+        variant=variant,
+        logo_bytes=logo_bytes,
+        iso_path=sketchup_iso_path,
+    )
     _build_bet_slide(prs, client_name=client_name, section=sections.get("1", ""))
     _build_metrics_slide(prs, variant=variant)
     _build_research_slide(prs, sections=sections)
     _build_regulatory_slide(prs, sections=sections)
-    _build_next_steps_slide(prs, sections=sections, project_reference=project_reference)
+    _build_next_steps_slide(
+        prs,
+        sections=sections,
+        project_reference=project_reference,
+        logo_bytes=logo_bytes,
+    )
 
     prs.save(str(target))
     size = target.stat().st_size
@@ -87,6 +108,20 @@ def render_pitch_deck(
         slide_count=len(prs.slides),
         bytes=size,
     )
+
+
+def _decode_data_url(data_url: str) -> bytes | None:
+    """Extract bytes from a `data:image/png;base64,…` URL."""
+
+    import base64
+
+    try:
+        head, tail = data_url.split(",", 1)
+        if "base64" not in head:
+            return None
+        return base64.b64decode(tail)
+    except Exception:  # noqa: BLE001
+        return None
 
 
 # ---------------------------------------------------------------------------
@@ -143,16 +178,50 @@ def _add_hr(slide, left: float, top: float, width: float, color: RGBColor = OCHR
     line.line.width = Pt(1.0)
 
 
-def _build_cover_slide(prs: Presentation, *, client_name: str, variant: VariantOutput) -> None:
-    slide, w, h = _blank_slide(prs)
+def _build_cover_slide(
+    prs: Presentation,
+    *,
+    client_name: str,
+    variant: VariantOutput,
+    logo_bytes: bytes | None = None,
+    iso_path: str | None = None,
+) -> None:
+    slide, _, _ = _blank_slide(prs)
+
+    # Optional SketchUp iso render on the right half of the cover.
+    if iso_path and Path(iso_path).exists():
+        try:
+            slide.shapes.add_picture(
+                iso_path,
+                Inches(7.0),
+                Inches(0.6),
+                width=Inches(5.8),
+                height=Inches(6.3),
+            )
+        except Exception:  # noqa: BLE001
+            pass
+
+    # Optional client logo, top-left.
+    if logo_bytes:
+        try:
+            import io as _io
+
+            slide.shapes.add_picture(
+                _io.BytesIO(logo_bytes),
+                Inches(0.8),
+                Inches(0.5),
+                height=Inches(0.6),
+            )
+        except Exception:  # noqa: BLE001
+            pass
 
     _add_text(
         slide,
         0.8,
-        0.6,
-        12,
+        1.3,
+        6.0,
         0.35,
-        "Design Office — argumentaire client",
+        "Design Office — client argumentaire",
         font="Courier New",
         size=11,
         color=TERRACOTTA,
@@ -161,34 +230,34 @@ def _build_cover_slide(prs: Presentation, *, client_name: str, variant: VariantO
     _add_text(
         slide,
         0.8,
-        1.2,
-        12,
+        1.9,
+        6.0,
         2.6,
         f"{client_name}\n« {variant.title} »",
         font="Calibri",
-        size=56,
+        size=48,
         color=BONE_TEXT,
         bold=True,
     )
-    _add_hr(slide, 0.8, 4.0, 4.0)
+    _add_hr(slide, 0.8, 4.6, 4.0)
     _add_text(
         slide,
         0.8,
-        4.2,
-        12,
-        2.4,
-        f"Parti : {variant.style.value.replace('_', ' ').title()}\n"
-        f"Postes : {variant.metrics.workstation_count}\n"
-        f"Flex ratio : {variant.metrics.flex_ratio_applied:.2f}\n"
-        f"Total programmé : ≈ {round(variant.metrics.total_programmed_m2)} m²",
+        4.8,
+        6.0,
+        2.0,
+        f"Parti: {variant.style.value.replace('_', ' ').title()}\n"
+        f"Desks: {variant.metrics.workstation_count}\n"
+        f"Flex ratio: {variant.metrics.flex_ratio_applied:.2f}\n"
+        f"Total programmed: ≈ {round(variant.metrics.total_programmed_m2)} m²",
         font="Calibri",
-        size=20,
+        size=18,
         color=BONE_TEXT,
     )
     _add_text(
         slide,
         0.8,
-        6.8,
+        6.9,
         12,
         0.4,
         f"{datetime.now(tz=timezone.utc).date().isoformat()} · Built with Opus 4.7 · MIT License",
@@ -361,10 +430,27 @@ def _build_regulatory_slide(prs: Presentation, *, sections: dict[str, str]) -> N
 
 
 def _build_next_steps_slide(
-    prs: Presentation, *, sections: dict[str, str], project_reference: str | None
+    prs: Presentation,
+    *,
+    sections: dict[str, str],
+    project_reference: str | None,
+    logo_bytes: bytes | None = None,
 ) -> None:
     slide, _, _ = _blank_slide(prs)
     _eyebrow(slide, "05 · Prochaines étapes & KPIs")
+    # Client logo, bottom-right footer.
+    if logo_bytes:
+        try:
+            import io as _io
+
+            slide.shapes.add_picture(
+                _io.BytesIO(logo_bytes),
+                Inches(12.0),
+                Inches(6.7),
+                height=Inches(0.5),
+            )
+        except Exception:  # noqa: BLE001
+            pass
     _add_text(
         slide,
         0.8,

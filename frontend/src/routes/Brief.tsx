@@ -10,6 +10,7 @@ import {
   BriefResponse,
   fetchBriefManifest,
   synthesizeBrief,
+  uploadPlanPdf,
   type BriefManifest,
   type SubAgentTrace,
 } from "../lib/api";
@@ -17,6 +18,7 @@ import {
   INDUSTRY_LABEL,
   setBrief as persistBrief,
   setClient,
+  setFloorPlan,
   setProgramme as persistProgramme,
   type Industry,
 } from "../lib/projectState";
@@ -214,6 +216,12 @@ export default function Brief() {
                 rows={16}
                 placeholder="Paste the client brief — or describe their culture, their rituals, their constraints."
               />
+            </div>
+
+            {/* Optional attachments — floor plan PDF + client logo */}
+            <div className="grid gap-8 md:grid-cols-2">
+              <FloorPlanUpload />
+              <ClientLogoUpload />
             </div>
 
             <div className="flex flex-wrap items-center gap-5 border-t border-hairline pt-8">
@@ -417,6 +425,140 @@ function TraceCard({ trace }: { trace: SubAgentTrace }) {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function FloorPlanUpload() {
+  const project = useProjectState();
+  const [state, setState] = useState<
+    { kind: "idle" } | { kind: "uploading" } | { kind: "error"; message: string }
+  >({ kind: "idle" });
+
+  const onPick = async (file: File) => {
+    setState({ kind: "uploading" });
+    try {
+      const plan = await uploadPlanPdf(file, true);
+      setFloorPlan(plan);
+      setState({ kind: "idle" });
+    } catch (exc) {
+      setState({
+        kind: "error",
+        message: exc instanceof Error ? exc.message : String(exc),
+      });
+    }
+  };
+
+  const current = project.floor_plan;
+
+  return (
+    <div>
+      <p className="label-xs text-ink-muted">Floor plan (optional)</p>
+      <label className="mt-3 flex cursor-pointer items-center justify-between gap-3 border-b border-hairline pb-3 text-[13.5px] text-ink transition-colors hover:border-forest">
+        <span className="truncate">
+          {state.kind === "uploading"
+            ? "Parsing…"
+            : current
+              ? `${current.name ?? "Plan"} · ${current.columns.length} columns`
+              : "Drop a PDF to give the agents spatial context"}
+        </span>
+        <span className="font-mono text-[10px] uppercase tracking-label text-forest">
+          {current ? "Swap" : "Drop PDF"}
+        </span>
+        <input
+          type="file"
+          accept="application/pdf"
+          className="hidden"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) void onPick(f);
+          }}
+        />
+      </label>
+      <p className="mt-2 font-mono text-[10px] uppercase tracking-label text-ink-muted">
+        Optional — Vision HD reads the plan so the Brief agents know
+        envelope, columns, cores and façades.
+      </p>
+      {state.kind === "error" && (
+        <p className="mt-2 font-mono text-[11px] text-clay">{state.message}</p>
+      )}
+    </div>
+  );
+}
+
+function ClientLogoUpload() {
+  const project = useProjectState();
+  const [error, setError] = useState<string | null>(null);
+
+  const onPick = (file: File) => {
+    setError(null);
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        // Lightweight size guard — keep below 500 KB to stay inside the
+        // 5 MB localStorage quota with comfortable headroom.
+        if (reader.result.length > 500_000) {
+          setError("Logo is too large. Please crop to ≤ 500 KB.");
+          return;
+        }
+        setClient({ logo_data_url: reader.result });
+      }
+    };
+    reader.onerror = () => setError("Could not read the image.");
+    reader.readAsDataURL(file);
+  };
+
+  const onClear = () => {
+    setClient({ logo_data_url: null });
+  };
+
+  return (
+    <div>
+      <p className="label-xs text-ink-muted">Client logo (optional)</p>
+      <div className="mt-3 flex items-center justify-between gap-4 border-b border-hairline pb-3">
+        <div className="flex items-center gap-3">
+          {project.client.logo_data_url ? (
+            <img
+              src={project.client.logo_data_url}
+              alt={`${project.client.name} logo`}
+              className="h-8 w-auto max-w-[120px] rounded-sm border border-hairline bg-raised object-contain p-1"
+            />
+          ) : (
+            <span className="inline-flex h-8 w-14 items-center justify-center rounded-sm border border-dashed border-hairline text-[10px] text-ink-muted">
+              none
+            </span>
+          )}
+          <span className="text-[13.5px] text-ink">
+            {project.client.logo_data_url ? "Logo attached" : "Upload a PNG / JPG"}
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          {project.client.logo_data_url && (
+            <button
+              onClick={onClear}
+              className="font-mono text-[10px] uppercase tracking-label text-ink-muted hover:text-clay"
+            >
+              Remove
+            </button>
+          )}
+          <label className="cursor-pointer font-mono text-[10px] uppercase tracking-label text-forest">
+            {project.client.logo_data_url ? "Replace" : "Upload"}
+            <input
+              type="file"
+              accept="image/png,image/jpeg"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) onPick(f);
+              }}
+            />
+          </label>
+        </div>
+      </div>
+      <p className="mt-2 font-mono text-[10px] uppercase tracking-label text-ink-muted">
+        Appears on the mood-board A3 header and the pitch-deck cover.
+      </p>
+      {error && <p className="mt-2 font-mono text-[11px] text-clay">{error}</p>}
     </div>
   );
 }

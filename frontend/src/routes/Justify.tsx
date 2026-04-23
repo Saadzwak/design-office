@@ -7,6 +7,7 @@ import DotStatus from "../components/ui/DotStatus";
 import TypewriterText from "../components/ui/TypewriterText";
 import VariantViewer from "../components/viewer/VariantViewer";
 import { useLiveScreenshots } from "../hooks/useLiveScreenshots";
+import { useProjectState } from "../hooks/useProjectState";
 import {
   fetchTestFitSample,
   generateJustify,
@@ -71,6 +72,7 @@ const AGENT_TYPING: Record<string, string> = {
 };
 
 export default function Justify() {
+  const project = useProjectState();
   const [stored, setStored] = useState<PersistedTestFit | null>(() => {
     try {
       const raw = localStorage.getItem("design-office.testfit.result");
@@ -152,12 +154,13 @@ export default function Justify() {
     setState({ kind: "running" });
     try {
       const response = await generateJustify({
-        client_name: "Lumen",
+        client_name: project.client.name || "Lumen",
         brief,
         programme_markdown: programme,
         floor_plan: floorPlan,
         variant: chosenVariant,
-        language: "fr",
+        language: "en",
+        client_logo_data_url: project.client.logo_data_url,
       });
       setState({ kind: "done", response });
       localStorage.setItem("design-office.brief", brief);

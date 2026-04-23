@@ -59,7 +59,23 @@ class JustifyRequest(BaseModel):
     programme_markdown: str = Field(..., min_length=50)
     floor_plan: FloorPlan
     variant: VariantOutput
-    language: str = "fr"
+    language: str = "en"
+    client_logo_data_url: str | None = Field(
+        default=None,
+        description=(
+            "Optional `data:image/...;base64,…` URL uploaded on the Brief "
+            "page. When provided, the PPTX pitch deck embeds it on the "
+            "cover + footer."
+        ),
+    )
+    sketchup_iso_path: str | None = Field(
+        default=None,
+        description=(
+            "Optional absolute path to a PNG iso render of the retained "
+            "variant. When provided, the PPTX cover uses it as the "
+            "flagship right-column image."
+        ),
+    )
 
 
 class JustifySubOutput(BaseModel):
@@ -206,6 +222,8 @@ class JustifySurface:
                 client_name=req.client_name,
                 variant=req.variant,
                 argumentaire_markdown=cons_out.text,
+                client_logo_data_url=req.client_logo_data_url,
+                sketchup_iso_path=req.sketchup_iso_path,
             )
             pptx_id = pptx.pptx_id
         except Exception:  # noqa: BLE001
