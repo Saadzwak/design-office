@@ -371,33 +371,31 @@ export default function ChatPanel({ mode, onClose, onExpand: _onExpand }: Props)
         <div ref={scrollAnchorRef} />
       </div>
 
-      {/* Composer */}
-      <div className="border-t border-hairline px-5 py-4">
-        <div className="flex items-end gap-3">
-          <textarea
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onKeyDown={onKey}
-            placeholder={
-              context.page === "testfit"
-                ? "Grow the boardroom, summarise the acoustic argument…"
-                : "Ask a question, or propose a change…"
-            }
-            rows={2}
-            className="min-h-[44px] flex-1 resize-none rounded-md border border-hairline bg-raised px-3 py-2 font-sans text-[14px] leading-relaxed text-ink placeholder:text-ink-muted focus:border-forest focus:outline-none focus:ring-2 focus:ring-forest/20"
-          />
-          <button
-            onClick={() => send()}
-            disabled={!draft.trim() || pending}
-            className="btn-primary h-[44px] px-3"
-            title="Send (Enter)"
-          >
-            <Send className="h-4 w-4" />
-          </button>
-        </div>
-        <p className="mt-2 font-mono text-[10px] uppercase tracking-label text-ink-muted">
-          Enter sends · Shift+Enter for a new line
-        </p>
+      {/* Composer — bundle parity : underline input + 36 px forest
+          circular send button, no rounded box. */}
+      <div className="flex items-center gap-2.5 border-t border-mist-200 px-5 py-3.5 bg-canvas">
+        <textarea
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={onKey}
+          placeholder={
+            context.page === "testfit"
+              ? "Grow the boardroom, summarise the acoustic argument…"
+              : "Ask anything or say what to do…"
+          }
+          rows={1}
+          className="flex-1 resize-none border-0 border-b border-mist-300 bg-transparent py-2 text-[14px] leading-relaxed text-ink placeholder:text-mist-400 focus:border-forest focus:outline-none"
+          style={{ borderBottom: "none" }}
+        />
+        <button
+          onClick={() => send()}
+          disabled={!draft.trim() || pending}
+          className="flex h-9 w-9 items-center justify-center rounded-md text-canvas transition-all hover:scale-105 disabled:opacity-40"
+          style={{ background: "var(--forest)" }}
+          title="Send (Enter)"
+        >
+          <Send className="h-3.5 w-3.5" />
+        </button>
       </div>
     </div>
   );
@@ -436,20 +434,32 @@ function Bubble({
   role,
   text,
   streaming,
+  children,
 }: {
   role: ChatMessage["role"];
   text: string;
   streaming?: boolean;
+  children?: React.ReactNode;
 }) {
   const isUser = role === "user";
+  // Bundle parity : user bubbles are mist-100 rounded with a sharp
+  // bottom-right corner ; assistant bubbles are canvas with a 2 px
+  // forest left border and a sharp top-left corner — the two read as
+  // "this side / that side" without needing avatars.
+  const bubbleShape = isUser
+    ? "rounded-[14px_14px_2px_14px] bg-mist-100"
+    : "rounded-[2px_14px_14px_14px] bg-canvas border-l-2 border-l-forest";
   return (
-    <div className={["flex", isUser ? "justify-end" : "justify-start"].join(" ")}>
+    <div
+      className={[
+        "flex fade-rise",
+        isUser ? "justify-end" : "justify-start",
+      ].join(" ")}
+    >
       <div
         className={[
-          "max-w-[85%] rounded-lg px-3.5 py-2.5 text-[14px] leading-relaxed",
-          isUser
-            ? "bg-mist-100 text-ink"
-            : "border border-hairline bg-raised text-ink",
+          "max-w-[82%] px-4 py-3 text-[14px] leading-relaxed text-ink",
+          bubbleShape,
           streaming ? "ring-1 ring-forest/30" : "",
         ].join(" ")}
       >
@@ -460,6 +470,7 @@ function Bubble({
             <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>
           </div>
         )}
+        {children}
       </div>
     </div>
   );
