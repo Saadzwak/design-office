@@ -39,6 +39,7 @@ from app.surfaces.moodboard import (
     pdf_path_for as moodboard_pdf_path_for,
 )
 from app.surfaces.visual_moodboard import (
+    VisualMoodBoardGalleryResponse,
     VisualMoodBoardRequest,
     VisualMoodBoardResponse,
     compile_default_surface as compile_visual_moodboard_surface,
@@ -461,6 +462,30 @@ def moodboard_generate_visual(payload: VisualMoodBoardRequest) -> VisualMoodBoar
         raise HTTPException(status_code=503, detail=str(exc))
     try:
         return surface.generate(payload)
+    except NanoBananaError as exc:
+        raise HTTPException(status_code=502, detail=str(exc))
+
+
+@app.post(
+    "/api/moodboard/generate-gallery",
+    response_model=VisualMoodBoardGalleryResponse,
+)
+def moodboard_generate_gallery(
+    payload: VisualMoodBoardRequest,
+) -> VisualMoodBoardGalleryResponse:
+    """Iter-20d (Saad #26) : generate 4 themed NanoBanana tiles —
+    atmosphere / materials / furniture / biophilic — each prompted
+    from the full moodboard-curator Selection JSON so the images
+    reflect THIS project, not a stock mood board. Replaces the
+    Pinterest-collage Placeholder hatches on the /moodboard page.
+    """
+
+    try:
+        surface = compile_visual_moodboard_surface()
+    except NanoBananaError as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
+    try:
+        return surface.generate_gallery(payload)
     except NanoBananaError as exc:
         raise HTTPException(status_code=502, detail=str(exc))
 

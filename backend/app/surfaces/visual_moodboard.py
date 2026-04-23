@@ -172,10 +172,80 @@ def _material_strings_from_selection(selection: dict[str, Any] | None) -> list[s
     return out
 
 
+def _furniture_strings_from_selection(
+    selection: dict[str, Any] | None,
+) -> list[str]:
+    if not selection:
+        return []
+    furn = selection.get("furniture") or []
+    out: list[str] = []
+    if isinstance(furn, list):
+        for f in furn[:6]:
+            if not isinstance(f, dict):
+                continue
+            name = f.get("name") or f.get("model") or ""
+            brand = f.get("brand") or ""
+            if name:
+                out.append(f"{brand} {name}".strip())
+    return out
+
+
+def _planting_strings_from_selection(
+    selection: dict[str, Any] | None,
+) -> list[str]:
+    if not selection:
+        return []
+    p = selection.get("planting")
+    if isinstance(p, dict):
+        species = p.get("species") or []
+        out: list[str] = []
+        for s in species[:5] if isinstance(species, list) else []:
+            if isinstance(s, str):
+                out.append(s)
+            elif isinstance(s, dict):
+                nm = s.get("name") or s.get("latin") or s.get("common_name")
+                if nm:
+                    out.append(nm)
+        return out
+    if isinstance(p, list):
+        return [
+            str(x) if isinstance(x, str) else str((x or {}).get("name") or "")
+            for x in p[:5]
+        ]
+    return []
+
+
+def _light_sentence_from_selection(
+    selection: dict[str, Any] | None,
+) -> str:
+    if not selection:
+        return ""
+    light = selection.get("light") or {}
+    if isinstance(light, dict):
+        strategy = light.get("strategy") or ""
+        kelvin = light.get("temperature_kelvin") or ""
+        parts = [s for s in [kelvin, strategy] if s]
+        return " · ".join(parts)
+    return ""
+
+
+def _tagline_from_selection(selection: dict[str, Any] | None) -> str:
+    if not selection:
+        return ""
+    header = selection.get("header") or {}
+    if isinstance(header, dict):
+        return str(header.get("tagline") or "").strip()
+    return ""
+
+
 def compose_prompt(req: VisualMoodBoardRequest) -> str:
     """Build the NanoBanana text-to-image prompt from the full project
-    context. Kept as a pure function so tests can assert the right
-    inputs land in the prompt without hitting fal.ai.
+    context. Iter-20d (Saad #26) : fuses MORE of the moodboard_curator
+    output into the prompt — every palette hex, every material + brand,
+    every signature furniture piece + brand, planting species, light
+    strategy and Kelvin, plus the tagline verbatim. A richer prompt
+    steers NanoBanana into a scene that looks like THIS project, not a
+    generic stock mood board.
     """
 
     register = INDUSTRY_REGISTER.get(req.industry, INDUSTRY_REGISTER["other"])
@@ -185,6 +255,10 @@ def compose_prompt(req: VisualMoodBoardRequest) -> str:
     )
     palette_hexes = _palette_hex_from_selection(req.mood_board_selection)
     materials = _material_strings_from_selection(req.mood_board_selection)
+    furniture = _furniture_strings_from_selection(req.mood_board_selection)
+    planting = _planting_strings_from_selection(req.mood_board_selection)
+    light = _light_sentence_from_selection(req.mood_board_selection)
+    tagline = _tagline_from_selection(req.mood_board_selection)
     brand_bits = ", ".join(req.brand_keywords) if req.brand_keywords else ""
 
     palette_line = (
@@ -197,16 +271,28 @@ def compose_prompt(req: VisualMoodBoardRequest) -> str:
         + "; ".join(materials)
     ) if materials else ""
 
+    furniture_line = (
+        "Include hints of these signature furniture pieces: "
+        + "; ".join(furniture)
+    ) if furniture else ""
+
+    planting_line = (
+        "Biophilic accents — real plants in the frame: "
+        + ", ".join(planting)
+    ) if planting else ""
+
+    light_line = f"Lighting direction: {light[:240]}." if light else ""
+
     macro = (req.macro_zoning_summary or "").strip()
     micro = (req.micro_zoning_summary or "").strip()
     context_block = ""
+    if tagline:
+        context_block += f"\nPROJECT TAGLINE (the feeling to match): \"{tagline}\""
     if macro:
         context_block += f"\nMACRO-ZONING DIRECTION: {macro[:400]}"
     if micro:
         context_block += f"\nMICRO-ZONING DETAIL: {micro[:400]}"
 
-    # The prompt is deliberately narrative. NanoBanana / Gemini 3 Pro
-    # Image responds best to cinematic direction, not tag-soup.
     prompt = f"""A Pinterest-grade composite mood board for a {req.industry.replace('_', ' ')} office
 fit-out — for {req.client_name}, retained variant "{req.variant.title}".
 Magazine layout, asymmetric grid, negative space, not a collage
@@ -215,6 +301,9 @@ grid. Hand-laid feel, architect's studio table aesthetic.
 ATMOSPHERE: {register}. {atmosphere}.
 
 {palette_line}. {materials_line}
+{furniture_line}
+{planting_line}
+{light_line}
 {context_block}
 
 Place visible, legible elements (left-to-right, loosely):
@@ -241,9 +330,155 @@ atmosphere board, not the plan. {brand_bits}
     return " ".join(prompt.split())  # collapse whitespace
 
 
+# ──────────────────────────────────────────────── gallery (iter-20d) ──
+
+def _gallery_prompts(
+    req: VisualMoodBoardRequest,
+) -> list[tuple[str, str]]:
+    """Four themed sub-prompts — one per tile in the MoodBoard Pinterest
+    collage. Returns `[(label, prompt)]` so the caller can tag the
+    resulting image ids by tile type. Saad #26/#27 : every prompt
+    pulls from the full curator Selection JSON so NanoBanana paints
+    THIS project, not a generic mood board.
+    """
+
+    palette = _palette_hex_from_selection(req.mood_board_selection)
+    materials = _material_strings_from_selection(req.mood_board_selection)
+    furniture = _furniture_strings_from_selection(req.mood_board_selection)
+    planting = _planting_strings_from_selection(req.mood_board_selection)
+    light = _light_sentence_from_selection(req.mood_board_selection)
+    tagline = _tagline_from_selection(req.mood_board_selection)
+    industry = req.industry.replace("_", " ")
+
+    palette_str = (
+        ", ".join(palette)
+        or "warm ivory, forest green #2F4A3F, sand, sun yellow, clay terracotta"
+    )
+    style_footer = (
+        "Editorial, Kinfolk / Dwell / Wallpaper* magazine style, sharp focus, "
+        "natural light from one side, subtle paper texture, no text captions, "
+        "no watermarks, no logos, no overlap glitches, no stock-photo gloss."
+    )
+
+    tagline_bit = f'Feeling: "{tagline}". ' if tagline else ""
+    light_bit = f"Lighting: {light[:180]}. " if light else ""
+    materials_str = "; ".join(materials[:6]) or (
+        "oak, linen, brass, plaster, acoustic felt"
+    )
+    furniture_str = "; ".join(furniture[:5]) or (
+        "a bouclé lounge chair, an oak conference table, a paper pendant, a task chair"
+    )
+    planting_str = ", ".join(planting[:4]) or (
+        "Ficus lyrata, Monstera deliciosa, Kentia palm"
+    )
+    hero_background = palette[0] if palette else "warm ivory"
+
+    atmosphere_prompt = (
+        f"Hero atmosphere shot of a {industry} office interior for "
+        f'{req.client_name} — "{req.variant.title}". '
+        f"{tagline_bit}"
+        f"Wide establishing composition, deep perspective, daylight, "
+        f"real architectural space — not a rendering. "
+        f"Palette (exact hexes, hold the line): {palette_str}. "
+        f"{style_footer}"
+    )
+    materials_prompt = (
+        f"Material tableau — laid flat on an architect's studio table. "
+        f"Swatches and samples of: {materials_str}. "
+        f"Palette reference: {palette_str}. "
+        f"Overhead three-quarter angle, warm cast shadow, fine labels "
+        f"optional. {style_footer}"
+    )
+    furniture_prompt = (
+        f"Editorial still-life of the signature furniture pieces for "
+        f"{req.client_name}: {furniture_str}. "
+        f"Studio backdrop in {hero_background}, single-source daylight. "
+        f"{style_footer}"
+    )
+    biophilic_prompt = (
+        f"Biophilic corner of the space — real plants in the frame: "
+        f"{planting_str}. "
+        f"{light_bit}"
+        f"Wood + plaster + greenery composition, quiet morning light. "
+        f"Palette: {palette_str}. {style_footer}"
+    )
+
+    return [
+        ("atmosphere", atmosphere_prompt),
+        ("materials", materials_prompt),
+        ("furniture", furniture_prompt),
+        ("biophilic", biophilic_prompt),
+    ]
+
+
+class GalleryTile(BaseModel):
+    label: str  # "atmosphere" / "materials" / "furniture" / "biophilic"
+    visual_image_id: str
+    path_rel: str
+    cache_hit: bool
+    prompt: str
+
+
+class VisualMoodBoardGalleryResponse(BaseModel):
+    tiles: list[GalleryTile]
+    hero: VisualMoodBoardResponse | None = None
+    total_bytes: int = 0
+    cache_hits: int = 0
+
+
 @dataclass
 class VisualMoodBoardSurface:
     client: NanoBananaClient
+
+    def generate_gallery(
+        self, req: VisualMoodBoardRequest
+    ) -> VisualMoodBoardGalleryResponse:
+        """Iter-20d : produce the 4 themed tiles in one shot, caching
+        each one on disk (NanoBanana client handles that internally).
+        Returns in a stable `[atmosphere, materials, furniture,
+        biophilic]` order so the frontend can map each to a fixed
+        Pinterest-collage slot.
+        """
+
+        repo_root = BACKEND_ROOT.parent.parent
+        tiles: list[GalleryTile] = []
+        total_bytes = 0
+        cache_hits = 0
+        for label, prompt in _gallery_prompts(req):
+            try:
+                image: GeneratedImage = self.client.text_to_image(
+                    prompt=prompt,
+                    aspect_ratio=req.aspect_ratio,
+                    num_images=1,
+                    output_format="png",
+                )
+            except NanoBananaError:
+                raise
+
+            try:
+                path_rel = str(image.path.relative_to(repo_root))
+            except ValueError:
+                path_rel = str(image.path)
+
+            tiles.append(
+                GalleryTile(
+                    label=label,
+                    visual_image_id=image.cache_key,
+                    path_rel=path_rel,
+                    cache_hit=image.from_cache,
+                    prompt=image.prompt,
+                )
+            )
+            total_bytes += image.bytes_size
+            if image.from_cache:
+                cache_hits += 1
+
+        return VisualMoodBoardGalleryResponse(
+            tiles=tiles,
+            hero=None,  # first tile is already the atmosphere hero
+            total_bytes=total_bytes,
+            cache_hits=cache_hits,
+        )
 
     def generate(
         self, req: VisualMoodBoardRequest

@@ -14,8 +14,12 @@ import { useProjectState } from "../hooks/useProjectState";
 import {
   fetchTestFitSample,
   generateMoodBoard,
+  generateMoodBoardGallery,
+  generatedImageUrl,
   moodBoardPdfUrl,
   type MoodBoardResponse,
+  type VisualMoodBoardGalleryResponse,
+  type VisualMoodBoardGalleryTile,
 } from "../lib/api";
 import { INDUSTRY_LABEL, setMoodBoard } from "../lib/projectState";
 
@@ -104,6 +108,13 @@ export default function MoodBoard() {
   const [drawer, setDrawer] = useState<DrillKey | null>(null);
   const [phase, setPhase] = useState<"idle" | "running" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState<string>("");
+  // Iter-20d (Saad #9, #10, #26) : per-tile NanoBanana gallery.
+  // Fetched after `selection` lands. Tiles replace the tinted
+  // Placeholder hatches in the Pinterest collage.
+  const [gallery, setGallery] = useState<VisualMoodBoardGalleryTile[]>([]);
+  const [galleryPhase, setGalleryPhase] = useState<
+    "idle" | "running" | "error"
+  >("idle");
 
   // Iter-20a (Saad #6, #9) : the Lumen fixture used to preload for
   // every project, making a fresh project look like it already had a
@@ -143,6 +154,53 @@ export default function MoodBoard() {
     () => selection?.atmosphere?.palette ?? [],
     [selection],
   );
+
+  // Iter-20d : once a selection is known (whether from the preload
+  // fixture or a live curator run), fire the NanoBanana gallery to
+  // replace the Pinterest Placeholder hatches with 4 real images.
+  // Cached on the backend by sha256(prompt + model), so re-visits
+  // don't respend tokens.
+  const runGallery = async () => {
+    if (!selection) return;
+    setGalleryPhase("running");
+    try {
+      let variant = project.testfit?.variants?.find(
+        (v) => v.style === project.testfit?.retained_style,
+      ) ?? project.testfit?.variants?.[0];
+      if (!variant) {
+        const sample = await fetchTestFitSample();
+        variant =
+          sample.variants.find((v) => v.style === "atelier") ??
+          sample.variants[0];
+      }
+      if (!variant) throw new Error("No variant available");
+      const resp: VisualMoodBoardGalleryResponse =
+        await generateMoodBoardGallery({
+          client_name: project.client.name,
+          industry: project.client.industry,
+          variant,
+          mood_board_selection: selection as Record<string, unknown>,
+          aspect_ratio: "3:2",
+        });
+      setGallery(resp.tiles);
+      setGalleryPhase("idle");
+    } catch (err) {
+      // Non-fatal : the page still renders Placeholder tiles. Log so
+      // Engineering view users can see what happened if they check
+      // the console.
+      // eslint-disable-next-line no-console
+      console.warn("Mood-board gallery failed", err);
+      setGalleryPhase("error");
+    }
+  };
+
+  useEffect(() => {
+    // Auto-fire when a selection lands AND we haven't fetched yet.
+    if (selection && gallery.length === 0 && galleryPhase === "idle") {
+      runGallery();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selection]);
 
   const tiles = useMemo(() => buildTiles(selection), [selection]);
   const tagline =
@@ -278,16 +336,73 @@ export default function MoodBoard() {
         className="grid gap-12"
         style={{ gridTemplateColumns: "1.4fr 1fr" }}
       >
-        {/* Pinterest collage */}
+        {/* Pinterest collage — iter-20d mixes the NanoBanana gallery
+            tiles (real images at the top of the stack) with the
+            tinted material-swatch placeholders below. */}
         <div style={{ columnCount: 3, columnGap: 14 }}>
-          {tiles.map((t, i) => (
+          {gallery.map((g, i) => (
             <div
-              key={i}
+              key={`g-${g.visual_image_id}`}
               className="shadow-soft"
               style={{
                 breakInside: "avoid",
                 marginBottom: 14,
                 transform: `rotate(${(i % 3 - 1) * 0.4}deg)`,
+                background: "white",
+                padding: 6,
+                borderRadius: 4,
+              }}
+            >
+              <img
+                src={generatedImageUrl(g.visual_image_id)}
+                alt={`Mood board · ${g.label}`}
+                className="block w-full rounded"
+                style={{ aspectRatio: "3/2", objectFit: "cover" }}
+                loading="lazy"
+              />
+              <div className="mono mt-1.5 text-center text-[9px] uppercase tracking-[0.12em] text-mist-500">
+                {g.label}
+              </div>
+            </div>
+          ))}
+          {galleryPhase === "running" && gallery.length === 0 && (
+            <div
+              className="shadow-soft"
+              style={{
+                breakInside: "avoid",
+                marginBottom: 14,
+                background: "white",
+                padding: 6,
+                borderRadius: 4,
+              }}
+            >
+              <div
+                className="flex items-center justify-center rounded"
+                style={{
+                  aspectRatio: "3/2",
+                  background: "var(--canvas-alt)",
+                }}
+              >
+                <div className="text-center">
+                  <div
+                    className="mx-auto mb-2 h-2 w-2 animate-[dot-pulse_1.1s_var(--ease)_infinite] rounded-full"
+                    style={{ background: "var(--forest)" }}
+                  />
+                  <div className="mono text-[9px] uppercase tracking-[0.12em] text-mist-500">
+                    NanoBanana · 4 tiles composing…
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+          {tiles.map((t, i) => (
+            <div
+              key={`p-${i}`}
+              className="shadow-soft"
+              style={{
+                breakInside: "avoid",
+                marginBottom: 14,
+                transform: `rotate(${((i + gallery.length) % 3 - 1) * 0.4}deg)`,
                 background: "white",
                 padding: 6,
                 borderRadius: 4,

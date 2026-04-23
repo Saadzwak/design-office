@@ -223,6 +223,55 @@ export function moodBoardPdfUrl(pdfId: string): string {
   return `/api/moodboard/pdf/${pdfId}`;
 }
 
+// ---------------------------------------------------------------------------
+// Visual mood board + gallery (NanoBanana) — iter-17 + iter-20d
+// ---------------------------------------------------------------------------
+
+export type VisualMoodBoardGalleryTile = {
+  label: "atmosphere" | "materials" | "furniture" | "biophilic";
+  visual_image_id: string;
+  path_rel: string;
+  cache_hit: boolean;
+  prompt: string;
+};
+
+export type VisualMoodBoardGalleryResponse = {
+  tiles: VisualMoodBoardGalleryTile[];
+  hero: { visual_image_id: string; path_rel: string } | null;
+  total_bytes: number;
+  cache_hits: number;
+};
+
+export type VisualMoodBoardRequest = {
+  client_name: string;
+  industry: string;
+  variant: VariantOutput;
+  mood_board_selection?: Record<string, unknown> | null;
+  macro_zoning_summary?: string | null;
+  micro_zoning_summary?: string | null;
+  aspect_ratio?: "3:2" | "16:9" | "4:3" | "1:1";
+};
+
+export async function generateMoodBoardGallery(
+  req: VisualMoodBoardRequest,
+  signal?: AbortSignal,
+): Promise<VisualMoodBoardGalleryResponse> {
+  const r = await fetch("/api/moodboard/generate-gallery", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(req),
+    signal,
+  });
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+
+/** Serve a generated NanoBanana image by id. Backend whitelists the
+ *  cache-key pattern, so arbitrary ids 404 cleanly. */
+export function generatedImageUrl(imageId: string): string {
+  return `/api/generated-images/${imageId}`;
+}
+
 export async function uploadPlanPdf(file: File, useVision: boolean): Promise<FloorPlan> {
   const form = new FormData();
   form.append("file", file);
