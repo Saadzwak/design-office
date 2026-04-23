@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 import remarkGfm from "remark-gfm";
 
 import { useChatContext } from "../../hooks/useChatContext";
+import { useProjectState } from "../../hooks/useProjectState";
 import {
   clearConversation,
   loadConversation,
@@ -15,6 +16,17 @@ import {
   type ChatMessage,
   type SuggestedAction,
 } from "../../lib/chat";
+import {
+  detectEnrichment,
+  dispatchChatAction,
+  type EnrichmentSuggestion,
+} from "../../lib/chatActions";
+import {
+  INDUSTRY_LABEL,
+  setClient,
+  setProgramme,
+  type Industry,
+} from "../../lib/projectState";
 
 const STREAMING_BY_DEFAULT = false;
 
@@ -44,11 +56,14 @@ const PAGE_HELLO: Record<string, string> = {
 export default function ChatPanel({ mode, onClose }: Props) {
   const navigate = useNavigate();
   const context = useChatContext();
+  const project = useProjectState();
   const [messages, setMessages] = useState<ChatMessage[]>(() => loadConversation());
   const [draft, setDraft] = useState("");
   const [pending, setPending] = useState(false);
   const [streamedReply, setStreamedReply] = useState("");
   const [action, setAction] = useState<SuggestedAction | null>(null);
+  const [enrichment, setEnrichment] = useState<EnrichmentSuggestion | null>(null);
+  const [running, setRunning] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const scrollAnchorRef = useRef<HTMLDivElement | null>(null);
@@ -70,6 +85,12 @@ export default function ChatPanel({ mode, onClose }: Props) {
       setDraft("");
       setError(null);
       setAction(null);
+      setEnrichment(null);
+
+      // Hardcoded regex scan for project-parameter enrichments — runs locally
+      // so the user sees a confirm card while Opus is still thinking.
+      const maybeEnrich = detectEnrichment(content);
+      if (maybeEnrich) setEnrichment(maybeEnrich);
 
       const next = [...messages, { role: "user" as const, content }];
       setMessages(next);
@@ -120,86 +141,51 @@ export default function ChatPanel({ mode, onClose }: Props) {
 
   const confirmAction = useCallback(
     async (act: SuggestedAction) => {
+      setError(null);
+      setRunning(act.label);
+      setAction(null);
       try {
-        if (act.type === "iterate_variant") {
-          const raw = localStorage.getItem("design-office.testfit.result");
-          if (!raw) throw new Error("No Test Fit result in this session yet.");
-          const testfit = JSON.parse(raw);
-          const style = (act.params as { style?: string }).style ?? "atelier";
-          const variant = testfit.variants?.find((v: { style: string }) => v.style === style);
-          if (!variant) throw new Error(`Variant '${style}' not found.`);
-          const resp = await fetch("/api/testfit/iterate", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              instruction: (act.params as { instruction?: string }).instruction ?? "",
-              floor_plan: testfit.floor_plan,
-              variant,
-              programme_markdown: localStorage.getItem("design-office.programme") ?? "",
-              client_name: "Lumen",
-            }),
-          });
-          if (!resp.ok) throw new Error(await resp.text());
-          const updated = await resp.json();
-          const nextVariants = testfit.variants.map((v: { style: string }) =>
-            v.style === style ? updated.variant : v,
-          );
-          localStorage.setItem(
-            "design-office.testfit.result",
-            JSON.stringify({ ...testfit, variants: nextVariants }),
-          );
-          if (updated.screenshot_url) {
-            try {
-              const rawMap = localStorage.getItem("design-office.testfit.live_screenshots");
-              const map: Record<string, string> = rawMap ? JSON.parse(rawMap) : {};
-              map[style] = updated.screenshot_url;
-              localStorage.setItem(
-                "design-office.testfit.live_screenshots",
-                JSON.stringify(map),
-              );
-            } catch {
-              // ignore
-            }
-          }
+        const outcome = await dispatchChatAction(act);
+        if (outcome.kind === "error") {
+          setError(outcome.message);
+        } else {
           setMessages((ms) => [
             ...ms,
-            {
-              role: "assistant",
-              content: `✓ Iteration applied on \`${style}\`. Head back to /testfit to see the updated variant.`,
-            },
+            { role: "assistant", content: `✓ ${outcome.message}` },
           ]);
-        } else if (act.type === "export_dwg" || act.type === "export_dxf") {
-          // "export_dxf" is kept as a backward-compat alias for older sessions.
-          navigate("/export");
-        } else if (act.type === "start_justify" || act.type === "regenerate_argumentaire") {
-          navigate("/justify");
-        } else if (act.type === "start_macro_zoning" || act.type === "regenerate_variants") {
-          navigate("/testfit");
-        } else if (act.type === "start_brief" || act.type === "regenerate_programme") {
-          navigate("/brief");
-        } else if (act.type === "start_micro_zoning") {
-          navigate("/testfit?tab=micro");
-        } else if (act.type === "start_mood_board" || act.type === "generate_pitch_deck") {
-          navigate("/moodboard");
-        } else if (act.type === "update_project_field") {
-          // Phase B wires this up to the unified project state. For now,
-          // route to Brief so the user can hand-edit the field manually.
-          navigate("/brief");
-        } else {
-          // Unknown / out-of-domain action → ignore silently and clear the
-          // suggestion so the UI stays calm. The prompt enumerates the
-          // allow-list; any other type is a bug to be logged, not exposed.
-          console.warn(`[chat] ignoring unknown action type: ${act.type}`);
-          setAction(null);
-          return;
+          if (outcome.navigate) navigate(outcome.navigate);
         }
-        setAction(null);
       } catch (exc) {
         setError(exc instanceof Error ? exc.message : String(exc));
+      } finally {
+        setRunning(null);
       }
     },
     [navigate],
   );
+
+  const confirmEnrichment = useCallback((suggestion: EnrichmentSuggestion) => {
+    if (suggestion.field === "industry") {
+      setClient({ industry: suggestion.newValue as Industry });
+    } else if (suggestion.field === "headcount") {
+      setProgramme({ headcount: suggestion.newValue as number });
+    } else if (suggestion.field === "growth_target") {
+      setProgramme({ growth_target: suggestion.newValue as number });
+    } else if (suggestion.field === "flex_policy") {
+      setProgramme({ flex_policy: String(suggestion.newValue) });
+    } else if (suggestion.field === "constraints") {
+      const now = project.programme.constraints ?? [];
+      setProgramme({ constraints: [...now, String(suggestion.newValue)] });
+    }
+    setMessages((ms) => [
+      ...ms,
+      {
+        role: "assistant",
+        content: `✓ Project state updated — **${suggestion.field}** now \`${suggestion.newValue}\`.`,
+      },
+    ]);
+    setEnrichment(null);
+  }, [project.programme.constraints]);
 
   const onKey: React.KeyboardEventHandler<HTMLTextAreaElement> = (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -266,6 +252,9 @@ export default function ChatPanel({ mode, onClose }: Props) {
         </div>
       </div>
 
+      {/* Project summary strip */}
+      <ProjectSummaryStrip />
+
       {/* Messages */}
       <div className="flex-1 space-y-5 overflow-y-auto px-5 py-6">
         {messages.length === 0 && !streamedReply && (
@@ -286,7 +275,43 @@ export default function ChatPanel({ mode, onClose }: Props) {
           </div>
         )}
         <AnimatePresence>
-          {action && (
+          {enrichment && (
+            <motion.div
+              key={`enrich-${enrichment.field}-${enrichment.newValue}`}
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className="rounded-lg border border-sand-deep/40 bg-sand/10 p-4"
+            >
+              <p className="font-mono text-[10px] uppercase tracking-eyebrow text-sand-deep">
+                Project update detected
+              </p>
+              <p className="mt-2 font-sans text-[14px] text-ink">
+                I heard <em>"{enrichment.source}"</em>. The project currently records{" "}
+                <strong>
+                  {enrichment.field}
+                </strong>{" "}
+                as{" "}
+                <span className="font-mono text-[12px]">
+                  {displayEnrichmentValue(enrichment.field, enrichment.currentValue)}
+                </span>
+                . Update to{" "}
+                <span className="font-mono text-[12px]">
+                  {displayEnrichmentValue(enrichment.field, enrichment.newValue)}
+                </span>
+                ?
+              </p>
+              <div className="mt-3 flex gap-2">
+                <button className="btn-primary" onClick={() => confirmEnrichment(enrichment)}>
+                  Update project
+                </button>
+                <button className="btn-ghost" onClick={() => setEnrichment(null)}>
+                  Keep as is
+                </button>
+              </div>
+            </motion.div>
+          )}
+          {action && !running && (
             <motion.div
               initial={{ opacity: 0, y: 4 }}
               animate={{ opacity: 1, y: 0 }}
@@ -310,6 +335,25 @@ export default function ChatPanel({ mode, onClose }: Props) {
                 <button className="btn-ghost" onClick={() => setAction(null)}>
                   Cancel
                 </button>
+              </div>
+            </motion.div>
+          )}
+          {running && (
+            <motion.div
+              key={`running-${running}`}
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="rounded-lg border border-forest/30 bg-forest/5 p-3"
+            >
+              <div className="flex items-center gap-3 text-[13px] text-ink">
+                <span className="flex gap-1">
+                  <span className="dot dot-pulse" style={{ animationDelay: "0ms" }} />
+                  <span className="dot dot-pulse" style={{ animationDelay: "150ms" }} />
+                  <span className="dot dot-pulse" style={{ animationDelay: "300ms" }} />
+                </span>
+                <span className="font-mono text-[11px] uppercase tracking-label text-forest">
+                  Running · {running}
+                </span>
               </div>
             </motion.div>
           )}
@@ -352,6 +396,35 @@ export default function ChatPanel({ mode, onClose }: Props) {
       </div>
     </div>
   );
+}
+
+function ProjectSummaryStrip() {
+  const project = useProjectState();
+  const { client, programme, testfit } = project;
+  const retained = testfit?.retained_style
+    ? testfit.variants.find((v) => v.style === testfit.retained_style)
+    : null;
+  const bits: string[] = [];
+  bits.push(client.name || "Untitled project");
+  bits.push(INDUSTRY_LABEL[client.industry]);
+  if (programme.headcount) bits.push(`${programme.headcount} staff`);
+  if (programme.growth_target)
+    bits.push(`→ ${programme.growth_target} at horizon`);
+  if (programme.flex_policy) bits.push(`flex ${programme.flex_policy}`);
+  if (retained) bits.push(`retained: ${retained.style}`);
+  return (
+    <div className="border-b border-hairline bg-canvas/80 px-5 py-2">
+      <p className="truncate font-mono text-[10px] uppercase tracking-label text-ink-muted">
+        Working on · {bits.join(" · ")}
+      </p>
+    </div>
+  );
+}
+
+function displayEnrichmentValue(field: string, value: unknown): string {
+  if (value === null || value === undefined) return "—";
+  if (field === "industry") return INDUSTRY_LABEL[String(value) as Industry] ?? String(value);
+  return String(value);
 }
 
 function Bubble({
