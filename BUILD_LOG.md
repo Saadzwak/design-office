@@ -1281,3 +1281,90 @@ Crisp whitelist on 4 files + PNG fixtures.
 - `scripts/demo_preflight.ps1` → **27 pass / 0 warn / 0 fail** ·
   "READY - every surface is green. Hit Record."
 
+---
+
+## Iter 17 — Live validation + 3-industry demo corpus (2026-04-23T03:00Z–06:00Z)
+
+Six commits after iteration 16, all focused on surfacing the work as a
+defensible submission rather than adding new features. Section-19
+cadence resumes after the feature-flood blackout.
+
+### Commits
+
+1. `a9f1d55 fix(preflight)` — expected screenshot filenames matched the
+   renumbered set (`04-moodboard.png` / `05-justify.png` /
+   `06-export.png`).
+2. `5337bac test(live)` — two live smoke runs against real Opus 4.7 to
+   validate the prompts shipped in iter-16 :
+   - Mood board on Lumen : 42k in / 3.1k out / 49 s → A3 landscape PDF
+     with 5-swatch palette, 8 real-brand materials, 6 furniture pieces
+     with dimensions, Kelvin lighting strategy.
+   - Micro-zoning on the Atelier variant : 52k in / 5.0k out / 185 s →
+     11.4 KB of six zone-by-zone specs (dev établi, focus/huddle,
+     boardrooms, phone-booth bank, café+town-hall, circulation) with
+     exact acoustic thresholds, MCP-resource citations, and honest
+     `[TO VERIFY]` markers.
+3. `d67581f fix(ui)` — visual tour found three numbering bugs after
+   Mood Board took slot III : Justify eyebrow III→IV, Export IV→V,
+   Landing "Four surfaces" → "Five surfaces". Plus a cold-start path
+   on Mood Board (auto-loads the saved fixture, tags the eyebrow with
+   "· demo data" so the origin is honest). Six re-captured
+   screenshots.
+4. `a00d534 feat(moodboard)` — two additional live industry runs
+   proving the client-aware system really differentiates :
+   - **Altamont & Rees · law firm** : Chambers green + Walnut leather
+     + Parchment + Ink graphite + Aged brass. Dinesen Douglas plank,
+     Farrow & Ball Card Room Green, Mutina Margarita terrazzo, Gustafs
+     walnut, Création Baumann Hush acoustic curtain.
+   - **Kaito Miró · creative agency** : Plaster ivory + Kiln terracotta
+     + Raw plywood + Concrete brut + Acid yellow. Polished concrete
+     slab, Clayworks clay plaster, BAUX terracotta, Woven Image
+     EchoPanel in acid yellow, Vitra Joyn Bench.
+   Also shipped a WCAG-luminance `_contrast_overlay` helper so the
+   ATMOSPHERE text reads on any hero-palette fill (the previous
+   ivory-only overlay disappeared on Lumen's Linen canvas hero). The
+   hero caption now wraps instead of truncating at 60 chars.
+5. `351d1b9 docs` — surfaced the 3-industry corpus in README
+   ("Client-aware — the same system, three very different outputs"),
+   HACKATHON_SUMMARY ("Proof the client-aware system works"), and
+   DEMO_SCRIPT (new 02:45–03:00 outro beat : *"Same code, change the
+   industry, change the palette"* across a 3-card PDF compositing pass).
+
+### Token spend this iter
+
+- Mood Board × 3 industries : ~127k input + ~10k output total
+- Micro-zoning × 1 : 52k input + 5k output
+- **Total** : ~179k input + ~15k output, well under the $300 budget
+  (~$5 spent). Running total across the whole build remains under
+  $25 of the $300 runway.
+
+### Quality gates (end of iter)
+
+- `pytest -q` → **38 passed**, no new tests but no regressions
+- `npx tsc -b --noEmit` → clean on all 7 routes
+- `scripts/demo_preflight.ps1` → **28 pass / 0 warn / 0 fail** (one
+  extra line now asserts the `/api/testfit/sample` endpoint)
+- SketchUp MCP still listening on 127.0.0.1:9876 across laptop
+  suspend cycles
+
+### Fixture corpus at the end of iter 17
+
+| Type                | File                                                                | Size    |
+|---------------------|---------------------------------------------------------------------|---------|
+| Test Fit output     | `generate_output_sample.json`                                       | 133 KB  |
+| Justify output      | `justify_output_sample.json`                                        | 65 KB   |
+| Justify PDF         | `app/out/justify/148727235162bc34.pdf`                              | 24 KB   |
+| Pitch deck PPTX     | `lumen_justify_pitch_deck.pptx`                                     | 39 KB   |
+| A1 DXF              | `lumen_export_atelier.dxf`                                          | 168 KB  |
+| Micro-zoning        | `lumen_microzoning_atelier.md`                                      | 11 KB   |
+| Mood board · Lumen  | `lumen_moodboard.pdf` + `lumen_moodboard_selection.json`            | 6 / 13 KB |
+| Mood board · Altamont | `altamont_moodboard.pdf` + `altamont_moodboard_selection.json`    | 6 / 13 KB |
+| Mood board · Kaito  | `kaito_moodboard.pdf` + `kaito_moodboard_selection.json`            | 6 / 11 KB |
+| SketchUp iso × 21   | `sketchup_variant_*_{iso_ne,iso_nw,iso_se,iso_sw,top_down,eye_level}.png` + 3 back-compat aliases | ~3.6 MB combined |
+
+### Parallel · Saad-side
+
+Still waiting on : AutoCAD install (optional — headless ezdxf already
+ships a real DXF), demo-video recording. The preflight script is
+green so Saad can hit Record whenever he's ready.
+
