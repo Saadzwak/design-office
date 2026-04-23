@@ -1,10 +1,12 @@
 import { motion } from "framer-motion";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import ReactMarkdown from "react-markdown";
+import { useLocation, useNavigate } from "react-router-dom";
 import remarkGfm from "remark-gfm";
 
 import DotStatus from "../components/ui/DotStatus";
 import TypewriterText from "../components/ui/TypewriterText";
+import PseudoThreeDViewer from "../components/viewer/PseudoThreeDViewer";
 import VariantViewer from "../components/viewer/VariantViewer";
 import { useLiveScreenshots } from "../hooks/useLiveScreenshots";
 import { useProjectState } from "../hooks/useProjectState";
@@ -24,6 +26,7 @@ import {
   setLiveScreenshot,
   setProgramme as persistProgramme,
   setTestFit,
+  setTestFitRetained,
   upsertVariant,
 } from "../lib/projectState";
 
@@ -82,9 +85,21 @@ const FALLBACK_PROGRAMME = `# Functional programme — Lumen
 
 export default function TestFit() {
   const project = useProjectState();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [state, setState] = useState<State>({ kind: "idle" });
   const [catalog, setCatalog] = useState<CatalogPreview | null>(null);
-  const [active, setActive] = useState<VariantStyle>("villageois");
+  const [active, setActive] = useState<VariantStyle>(
+    () => project.testfit?.retained_style ?? "villageois",
+  );
+  const initialTab = useMemo<"macro" | "micro">(() => {
+    const params = new URLSearchParams(location.search);
+    return params.get("tab") === "micro" ? "micro" : "macro";
+  }, [location.search]);
+  const [tab, setTab] = useState<"macro" | "micro">(initialTab);
+  const [microState, setMicroState] = useState<
+    { kind: "idle" } | { kind: "running" } | { kind: "done"; markdown: string } | { kind: "error"; message: string }
+  >({ kind: "idle" });
   const [programme, setProgramme] = useState(() => project.programme.markdown ?? "");
   const [showProgramme, setShowProgramme] = useState(false);
   const [instruction, setInstruction] = useState("");
@@ -281,6 +296,42 @@ export default function TestFit() {
           Opus Vision HD reads the plan. Three sub-agents compose contrasted variants in
           parallel. A Reviewer tests each against PMR, ERP and the programme.
         </p>
+
+        {/* Macro / Micro tabs */}
+        <div className="mt-8 inline-flex items-center gap-0.5 rounded-full border border-hairline bg-raised p-0.5">
+          {(
+            [
+              { key: "macro", label: "Macro-zoning" },
+              { key: "micro", label: "Micro-zoning" },
+            ] as const
+          ).map((opt) => (
+            <button
+              key={opt.key}
+              onClick={() => {
+                setTab(opt.key);
+                // Update URL so the chat's `start_micro_zoning` deep-link
+                // works both ways.
+                const next = opt.key === "micro" ? "?tab=micro" : "";
+                navigate({ pathname: "/testfit", search: next }, { replace: true });
+              }}
+              className={[
+                "rounded-full px-4 py-1.5 font-mono text-[10px] uppercase tracking-label transition-colors",
+                tab === opt.key
+                  ? "bg-forest text-raised"
+                  : "text-ink-soft hover:text-ink",
+              ].join(" ")}
+              aria-pressed={tab === opt.key}
+              disabled={opt.key === "micro" && state.kind !== "done"}
+              title={
+                opt.key === "micro" && state.kind !== "done"
+                  ? "Generate the three macro variants first"
+                  : undefined
+              }
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
       </header>
 
       <div className="grid gap-10 lg:grid-cols-[minmax(0,340px),minmax(0,1fr)]">
@@ -457,6 +508,24 @@ export default function TestFit() {
 
         {/* ───────── right : viewer + verdict + iterate ───────── */}
         <section className="min-w-0 space-y-8">
+          {tab === "micro" && activeVariant ? (
+            <MicroPanel
+              variant={activeVariant}
+              style={active}
+              floorPlan={plan}
+              programme={programme || project.programme.markdown}
+              clientName={project.client.name}
+              clientIndustry={project.client.industry}
+              microState={microState}
+              setMicroState={setMicroState}
+              onRetain={(s) => {
+                setActive(s);
+                setTestFitRetained(s);
+              }}
+              allVariants={state.kind === "done" ? state.result.variants : []}
+            />
+          ) : (
+          <>
           <motion.div
             key={active + (state.kind === "done" ? "done" : state.kind)}
             initial={{ opacity: 0 }}
@@ -673,6 +742,8 @@ export default function TestFit() {
               )}
             </motion.div>
           )}
+          </>
+          )}
         </section>
       </div>
     </div>
@@ -718,6 +789,240 @@ function IteratingPanel({ variant, instruction }: { variant: string; instruction
       </ul>
     </motion.div>
   );
+}
+
+// Static public paths for the 6 multi-angle SketchUp renders captured in
+// trajectory B. The plugin + capture script live in
+// `backend/scripts/capture_variant_angles.py`; these files are served from
+// `frontend/public/sketchup/`.
+const ANGLE_KEYS: ReadonlyArray<"iso_ne" | "iso_nw" | "iso_se" | "iso_sw" | "top_down" | "eye_level"> = [
+  "iso_ne",
+  "iso_nw",
+  "iso_se",
+  "iso_sw",
+  "top_down",
+  "eye_level",
+];
+function angleSourcesFor(style: VariantStyle): Partial<
+  Record<"iso_ne" | "iso_nw" | "iso_se" | "iso_sw" | "top_down" | "eye_level", string>
+> {
+  const sources: Partial<Record<typeof ANGLE_KEYS[number], string>> = {};
+  for (const angle of ANGLE_KEYS) {
+    sources[angle] = `/sketchup/sketchup_variant_${style}_${angle}.png`;
+  }
+  return sources;
+}
+
+function MicroPanel({
+  variant,
+  style,
+  floorPlan,
+  programme,
+  clientName,
+  clientIndustry,
+  microState,
+  setMicroState,
+  onRetain,
+  allVariants,
+}: {
+  variant: VariantOutput;
+  style: VariantStyle;
+  floorPlan: FloorPlan | null;
+  programme: string;
+  clientName: string;
+  clientIndustry: string;
+  microState:
+    | { kind: "idle" }
+    | { kind: "running" }
+    | { kind: "done"; markdown: string }
+    | { kind: "error"; message: string };
+  setMicroState: (s:
+    | { kind: "idle" }
+    | { kind: "running" }
+    | { kind: "done"; markdown: string }
+    | { kind: "error"; message: string }) => void;
+  onRetain: (s: VariantStyle) => void;
+  allVariants: VariantOutput[];
+}) {
+  const onRun = async () => {
+    if (!floorPlan) {
+      setMicroState({ kind: "error", message: "No floor plan in the session." });
+      return;
+    }
+    setMicroState({ kind: "running" });
+    try {
+      const r = await fetch("/api/testfit/microzoning", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          client_name: clientName || "Client",
+          client_industry: clientIndustry,
+          floor_plan: floorPlan,
+          variant,
+          programme_markdown: programme,
+        }),
+      });
+      if (!r.ok) throw new Error(await r.text());
+      const body = (await r.json()) as { markdown: string };
+      setMicroState({ kind: "done", markdown: body.markdown });
+    } catch (exc) {
+      setMicroState({
+        kind: "error",
+        message: exc instanceof Error ? exc.message : String(exc),
+      });
+    }
+  };
+
+  return (
+    <div className="space-y-8">
+      {/* Retained variant selector — lets the user pick which of the three
+          to drill into without leaving the Micro tab. */}
+      <div className="flex flex-wrap items-center gap-3 border-b border-hairline pb-4">
+        <span className="font-mono text-[10px] uppercase tracking-label text-ink-muted">
+          Drilling into
+        </span>
+        {allVariants.map((v) => (
+          <button
+            key={v.style}
+            onClick={() => onRetain(v.style as VariantStyle)}
+            className={[
+              "flex items-center gap-2 rounded-full border px-3 py-1 font-mono text-[10px] uppercase tracking-label transition-colors",
+              v.style === style
+                ? "border-forest bg-forest/5 text-forest"
+                : "border-hairline text-ink-soft hover:border-mist-300",
+            ].join(" ")}
+          >
+            <span
+              className={`inline-block h-[6px] w-[6px] rounded-full ${STYLE_DOT[v.style as VariantStyle]}`}
+            />
+            {STYLE_LABEL[v.style as VariantStyle]}
+          </button>
+        ))}
+      </div>
+
+      <PseudoThreeDViewer
+        sources={angleSourcesFor(style)}
+        caption={`${STYLE_LABEL[style]} — 6-angle SketchUp render`}
+      />
+
+      <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr),minmax(0,1fr)]">
+        <div>
+          <p className="eyebrow-forest">Drill-down brief</p>
+          <h3
+            className="mt-3 font-display text-[1.75rem] leading-tight text-ink"
+            style={{ fontVariationSettings: '"opsz" 72, "wght" 540, "SOFT" 100' }}
+          >
+            {variant.title}
+          </h3>
+          <p className="mt-2 text-[13px] text-ink-muted">
+            Per-zone furniture, finishes, acoustic targets and lighting Kelvin
+            — tuned to the {INDUSTRY_PRETTY(clientIndustry)} profile.
+          </p>
+          <div className="mt-6 flex gap-3">
+            <button
+              className="btn-primary"
+              onClick={onRun}
+              disabled={microState.kind === "running"}
+            >
+              {microState.kind === "running"
+                ? "Drilling…"
+                : microState.kind === "done"
+                  ? "Re-run micro-zoning"
+                  : "Run micro-zoning"}
+            </button>
+          </div>
+          {microState.kind === "error" && (
+            <p className="mt-3 font-mono text-[11px] text-clay">{microState.message}</p>
+          )}
+        </div>
+        <aside className="lg:border-l lg:border-hairline lg:pl-8">
+          <p className="label-xs text-ink-muted">Why micro-zoning</p>
+          <p className="mt-3 text-[13px] leading-relaxed text-ink-soft">
+            Macro-zoning decided <em>where</em> each space lives. Micro-zoning
+            decides <em>how</em> each zone is detailed: real furniture SKUs
+            from the 41-SKU catalogue, material picks from
+            <code className="font-mono text-[11px]"> design://material-finishes</code>, acoustic
+            targets from <code className="font-mono text-[11px]">design://acoustic-standards</code>,
+            and biophilic accents from <code className="font-mono text-[11px]">design://biophilic-office</code>.
+          </p>
+        </aside>
+      </div>
+
+      {microState.kind === "running" && (
+        <motion.div
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35 }}
+          className="rounded-md border border-hairline bg-raised/70 px-6 py-5"
+        >
+          <p className="eyebrow-forest">Opus 4.7 · drilling down</p>
+          <p
+            className="mt-3 font-display text-[1.2rem] leading-tight text-ink"
+            style={{ fontVariationSettings: '"opsz" 72, "wght" 540, "SOFT" 100' }}
+          >
+            <TypewriterText
+              text={`Detailing the ${STYLE_LABEL[style]} variant, zone by zone…`}
+              speed={22}
+              caret
+            />
+          </p>
+          <ul className="mt-6 space-y-2.5 font-mono text-[11px] uppercase tracking-label text-ink-muted">
+            {[
+              "Reading the client industry profile…",
+              "Matching zones against the 41-SKU furniture catalogue…",
+              "Picking materials from design://material-finishes…",
+              "Tuning acoustic targets (DnT,A, TR60) per zone…",
+              "Adding biophilic accents and lighting Kelvin strategy…",
+            ].map((line, i) => (
+              <li key={i} className="flex items-center gap-3">
+                <span
+                  className="inline-block h-[6px] w-[6px] rounded-full bg-forest"
+                  style={{ animation: `dot-pulse 1.4s ease-in-out ${i * 0.18}s infinite` }}
+                />
+                <TypewriterText text={line} startDelay={i * 450} speed={20} />
+              </li>
+            ))}
+          </ul>
+        </motion.div>
+      )}
+
+      {microState.kind === "done" && (
+        <motion.article
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+          className="rounded-lg border border-hairline bg-raised p-8"
+        >
+          <div className="prose prose-sm max-w-none prose-headings:font-display prose-headings:text-ink prose-p:text-ink-soft prose-strong:text-ink prose-a:text-forest prose-blockquote:border-l-forest prose-code:text-[11px]">
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+              {microState.markdown}
+            </ReactMarkdown>
+          </div>
+        </motion.article>
+      )}
+    </div>
+  );
+}
+
+function INDUSTRY_PRETTY(key: string): string {
+  switch (key) {
+    case "tech_startup":
+      return "Tech startup";
+    case "law_firm":
+      return "Law firm";
+    case "bank_insurance":
+      return "Bank & insurance";
+    case "consulting":
+      return "Consulting";
+    case "creative_agency":
+      return "Creative agency";
+    case "healthcare":
+      return "Healthcare";
+    case "public_sector":
+      return "Public sector";
+    default:
+      return "custom";
+  }
 }
 
 function Row({ k, v }: { k: string; v: string }) {

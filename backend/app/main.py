@@ -41,8 +41,11 @@ from app.surfaces.moodboard import (
 from app.surfaces.testfit import (
     IterateRequest,
     IterateResponse,
+    MicroZoningRequest,
+    MicroZoningResponse,
     catalog_preview,
     iterate_variant,
+    run_micro_zoning,
     sketchup_shot_path_for,
 )
 from app.surfaces.testfit import compile_default_surface as compile_testfit_surface
@@ -259,6 +262,20 @@ def testfit_iterate(payload: IterateRequest) -> IterateResponse:
         return iterate_variant(payload)
     except ValueError as exc:  # malformed JSON from the iterate agent
         raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+
+@app.post("/api/testfit/microzoning", response_model=MicroZoningResponse)
+def testfit_microzoning(payload: MicroZoningRequest) -> MicroZoningResponse:
+    """Drill into a retained variant and emit a per-zone detail brief
+    (furniture SKU, finish choices, acoustic target, light Kelvin,
+    biophilic accent). Tuned to the client's industry profile."""
+
+    if not settings.anthropic_api_key:
+        raise HTTPException(
+            status_code=503,
+            detail="ANTHROPIC_API_KEY is not loaded.",
+        )
+    return run_micro_zoning(payload)
 
 
 # ---------------------------------------------------------------------------

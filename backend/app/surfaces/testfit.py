@@ -573,6 +573,113 @@ def iterate_variant(
     )
 
 
+# ---------------------------------------------------------------------------
+# Micro-zoning — drill into one retained variant, emit per-zone brief
+# ---------------------------------------------------------------------------
+
+MICRO_ZONING_RESOURCES = [
+    "client-profiles.md",
+    "material-finishes.md",
+    "acoustic-standards.md",
+    "collaboration-spaces.md",
+    "biophilic-office.md",
+]
+
+
+class MicroZoningRequest(BaseModel):
+    client_name: str = "Client"
+    client_industry: str = Field(
+        default="tech_startup",
+        description=(
+            "One of tech_startup, law_firm, bank_insurance, consulting, "
+            "creative_agency, healthcare, public_sector, other. Used to bias "
+            "furniture + material + acoustic choices."
+        ),
+    )
+    floor_plan: FloorPlan
+    variant: VariantOutput
+    programme_markdown: str
+
+
+class MicroZoningResponse(BaseModel):
+    markdown: str
+    tokens: dict[str, int]
+    duration_ms: int
+
+
+_MICRO_ZONING_USER = """Client:
+
+<client>
+{{"name": "{client_name}", "industry": "{client_industry}"}}
+</client>
+
+Retained variant:
+
+<retained_variant>
+{variant_json}
+</retained_variant>
+
+Consolidated programme:
+
+<programme>
+{programme_markdown}
+</programme>
+
+Floor plan:
+
+<floor_plan>
+{floor_plan_json}
+</floor_plan>
+
+MCP resources (cite these inline, e.g. `(design://acoustic-standards §2)`):
+
+<resources_excerpts>
+{resources}
+</resources_excerpts>
+
+Furniture catalogue (pick product_id values from here):
+
+<catalog_json>
+{catalog_json}
+</catalog_json>
+
+Produce the per-zone micro-zoning brief as specified in your system prompt.
+Return Markdown only."""
+
+
+def run_micro_zoning(
+    request: MicroZoningRequest,
+    orchestration: Orchestration | None = None,
+) -> MicroZoningResponse:
+    """Drill into a retained variant and emit a per-zone detail brief."""
+
+    orch = orchestration or Orchestration(client=ClaudeClient())
+    catalog_json = (FURNITURE_DIR / "catalog.json").read_text(encoding="utf-8")
+    resources = _load_resources(MICRO_ZONING_RESOURCES)
+
+    agent = SubAgent(
+        name="MicroZoning",
+        system_prompt=_read(PROMPTS_DIR / "testfit_micro_zoning.md"),
+        user_template=_MICRO_ZONING_USER,
+        max_tokens=6000,
+    )
+    context = {
+        "client_name": request.client_name,
+        "client_industry": request.client_industry,
+        "variant_json": request.variant.model_dump_json(),
+        "programme_markdown": request.programme_markdown,
+        "floor_plan_json": request.floor_plan.model_dump_json(),
+        "resources": resources,
+        "catalog_json": catalog_json,
+    }
+    sub = orch.run_subagent(agent, context, tag="testfit.micro_zoning")
+    return MicroZoningResponse(
+        markdown=sub.text.strip(),
+        tokens={"input": sub.input_tokens, "output": sub.output_tokens},
+        duration_ms=sub.duration_ms,
+    )
+
+
 def catalog_preview() -> dict:
     raw = json.loads((FURNITURE_DIR / "catalog.json").read_text(encoding="utf-8"))
     return {
