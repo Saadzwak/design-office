@@ -1,42 +1,37 @@
+import PillToggle from "./PillToggle";
 import { useProjectState } from "../../hooks/useProjectState";
 import { setViewMode, type ViewMode } from "../../lib/projectState";
 
+type Props = {
+  size?: "sm" | "md";
+  labels?: { engineering: string; client: string };
+  className?: string;
+};
+
 /**
- * Small segmented toggle in the top nav that lets the user switch the
- * whole product between "Engineering" (dense, technical) and "Client"
- * (editorial, visual) views. The setting is persisted in the unified
- * project state so chat, navigation and layout adapt everywhere.
+ * Engineering ↔ Client view toggle. Thin wrapper over PillToggle
+ * (iter-18 unification) that binds to `projectState.view_mode`.
+ *
+ * Labels can be shortened ("Eng") or fully spelled ("Engineering") via
+ * the `labels` prop ; defaults match the bundle's `GlobalNav` usage.
  */
-export default function ViewModeToggle() {
+export default function ViewModeToggle({
+  size = "sm",
+  labels = { engineering: "Engineering", client: "Client" },
+  className,
+}: Props) {
   const project = useProjectState();
-  const active: ViewMode = project.view_mode;
   return (
-    <div className="inline-flex items-center gap-0.5 rounded-full border border-hairline bg-raised p-0.5">
-      {(
-        [
-          { key: "engineering", label: "Eng" },
-          { key: "client", label: "Client" },
-        ] as Array<{ key: ViewMode; label: string }>
-      ).map((opt) => (
-        <button
-          key={opt.key}
-          onClick={() => setViewMode(opt.key)}
-          className={[
-            "rounded-full px-3 py-1 font-mono text-[10px] uppercase tracking-label transition-colors",
-            active === opt.key
-              ? "bg-forest text-raised"
-              : "text-ink-soft hover:text-ink",
-          ].join(" ")}
-          aria-pressed={active === opt.key}
-          title={
-            opt.key === "engineering"
-              ? "Engineering view — dense, technical"
-              : "Client view — editorial, visual"
-          }
-        >
-          {opt.label}
-        </button>
-      ))}
-    </div>
+    <PillToggle<ViewMode>
+      options={[
+        { value: "engineering", label: labels.engineering },
+        { value: "client", label: labels.client },
+      ]}
+      value={project.view_mode}
+      onChange={setViewMode}
+      size={size}
+      ariaLabel="Product view mode"
+      className={className}
+    />
   );
 }
