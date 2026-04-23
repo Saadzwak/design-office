@@ -32,7 +32,7 @@ PROMPTS_DIR = Path(__file__).resolve().parent / "prompts" / "agents"
 SYSTEM_PROMPT_PATH = PROMPTS_DIR / "chat_assistant.md"
 
 
-PageName = Literal["landing", "brief", "testfit", "justify", "export", "chat"]
+PageName = Literal["landing", "brief", "testfit", "moodboard", "justify", "export", "chat"]
 
 
 class ChatMessage(BaseModel):

@@ -13,17 +13,17 @@ import {
   type SubAgentTrace,
 } from "../lib/api";
 
-const LUMEN_BRIEF = `Lumen, startup fintech, 120 personnes aujourd'hui, 170 projetées d'ici 24 mois.
-Politique de présence : 3 jours au bureau, 2 télétravail, équipes tech largement en pair programming.
-Culture plat, transparente, forte identité par équipe (produit, tech, data, growth, ops).
-Modes de travail dominants : collaboration synchrone, design sprints, pair programming,
-focus profond pour les devs, rituels all-hands hebdomadaires.
-Demandes explicites : beaucoup d'espaces collab, cafétéria centrale pas reléguée,
-zones calmes pour concentration, pas d'open space géant indifférencié,
-expression de la marque forte.
-Surface disponible : 2400 m² utiles sur 2 niveaux reliés par escalier central.
-Budget Cat B : 2,2 M€ HT.
-Climat : Paris, façade sud donnant sur rue, façade nord donnant sur cour intérieure.`;
+const LUMEN_BRIEF = `Lumen, a fintech startup, 120 people today, 170 projected within 24 months.
+Attendance policy: 3 days on-site, 2 remote. Tech teams pair-program heavily.
+Culture is flat, transparent, with a strong team identity (product, tech, data, growth, ops).
+Dominant work modes: synchronous collaboration, design sprints, pair programming,
+deep focus for engineers, weekly all-hands rituals.
+Stated asks: plenty of collaboration spaces, a central café (not tucked away),
+quiet zones for deep work, no giant undifferentiated open space,
+strong brand expression.
+Available area: 2,400 m² usable across two floors connected by a central stair.
+Cat B budget: 2.2 M€ excl. tax.
+Climate: Paris, south façade onto the street, north façade onto an inner courtyard.`;
 
 const AGENTS: Array<{ name: string; role: string; typing: string }> = [
   {

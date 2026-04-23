@@ -12,7 +12,7 @@ const SURFACES = [
     n: "I",
     title: "Brief",
     description:
-      "Trois agents transforment un brief client en programme chiffré, sourcé, prêt à envoyer.",
+      "Three agents turn a client brief into a costed, sourced functional programme — ready to send.",
     eta: "≈ 3 minutes",
     to: "/brief",
   },
@@ -20,24 +20,32 @@ const SURFACES = [
     n: "II",
     title: "Test Fit",
     description:
-      "Opus Vision lit votre plan en HD et compose trois variantes 3D contrastées dans SketchUp.",
+      "Opus Vision reads your plan at HD and composes three contrasted 3D variants in SketchUp.",
     eta: "≈ 3 minutes",
     to: "/testfit",
   },
   {
     n: "III",
+    title: "Mood Board",
+    description:
+      "A curated palette of materials, furniture and planting, adapted to the client's industry and identity.",
+    eta: "≈ 2 minutes",
+    to: "/moodboard",
+  },
+  {
+    n: "IV",
     title: "Justify",
     description:
-      "Chaque décision défendue par une source : acoustique, neuroarchitecture, réglementation, programmation.",
+      "Every decision defended with a source — acoustic, neuroarchitecture, regulatory, programming.",
     eta: "≈ 4 minutes",
     to: "/justify",
   },
   {
-    n: "IV",
+    n: "V",
     title: "Export",
     description:
-      "Un DWG A1 coté, cinq calques métier, cartouche prêt pour le bureau de contrôle.",
-    eta: "≈ 2 secondes",
+      "A dimensioned A1 DWG, five Design Office layers, title-block ready for the approvals office.",
+    eta: "≈ 2 seconds",
     to: "/export",
   },
 ];
@@ -120,7 +128,7 @@ export default function Landing() {
                   Lumen · Paris · 2 400 m²
                 </p>
                 <p className="font-mono text-[10px] uppercase tracking-label">
-                  atelier nord · 130 postes
+                  atelier north · 130 desks
                 </p>
               </figcaption>
             </figure>
@@ -212,7 +220,7 @@ export default function Landing() {
             loading="lazy"
           />
           <figcaption className="mt-3 font-mono text-[10px] uppercase tracking-label text-ink-muted">
-            Variante atelier · postes en façade nord · Opus 4.7 + SketchUp MCP
+            Atelier variant · desks along the north façade · Opus 4.7 + SketchUp MCP
           </figcaption>
         </figure>
         <blockquote className="col-span-12 self-center lg:col-span-5">
@@ -221,12 +229,12 @@ export default function Landing() {
             className="mt-6 font-display text-[40px] leading-[1.08] tracking-[-0.02em] text-ink md:text-[52px]"
             style={{ fontVariationSettings: '"opsz" 96, "wght" 460, "SOFT" 100' }}
           >
-            <span className="italic">&ldquo;</span>Rendre au bureau ce que le
-            domicile ne peut pas donner — collaboration, rituels, un café qui
-            rassemble<span className="italic">&rdquo;</span>
+            <span className="italic">&ldquo;</span>Give the office back what
+            home can't — collaboration, rituals, a café that brings people
+            together<span className="italic">&rdquo;</span>
           </p>
           <p className="mt-6 font-mono text-[11px] uppercase tracking-label text-ink-muted">
-            Extrait de l'argumentaire Lumen · Opus 4.7 consolidator
+            Excerpt from the Lumen argumentaire · Opus 4.7 consolidator
           </p>
         </blockquote>
       </section>

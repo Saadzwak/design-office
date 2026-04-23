@@ -24,15 +24,15 @@ type VariantStyle = "villageois" | "atelier" | "hybride_flex";
 const STYLES: VariantStyle[] = ["villageois", "atelier", "hybride_flex"];
 
 const STYLE_LABEL: Record<VariantStyle, string> = {
-  villageois: "Villageois",
+  villageois: "Neighbourhood",
   atelier: "Atelier",
-  hybride_flex: "Hybride flex",
+  hybride_flex: "Hybrid flex",
 };
 
 const STYLE_TAGLINE: Record<VariantStyle, string> = {
-  villageois: "Quartiers par équipe, cœur collab central.",
-  atelier: "Concentration en façade, collab au centre.",
-  hybride_flex: "Flex 0.65, mobilier reconfigurable.",
+  villageois: "Team neighbourhoods with a central collaboration core.",
+  atelier: "Focus at the façade, collab in the centre.",
+  hybride_flex: "Flex 0.65, reconfigurable furniture, brand-forward.",
 };
 
 const STYLE_NUMERAL: Record<VariantStyle, string> = {
@@ -65,12 +65,12 @@ type IterationEntry = {
   error?: string;
 };
 
-const FALLBACK_PROGRAMME = `# Programme fonctionnel — Lumen
+const FALLBACK_PROGRAMME = `# Functional programme — Lumen
 
-- 170 FTE à 24 mois, politique 3/2, flex ratio 0.75 (130 postes).
-- 6 focus rooms, 14 phone booths, 8 huddles, 6 salles moyennes, 2 boardrooms.
-- 1 town hall 120 m², café central 260 m².
-- Sources : design://office-programming, design://flex-ratios, design://collaboration-spaces.`;
+- 170 FTE at 24 months, 3/2 on-site policy, flex ratio 0.75 (130 desks).
+- 6 focus rooms, 14 phone booths, 8 huddles, 6 mid-sized meeting rooms, 2 boardrooms.
+- 1 town-hall space 120 m², central café 260 m².
+- Sources: design://office-programming, design://flex-ratios, design://collaboration-spaces.`;
 
 export default function TestFit() {
   const [state, setState] = useState<State>({ kind: "idle" });
@@ -325,7 +325,7 @@ export default function TestFit() {
               <p className="mt-3 text-[12.5px] leading-relaxed text-ink-muted">
                 {programme
                   ? `${programme.split("\n")[0].replace(/^#+\s*/, "")}`
-                  : "Lumen fixture · 130 postes · flex 0.75 · 6 boardrooms, 14 booths."}
+                  : "Lumen fixture · 130 desks · flex 0.75 · 6 boardrooms, 14 booths."}
               </p>
             )}
           </section>
@@ -379,7 +379,7 @@ export default function TestFit() {
                         </p>
                         {variant && (
                           <p className="mt-2 font-mono text-[10px] uppercase tracking-label text-ink-muted">
-                            {variant.metrics.workstation_count} postes ·{" "}
+                            {variant.metrics.workstation_count} desks ·{" "}
                             {variant.metrics.meeting_room_count} rooms ·{" "}
                             {variant.metrics.phone_booth_count} booths
                             {verdict && (
@@ -511,7 +511,7 @@ export default function TestFit() {
                 <p className="label-xs text-ink-muted">Metrics</p>
                 <dl className="mt-5 grid grid-cols-2 gap-x-6 gap-y-5">
                   <EditorialMetric
-                    label="Postes"
+                    label="Desks"
                     value={activeVariant.metrics.workstation_count}
                   />
                   <EditorialMetric
@@ -555,11 +555,11 @@ export default function TestFit() {
                       </p>
                     </div>
                     <ul className="mt-4 space-y-1.5 text-[12.5px] text-ink-soft">
-                      <li>PMR · {activeVerdict.pmr_ok ? "ok" : "à revoir"}</li>
-                      <li>ERP · {activeVerdict.erp_ok ? "ok" : "à revoir"}</li>
+                      <li>PMR · {activeVerdict.pmr_ok ? "ok" : "review needed"}</li>
+                      <li>ERP · {activeVerdict.erp_ok ? "ok" : "review needed"}</li>
                       <li>
                         Programme ·{" "}
-                        {activeVerdict.programme_coverage_ok ? "couvert" : "écart à combler"}
+                        {activeVerdict.programme_coverage_ok ? "covered" : "gap to close"}
                       </li>
                       {activeVerdict.issues.map((it, i) => (
                         <li key={i} className="text-clay">
@@ -591,7 +591,7 @@ export default function TestFit() {
               <p className="label-xs text-ink-muted">Iterate in natural language</p>
               <p className="mt-2 text-[13px] text-ink-soft">
                 Try <em>"agrandis la boardroom"</em>,{" "}
-                <em>"pousse les postes vers la façade sud"</em>, or{" "}
+                <em>"push the desks to the south façade"</em>, or{" "}
                 <em>"add two phone booths near the café"</em>.
               </p>
               <div className="mt-5 flex gap-3">

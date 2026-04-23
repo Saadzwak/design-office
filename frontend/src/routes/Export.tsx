@@ -22,9 +22,9 @@ type PersistedTestFit = {
 };
 
 const STYLE_LABEL: Record<VariantOutput["style"], string> = {
-  villageois: "Villageois",
+  villageois: "Neighbourhood",
   atelier: "Atelier",
-  hybride_flex: "Hybride flex",
+  hybride_flex: "Hybrid flex",
 };
 
 const STYLE_DOT: Record<VariantOutput["style"], string> = {

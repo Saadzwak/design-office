@@ -27,16 +27,18 @@ type Props = {
 
 const PAGE_HELLO: Record<string, string> = {
   landing:
-    "Je peux vous aider à démarrer un projet, expliquer les quatre surfaces, ou citer une source. Sur quoi voulez-vous travailler ?",
+    "I can help you start a project, walk you through the six surfaces, or cite a source. What would you like to work on?",
   brief:
-    "Nous sommes sur le Brief. Posez-moi une question sur le programme, ou demandez-moi de re-synthétiser avec un autre angle.",
+    "We're on the Brief. Ask me a question about the programme, or tell me to re-synthesise with a different angle.",
   testfit:
-    "Nous sommes sur le Test Fit. Je peux commenter les trois variantes, recommander la meilleure, ou proposer une itération (« agrandis la boardroom »).",
+    "We're on Test Fit. I can compare the three macro variants, recommend a retained one, or propose an iteration (\"grow the boardroom\", \"push desks to the south façade\").",
+  moodboard:
+    "We're on Mood Board. I can suggest materials for the client industry, swap a palette, or curate furniture pieces.",
   justify:
-    "Nous sommes sur Justify. Je peux résumer l'argumentaire, isoler l'argument acoustique / PMR / biophilie, ou proposer une variante de phrasing.",
+    "We're on Justify. I can summarise the argumentaire, isolate the acoustic / PMR / biophilic argument, or propose alternative phrasings.",
   export:
-    "Nous sommes sur Export. Je peux vous aider à choisir l'échelle du DWG, expliquer les cinq calques Design Office, ou lancer l'export directement.",
-  chat: "Comment puis-je aider sur le projet ?",
+    "We're on Export. I can help choose the DWG scale, explain the five Design Office layers, or trigger the export directly.",
+  chat: "How can I help on the project?",
 };
 
 export default function ChatPanel({ mode, onClose }: Props) {
@@ -163,19 +165,32 @@ export default function ChatPanel({ mode, onClose }: Props) {
             ...ms,
             {
               role: "assistant",
-              content: `✓ Itération appliquée sur \`${style}\`. Retournez sur /testfit pour voir la variante mise à jour.`,
+              content: `✓ Iteration applied on \`${style}\`. Head back to /testfit to see the updated variant.`,
             },
           ]);
-        } else if (act.type === "export_dxf") {
+        } else if (act.type === "export_dwg" || act.type === "export_dxf") {
+          // "export_dxf" is kept as a backward-compat alias for older sessions.
           navigate("/export");
-        } else if (act.type === "regenerate_argumentaire") {
+        } else if (act.type === "start_justify" || act.type === "regenerate_argumentaire") {
           navigate("/justify");
-        } else if (act.type === "regenerate_variants") {
+        } else if (act.type === "start_macro_zoning" || act.type === "regenerate_variants") {
           navigate("/testfit");
-        } else if (act.type === "regenerate_programme") {
+        } else if (act.type === "start_brief" || act.type === "regenerate_programme") {
+          navigate("/brief");
+        } else if (act.type === "start_micro_zoning") {
+          navigate("/testfit?tab=micro");
+        } else if (act.type === "start_mood_board" || act.type === "generate_pitch_deck") {
+          navigate("/moodboard");
+        } else if (act.type === "update_project_field") {
+          // Phase B wires this up to the unified project state. For now,
+          // route to Brief so the user can hand-edit the field manually.
           navigate("/brief");
         } else {
-          setError(`Unsupported action type: ${act.type}`);
+          // Unknown / out-of-domain action → ignore silently and clear the
+          // suggestion so the UI stays calm. The prompt enumerates the
+          // allow-list; any other type is a bug to be logged, not exposed.
+          console.warn(`[chat] ignoring unknown action type: ${act.type}`);
+          setAction(null);
           return;
         }
         setAction(null);
@@ -267,7 +282,7 @@ export default function ChatPanel({ mode, onClose }: Props) {
               <span className="dot dot-pulse" style={{ animationDelay: "150ms" }} />
               <span className="dot dot-pulse" style={{ animationDelay: "300ms" }} />
             </span>
-            <span className="font-mono text-[10px] uppercase tracking-label">Opus réfléchit</span>
+            <span className="font-mono text-[10px] uppercase tracking-label">Opus thinking</span>
           </div>
         )}
         <AnimatePresence>
@@ -279,7 +294,7 @@ export default function ChatPanel({ mode, onClose }: Props) {
               className="rounded-lg border border-forest/20 bg-forest/5 p-4"
             >
               <p className="font-mono text-[10px] uppercase tracking-eyebrow text-forest">
-                Action suggérée
+                Suggested action
               </p>
               <p className="mt-2 font-sans text-[14px] text-ink">{action.label}</p>
               <p className="mt-1 font-mono text-[11px] text-ink-muted">
@@ -290,10 +305,10 @@ export default function ChatPanel({ mode, onClose }: Props) {
               </p>
               <div className="mt-3 flex gap-2">
                 <button className="btn-primary" onClick={() => confirmAction(action)}>
-                  Appliquer
+                  Apply
                 </button>
                 <button className="btn-ghost" onClick={() => setAction(null)}>
-                  Annuler
+                  Cancel
                 </button>
               </div>
             </motion.div>
@@ -316,8 +331,8 @@ export default function ChatPanel({ mode, onClose }: Props) {
             onKeyDown={onKey}
             placeholder={
               context.page === "testfit"
-                ? "Agrandis la boardroom, résume l'argument acoustique…"
-                : "Posez votre question…"
+                ? "Grow the boardroom, summarise the acoustic argument…"
+                : "Ask a question, or propose a change…"
             }
             rows={2}
             className="min-h-[44px] flex-1 resize-none rounded-md border border-hairline bg-raised px-3 py-2 font-sans text-[14px] leading-relaxed text-ink placeholder:text-ink-muted focus:border-forest focus:outline-none focus:ring-2 focus:ring-forest/20"
@@ -332,7 +347,7 @@ export default function ChatPanel({ mode, onClose }: Props) {
           </button>
         </div>
         <p className="mt-2 font-mono text-[10px] uppercase tracking-label text-ink-muted">
-          Entrée envoie · Shift+Entrée nouvelle ligne
+          Enter sends · Shift+Enter for a new line
         </p>
       </div>
     </div>

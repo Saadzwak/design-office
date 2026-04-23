@@ -26,9 +26,9 @@ type PersistedTestFit = {
 };
 
 const STYLE_LABEL: Record<VariantOutput["style"], string> = {
-  villageois: "Villageois",
+  villageois: "Neighbourhood",
   atelier: "Atelier",
-  hybride_flex: "Hybride flex",
+  hybride_flex: "Hybrid flex",
 };
 
 const STYLE_DOT: Record<VariantOutput["style"], string> = {
@@ -37,24 +37,24 @@ const STYLE_DOT: Record<VariantOutput["style"], string> = {
   hybride_flex: "bg-sun",
 };
 
-const DEFAULT_BRIEF = `Lumen, startup fintech, 120 personnes aujourd'hui, 170 projetées d'ici 24 mois.
-Politique de présence : 3 jours au bureau, 2 télétravail, équipes tech largement en pair programming.
-Culture plat, transparente, forte identité par équipe (produit, tech, data, growth, ops).
-Modes de travail dominants : collaboration synchrone, design sprints, pair programming,
-focus profond pour les devs, rituels all-hands hebdomadaires.
-Demandes explicites : beaucoup d'espaces collab, cafétéria centrale pas reléguée,
-zones calmes pour concentration, pas d'open space géant indifférencié,
-expression de la marque forte.
-Surface disponible : 2400 m² utiles sur 2 niveaux reliés par escalier central.
-Budget Cat B : 2,2 M€ HT.
-Climat : Paris, façade sud donnant sur rue, façade nord donnant sur cour intérieure.`;
+const DEFAULT_BRIEF = `Lumen, a fintech startup, 120 people today, 170 projected within 24 months.
+Attendance policy: 3 days on-site, 2 remote. Tech teams pair-program heavily.
+Culture is flat, transparent, with a strong team identity (product, tech, data, growth, ops).
+Dominant work modes: synchronous collaboration, design sprints, pair programming,
+deep focus for engineers, weekly all-hands rituals.
+Stated asks: plenty of collaboration spaces, a central café (not tucked away),
+quiet zones for deep work, no giant undifferentiated open space,
+strong brand expression.
+Available area: 2,400 m² usable across two floors connected by a central stair.
+Cat B budget: 2.2 M€ excl. tax.
+Climate: Paris, south façade onto the street, north façade onto an inner courtyard.`;
 
-const FALLBACK_PROGRAMME = `# Programme fonctionnel — Lumen
+const FALLBACK_PROGRAMME = `# Functional programme — Lumen
 
-- 170 FTE à 24 mois, politique 3/2, flex ratio 0.75 (130 postes).
-- 6 focus rooms, 14 phone booths, 8 huddles, 6 salles moyennes, 2 boardrooms.
-- 1 town hall 120 m², café central 260 m².
-- Sources : design://office-programming, design://flex-ratios, design://collaboration-spaces.`;
+- 170 FTE at 24 months, 3/2 on-site policy, flex ratio 0.75 (130 desks).
+- 6 focus rooms, 14 phone booths, 8 huddles, 6 mid-sized meeting rooms, 2 boardrooms.
+- 1 town-hall space 120 m², central café 260 m².
+- Sources: design://office-programming, design://flex-ratios, design://collaboration-spaces.`;
 
 type State =
   | { kind: "idle" }
@@ -240,7 +240,7 @@ export default function Justify() {
                             {STYLE_LABEL[v.style]}
                           </span>
                           <p className="mt-1 font-mono text-[10px] uppercase tracking-label text-ink-muted">
-                            {v.metrics.workstation_count} postes · flex{" "}
+                            {v.metrics.workstation_count} desks · flex{" "}
                             {v.metrics.flex_ratio_applied.toFixed(2)}
                             {verdict && (
                               <>
@@ -362,7 +362,7 @@ export default function Justify() {
                     className={`inline-block h-[9px] w-[9px] rounded-full ${STYLE_DOT[chosenVariant.style]}`}
                   />
                   <p className="font-mono text-[10px] uppercase tracking-label text-ink-muted">
-                    {STYLE_LABEL[chosenVariant.style]} · retenu
+                    {STYLE_LABEL[chosenVariant.style]} · retained
                   </p>
                 </div>
                 <h2
@@ -375,7 +375,7 @@ export default function Justify() {
               <aside className="min-w-0 lg:border-l lg:border-hairline lg:pl-8">
                 <dl className="grid grid-cols-2 gap-x-6 gap-y-4">
                   <EditorialMetric
-                    label="Postes"
+                    label="Desks"
                     value={chosenVariant.metrics.workstation_count}
                   />
                   <EditorialMetric

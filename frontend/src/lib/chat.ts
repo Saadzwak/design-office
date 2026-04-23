@@ -10,7 +10,14 @@ export type ChatMessage = {
   content: string;
 };
 
-export type PageName = "landing" | "brief" | "testfit" | "justify" | "export" | "chat";
+export type PageName =
+  | "landing"
+  | "brief"
+  | "testfit"
+  | "moodboard"
+  | "justify"
+  | "export"
+  | "chat";
 
 export type PageContext = {
   page: PageName;

@@ -67,6 +67,7 @@ function routeToPage(pathname: string): PageName {
   if (pathname === "/" || pathname === "") return "landing";
   if (pathname.startsWith("/brief")) return "brief";
   if (pathname.startsWith("/testfit")) return "testfit";
+  if (pathname.startsWith("/moodboard")) return "moodboard";
   if (pathname.startsWith("/justify")) return "justify";
   if (pathname.startsWith("/export")) return "export";
   if (pathname.startsWith("/chat")) return "chat";
