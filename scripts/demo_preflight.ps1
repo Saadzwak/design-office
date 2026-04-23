@@ -72,7 +72,8 @@ $fixtures = @(
     "docs\screenshots\03-testfit.png",
     "docs\screenshots\04-moodboard.png",
     "docs\screenshots\05-justify.png",
-    "docs\screenshots\06-export.png"
+    "docs\screenshots\06-export.png",
+    "docs\screenshots\07-chat.png"
 )
 foreach ($rel in $fixtures) {
     $p = Join-Path $repoRoot $rel

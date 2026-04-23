@@ -279,13 +279,14 @@ SOFT + opsz axes) for display + body, Inter for UI, JetBrains Mono for
 labels. The aesthetic reference is Kinfolk magazine, Saguez & Partners,
 MoreySmith — never a SaaS dashboard.
 
-The six page captures below come from headless Chrome at 1 440 × 900.
+The seven page captures below come from headless Chrome at 1 440 × 900.
+(Seven = six surfaces + the dedicated /chat fullpage route.)
 Full principles + palette + motion tokens live in
 **[`docs/UI_DESIGN.md`](docs/UI_DESIGN.md)**.
 
-| I · Landing | II · Brief | III · Test Fit | IV · Mood Board | V · Justify | VI · Export |
-|:-:|:-:|:-:|:-:|:-:|:-:|
-| [![Landing](docs/screenshots/01-landing.png)](docs/screenshots/01-landing.png) | [![Brief](docs/screenshots/02-brief.png)](docs/screenshots/02-brief.png) | [![Test Fit](docs/screenshots/03-testfit.png)](docs/screenshots/03-testfit.png) | [![Mood Board](docs/screenshots/04-moodboard.png)](docs/screenshots/04-moodboard.png) | [![Justify](docs/screenshots/05-justify.png)](docs/screenshots/05-justify.png) | [![Export](docs/screenshots/06-export.png)](docs/screenshots/06-export.png) |
+| I · Landing | II · Brief | III · Test Fit | IV · Mood Board | V · Justify | VI · Export | VII · Chat |
+|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
+| [![Landing](docs/screenshots/01-landing.png)](docs/screenshots/01-landing.png) | [![Brief](docs/screenshots/02-brief.png)](docs/screenshots/02-brief.png) | [![Test Fit](docs/screenshots/03-testfit.png)](docs/screenshots/03-testfit.png) | [![Mood Board](docs/screenshots/04-moodboard.png)](docs/screenshots/04-moodboard.png) | [![Justify](docs/screenshots/05-justify.png)](docs/screenshots/05-justify.png) | [![Export](docs/screenshots/06-export.png)](docs/screenshots/06-export.png) | [![Chat](docs/screenshots/07-chat.png)](docs/screenshots/07-chat.png) |
 
 ## Client-aware — the same system, three very different outputs
 
