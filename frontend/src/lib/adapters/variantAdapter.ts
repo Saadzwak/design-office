@@ -202,9 +202,27 @@ export function variantToDesign(
     ? variant.narrative.split(/\n|\./)[0].trim() + "."
     : variant.title;
 
+  // Iter-20a (Saad #8) : prefer the agent's title over the hardcoded
+  // STYLE_NAME fallback, so a brand-new project gets context-specific
+  // variant names (e.g. "The editorial nave · Nordlight" rather than
+  // a flat "Atelier" reused across every project).
+  //
+  // We still fall back to STYLE_NAME when the title is missing or
+  // generic ("atelier" / "villageois" / "hybride_flex" verbatim).
+  const genericTitles = new Set([
+    "villageois",
+    "atelier",
+    "hybride_flex",
+    "hybride flex",
+  ]);
+  const agentTitle = (variant.title ?? "").trim();
+  const displayName = agentTitle && !genericTitles.has(agentTitle.toLowerCase())
+    ? agentTitle
+    : (STYLE_NAME[variant.style] ?? variant.title ?? variant.style);
+
   return {
     id: variant.style,
-    name: STYLE_NAME[variant.style] ?? variant.title,
+    name: displayName,
     pigment: STYLE_PIGMENT[variant.style] ?? "forest",
     pitch,
     metrics: {

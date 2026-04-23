@@ -86,10 +86,27 @@ export default function TestFit() {
   const [instruction, setInstruction] = useState("");
   const [iterating, setIterating] = useState(false);
 
-  // Hydrate on mount : prefer a persisted macro run, fall back to the
-  // saved Lumen fixture so the page always has content.
+  // Hydrate on mount. Iter-20 critical fix (Saad #6, #8, #12) :
+  //
+  //   The previous implementation fell back to the saved Lumen sample
+  //   AND the Lumen plan fixture for ANY project that didn't have its
+  //   own testfit run — leaking Villageois / Atelier / Hybride-flex
+  //   variants into every new project. Now :
+  //
+  //     - Always prefer the project's own `testfit` run (v2 state).
+  //     - Only fall back to the Lumen sample when the active project
+  //       IS Lumen (or explicitly seeds the demo).
+  //     - Only fall back to the Lumen plan fixture when the active
+  //       project IS Lumen.
+  //     - Otherwise : if the project has its own `floor_plan`
+  //       uploaded (NewProjectModal parse), show it in `plan_ready`
+  //       state ready for generation ; if it has nothing, render the
+  //       empty-state CTA (see `MacroView` below).
   useEffect(() => {
     const ac = new AbortController();
+    const isLumen =
+      (project.project_id || "").toLowerCase().startsWith("lumen") ||
+      (project.client.name || "").toLowerCase() === "lumen";
     const hydrate = async () => {
       if (project.testfit) {
         setState({
@@ -104,6 +121,19 @@ export default function TestFit() {
         });
         return;
       }
+      // Non-Lumen with an uploaded plan → plan_ready (user clicks
+      // Generate to fan the 3 agents for THIS project).
+      if (project.floor_plan && !isLumen) {
+        setState({ kind: "plan_ready", plan: project.floor_plan });
+        return;
+      }
+      // Non-Lumen without a plan → idle empty state (MacroView
+      // surfaces a CTA to upload or go back to Brief).
+      if (!isLumen) {
+        setState({ kind: "idle" });
+        return;
+      }
+      // Lumen only : cold-start demo fallback to the saved sample.
       try {
         const sample = await fetchTestFitSample(ac.signal);
         setState({
@@ -375,20 +405,32 @@ function MacroView({
             </div>
           ))}
         </div>
+      ) : state.kind === "plan_ready" ? (
+        <div
+          className="card p-12 text-center"
+          style={{ background: "var(--canvas-alt)" }}
+        >
+          <Eyebrow style={{ marginBottom: 10 }}>PLAN READY</Eyebrow>
+          <p className="mx-auto max-w-xl text-[14px] leading-relaxed text-mist-600">
+            Hit <em>Generate macro-zoning</em> to fan three parallel design
+            agents across your plate. Each produces a distinct parti ; the
+            Reviewer and the Adjacency Validator grade them in parallel.
+          </p>
+          <button onClick={onGenerate} className="btn-primary mt-6">
+            Generate macro-zoning <Icon name="sparkles" size={14} />
+          </button>
+        </div>
       ) : (
         <div
           className="card p-12 text-center"
           style={{ background: "var(--canvas-alt)" }}
         >
-          <Eyebrow style={{ marginBottom: 10 }}>READY · FIXTURE LOADED</Eyebrow>
+          <Eyebrow style={{ marginBottom: 10 }}>NO PLAN YET</Eyebrow>
           <p className="mx-auto max-w-xl text-[14px] leading-relaxed text-mist-600">
-            Hit <em>Generate</em> to fan three parallel design agents across
-            the Lumen plate. Each produces a distinct macro-zoning parti ;
-            the Reviewer and the Adjacency Validator grade them.
+            Upload a floor plan from the Brief surface (or the New Project
+            modal) before running the macro-zoning agents. The three parallel
+            variants need a plate to zone.
           </p>
-          <button onClick={onGenerate} className="btn-primary mt-6">
-            Generate 3 variants <Icon name="sparkles" size={14} />
-          </button>
         </div>
       )}
 
@@ -455,8 +497,7 @@ function MacroView({
                 }
               }}
               placeholder="e.g. enlarge the boardroom, push the desks to the south façade…"
-              className="input-underline flex-1"
-              style={{ borderBottom: "none" }}
+              className="flex-1 border-0 border-b border-mist-300 bg-transparent py-2 text-[14px] text-ink placeholder:text-mist-400 focus:border-forest focus:outline-none"
               disabled={iterating}
             />
             <button
@@ -471,6 +512,12 @@ function MacroView({
         </div>
       )}
 
+      {/* Next-step CTA chain — iter-20a (#14). Once a variant is
+          retained, guide the user to Mood Board → Justify → Export. */}
+      {state.kind === "done" && variants.length === 3 && (
+        <ContinueChain onDrill={onDrill} />
+      )}
+
       {/* Error */}
       {state.kind === "error" && (
         <div
@@ -481,6 +528,38 @@ function MacroView({
         </div>
       )}
     </>
+  );
+}
+
+function ContinueChain({ onDrill }: { onDrill: () => void }) {
+  const navigate = useNavigate();
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-mist-200 bg-canvas-alt p-5">
+      <div>
+        <Eyebrow style={{ marginBottom: 4 }}>NEXT STEPS</Eyebrow>
+        <p className="m-0 text-[13px] text-mist-600">
+          Drill into the retained variant then continue toward the mood
+          board, the argumentaire, and the engineering export.
+        </p>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <button onClick={onDrill} className="btn-ghost btn-sm">
+          <Icon name="layers" size={12} /> Drill into micro-zoning
+        </button>
+        <button
+          onClick={() => navigate("/moodboard")}
+          className="btn-ghost btn-sm"
+        >
+          <Icon name="feather" size={12} /> Continue to Mood Board
+        </button>
+        <button
+          onClick={() => navigate("/justify")}
+          className="btn-ghost btn-sm"
+        >
+          <Icon name="messages-square" size={12} /> Continue to Justify
+        </button>
+      </div>
+    </div>
   );
 }
 

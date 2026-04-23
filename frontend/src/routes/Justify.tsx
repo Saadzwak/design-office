@@ -60,13 +60,26 @@ export default function Justify() {
     }
   }, [project.justify, response]);
 
+  // Iter-20a (Saad #15) : invert the empty-state logic.
+  //   Before — a fresh project saw the JUSTIFY_FALLBACK hardcoded
+  //     7 cards BEFORE generation, then lost them AFTER generation
+  //     if parsing failed. Exactly backwards.
+  //   After — empty state before generation (handled in JSX below),
+  //     project-specific parsed cards after. JUSTIFY_FALLBACK
+  //     retained only as a last-resort safety net.
   const cards: JustifyCard[] = useMemo(() => {
     if (response?.argumentaire) {
       const parsed = parseJustifyCards(response.argumentaire);
       if (parsed.length > 0) return parsed;
+      // If the argumentaire exists but didn't parse into sections,
+      // that's a backend glitch — show the fallback so the page isn't
+      // blank while the user retries.
+      return JUSTIFY_FALLBACK;
     }
-    return JUSTIFY_FALLBACK;
+    return [];
   }, [response]);
+
+  const hasRealCards = cards.length > 0 && !!response?.argumentaire;
 
   const retained = project.testfit?.variants?.find(
     (v) => v.style === project.testfit?.retained_style,
@@ -92,7 +105,12 @@ export default function Justify() {
         programme_markdown: project.programme.markdown,
         floor_plan: plan,
         variant,
-        language: "fr",
+        // Iter-20a (Saad #15, #16) : force English output for the
+        // argumentaire so the 7 cards render consistent English
+        // titles, regardless of the brief's input language. Previous
+        // default was "fr" which produced "Le pari", "Ce que dit la
+        // recherche", etc., breaking the client-facing story view.
+        language: "en",
         client_logo_data_url: project.client.logo_data_url ?? null,
       });
       setResponse(resp);
@@ -169,6 +187,47 @@ export default function Justify() {
       )}
 
       {/* Cards grid + optional research trace */}
+      {/* Empty state (iter-20a #15) — visible when the user hasn't
+          run the argumentaire yet. Replaces the old fallback cards
+          that used to show generic "Acoustic Strategy…" content
+          BEFORE the project was justified. */}
+      {!hasRealCards && phase !== "running" && (
+        <Card>
+          <div className="flex items-start justify-between gap-6">
+            <div className="flex-1">
+              <Eyebrow style={{ marginBottom: 6 }}>NO ARGUMENTAIRE YET</Eyebrow>
+              <p className="m-0 max-w-xl text-[13px] leading-relaxed text-mist-600">
+                Four research agents (acoustic · biophilic · ergonomics ·
+                compliance) compose the argumentaire in parallel. ~90 s
+                end-to-end. The client deck (PPTX) and the long-form PDF
+                are generated alongside.
+              </p>
+            </div>
+            <button onClick={runGenerate} className="btn-primary">
+              <Icon name="sparkles" size={14} /> Compose argumentaire
+            </button>
+          </div>
+        </Card>
+      )}
+
+      {phase === "running" && (
+        <Card>
+          <div className="flex items-center gap-4">
+            <span
+              className="inline-block h-3 w-3 animate-[dot-pulse_1.1s_var(--ease)_infinite] rounded-full"
+              style={{ background: "var(--forest)" }}
+            />
+            <div>
+              <Eyebrow style={{ marginBottom: 4 }}>OPUS · RESEARCHING</Eyebrow>
+              <p className="text-[13px] text-mist-600">
+                Four parallel research agents sourcing citations — ~90 s.
+              </p>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {hasRealCards && (
       <section
         className="grid gap-12"
         style={{ gridTemplateColumns: isClient ? "1fr" : "1fr 280px" }}
@@ -182,8 +241,8 @@ export default function Justify() {
               key={i}
               as="button"
               onClick={() => setOpenIndex(i)}
-              className="relative !p-6"
-              style={{ minHeight: 180 }}
+              className="relative !pl-6 !pr-6 !pt-6 !pb-14"
+              style={{ minHeight: 200 }}
             >
               <div
                 className="font-display italic leading-none"
@@ -210,7 +269,7 @@ export default function Justify() {
               <div className="mt-2.5 text-[14px] leading-snug text-mist-600">
                 {s.tldr}
               </div>
-              <div className="absolute bottom-5 right-5 flex items-center gap-1.5">
+              <div className="absolute bottom-4 right-5 flex items-center gap-1.5">
                 <span className="mono text-forest">
                   {s.citations} CITATION{s.citations === 1 ? "" : "S"}
                 </span>
@@ -302,6 +361,7 @@ export default function Justify() {
           </aside>
         )}
       </section>
+      )}
 
       {/* CTAs — iter-19 D : "Compose client deck (PPTX)" actually
           generates the PPTX now (or serves it if we already have

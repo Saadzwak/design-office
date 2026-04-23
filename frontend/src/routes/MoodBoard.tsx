@@ -105,9 +105,16 @@ export default function MoodBoard() {
   const [phase, setPhase] = useState<"idle" | "running" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState<string>("");
 
-  // Preload the Lumen atelier fixture so the demo has content
-  // immediately. Non-Lumen projects show a "Run mood board" CTA.
+  // Iter-20a (Saad #6, #9) : the Lumen fixture used to preload for
+  // every project, making a fresh project look like it already had a
+  // curated mood board. Now only Lumen (by project_id / client name)
+  // gets the fixture preload ; every other project hits the "Generate
+  // mood board" empty state.
   useEffect(() => {
+    const isLumen =
+      (project.project_id || "").toLowerCase().startsWith("lumen") ||
+      (project.client.name || "").toLowerCase() === "lumen";
+    if (!isLumen) return;
     const ac = new AbortController();
     fetch("/moodboard-fixtures/lumen_atelier.json", { signal: ac.signal })
       .then((r) => (r.ok ? r.json() : null))
@@ -116,6 +123,7 @@ export default function MoodBoard() {
       })
       .catch(() => null);
     return () => ac.abort();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // If projectState already has a mood-board run we bias the UI to
@@ -211,6 +219,49 @@ export default function MoodBoard() {
           <Pill>{selection?.furniture?.length ?? 0} signature pieces</Pill>
         </div>
       </header>
+
+      {/* Iter-20a (Saad #9) : explicit Generate CTA when there's no
+          selection yet AND no running state. Before, a fresh project
+          landed on this page with placeholder tiles and no action —
+          user couldn't tell what to do. */}
+      {!selection && phase !== "running" && phase !== "error" && (
+        <Card>
+          <div className="flex items-start justify-between gap-6">
+            <div className="flex-1">
+              <Eyebrow style={{ marginBottom: 6 }}>NO MOOD BOARD YET</Eyebrow>
+              <p className="m-0 max-w-xl text-[13px] leading-relaxed text-mist-600">
+                Run the <em>Mood Board Curator</em> agent to compose the
+                palette, materials, furniture, planting and light for this
+                project's retained variant. Takes ~35 s.
+              </p>
+            </div>
+            <button
+              onClick={run}
+              className="btn-primary"
+            >
+              <Icon name="sparkles" size={14} /> Generate mood board
+            </button>
+          </div>
+        </Card>
+      )}
+
+      {phase === "running" && (
+        <Card>
+          <div className="flex items-center gap-4">
+            <span
+              className="inline-block h-3 w-3 animate-[dot-pulse_1.1s_var(--ease)_infinite] rounded-full"
+              style={{ background: "var(--forest)" }}
+            />
+            <div>
+              <Eyebrow style={{ marginBottom: 4 }}>OPUS · CURATING</Eyebrow>
+              <p className="text-[13px] text-mist-600">
+                Composing palette, materials, furniture, planting and light
+                — usually 30-45 seconds.
+              </p>
+            </div>
+          </div>
+        </Card>
+      )}
 
       {phase === "error" && (
         <Card>
