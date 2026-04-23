@@ -35,6 +35,11 @@ type Mode = "drawer" | "fullpage";
 type Props = {
   mode: Mode;
   onClose?: () => void;
+  /** Wired in iter-18m drawer port — lets the drawer's expand icon
+   *  navigate to /chat while closing the drawer. Accepted optionally
+   *  here so App.tsx's controlled ChatDrawer compiles before the
+   *  bubble refactor lands. */
+  onExpand?: () => void;
 };
 
 const PAGE_HELLO: Record<string, string> = {
@@ -53,7 +58,7 @@ const PAGE_HELLO: Record<string, string> = {
   chat: "How can I help on the project?",
 };
 
-export default function ChatPanel({ mode, onClose }: Props) {
+export default function ChatPanel({ mode, onClose, onExpand: _onExpand }: Props) {
   const navigate = useNavigate();
   const context = useChatContext();
   const project = useProjectState();

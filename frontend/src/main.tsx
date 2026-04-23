@@ -9,6 +9,7 @@ import Export from "./routes/Export";
 import Justify from "./routes/Justify";
 import Landing from "./routes/Landing";
 import MoodBoard from "./routes/MoodBoard";
+import ProjectDashboard from "./routes/ProjectDashboard";
 import TestFit from "./routes/TestFit";
 import "./styles/globals.css";
 
@@ -17,6 +18,7 @@ const router = createBrowserRouter([
     element: <App />,
     children: [
       { path: "/", element: <Landing /> },
+      { path: "/project", element: <ProjectDashboard /> },
       { path: "/brief", element: <Brief /> },
       { path: "/testfit", element: <TestFit /> },
       { path: "/moodboard", element: <MoodBoard /> },
