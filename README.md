@@ -314,6 +314,35 @@ another call:
 Each PDF is paired with a `*_selection.json` audit file containing the
 structured curator output that fed the renderer.
 
+### The adaptation reaches all the way up the funnel
+
+The mood board is not the only surface that adapts — so does the Brief
+synthesis. The same `Effectifs / Benchmarks / Contraintes / Consolidator`
+orchestration that produces Lumen's programme (130 desks at **0.75 flex**,
+a 260 m² central café, 14 phone booths and generous open-plan collab)
+produces a radically different programme when fed Altamont's law-firm
+brief (saved as `backend/tests/fixtures/altamont_brief_output.json`,
+89 k in / 16 k out):
+
+- **20 private partner offices** at 14 m² each (280 m² of dedicated
+  partner space)
+- **45 shared two-person associate offices** (810 m²)
+- **~1.0 seats / FTE** flex ratio, argued as a *"deliberate
+  counter-trend position against the 2024-2025 industry drift"* — the
+  consolidator cites the legal-sector median and explains why
+  confidential-matter exposure rules out hot-desking
+- **3 depositions-ready boardrooms** (DnT,A ≥ 45 dB) instead of two
+- **Library with 400 linear m of shelving**, **wine cellar**,
+  **tasting kitchen with sommelier station** — all sized, placed, and
+  justified against the brief's "client dinners" cue
+- **10 phone booths** (vs 14 for Lumen), with the consolidator's
+  reasoning that *"most confidential calls happen inside offices"*
+
+The only input that changed between the two runs was the brief text.
+The ratios, the room typologies, the acoustic targets, the café vs
+private-dining posture — everything else flows from what the industry-
+aware agents infer from the text + the 13 sourced MCP resources.
+
 ## Documentation
 
 - **[`docs/PRODUCT_VISION.md`](docs/PRODUCT_VISION.md)** — who the
