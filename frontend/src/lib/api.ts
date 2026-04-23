@@ -114,13 +114,33 @@ export type VariantMetrics = {
   notes: string[];
 };
 
+export type VariantStyle = "villageois" | "atelier" | "hybride_flex";
+
+export type AdjacencyViolation = {
+  rule_id: string;
+  severity: "info" | "minor" | "major" | "critical";
+  zones: string[];
+  description: string;
+  suggestion: string;
+  source: string;
+};
+
+export type AdjacencyAudit = {
+  score: number;
+  summary: string;
+  violations: AdjacencyViolation[];
+  recommendations: string[];
+};
+
 export type VariantOutput = {
-  style: "villageois" | "atelier" | "hybride_flex";
+  style: VariantStyle;
   title: string;
   narrative: string;
   metrics: VariantMetrics;
   sketchup_trace: Array<{ tool: string; params: Record<string, unknown> }>;
   screenshot_paths: string[];
+  /** iter-17 B : optional adjacency audit (null on pre-iter-17 fixtures). */
+  adjacency_audit?: AdjacencyAudit | null;
 };
 
 export type ReviewerVerdict = {
