@@ -1,0 +1,5014 @@
+{
+  "floor_plan": {
+    "level": 0,
+    "name": "Lumen plateau (fixture)",
+    "scale_unit": "mm",
+    "envelope": {
+      "points": [
+        {
+          "x": 0.0,
+          "y": 0.0
+        },
+        {
+          "x": 60000.0,
+          "y": 0.0
+        },
+        {
+          "x": 60000.0,
+          "y": 40000.0
+        },
+        {
+          "x": 0.0,
+          "y": 40000.0
+        }
+      ]
+    },
+    "gross_area_m2": null,
+    "net_area_m2": null,
+    "columns": [
+      {
+        "center": {
+          "x": 3500.0,
+          "y": 3500.0
+        },
+        "radius_mm": 200.00028610229492,
+        "square": false,
+        "label": null
+      },
+      {
+        "center": {
+          "x": 3500.0,
+          "y": 10500.0
+        },
+        "radius_mm": 200.00028610229492,
+        "square": false,
+        "label": null
+      },
+      {
+        "center": {
+          "x": 3500.0,
+          "y": 17500.0
+        },
+        "radius_mm": 200.00028610229492,
+        "square": false,
+        "label": null
+      },
+      {
+        "center": {
+          "x": 3500.0,
+          "y": 24500.0
+        },
+        "radius_mm": 200.00028610229492,
+        "square": false,
+        "label": null
+      },
+      {
+        "center": {
+          "x": 3500.0,
+          "y": 31500.0
+        },
+        "radius_mm": 200.00028610229492,
+        "square": false,
+        "label": null
+      },
+      {
+        "center": {
+          "x": 3500.0,
+          "y": 38500.0
+        },
+        "radius_mm": 200.00028610229492,
+        "square": false,
+        "label": null
+      },
+      {
+        "center": {
+          "x": 10500.0,
+          "y": 3500.0
+        },
+        "radius_mm": 200.00028610229492,
+        "square": false,
+        "label": null
+      },
+      {
+        "center": {
+          "x": 10500.0,
+          "y": 10500.0
+        },
+        "radius_mm": 200.00028610229492,
+        "square": false,
+        "label": null
+      },
+      {
+        "center": {
+          "x": 10500.0,
+          "y": 17500.0
+        },
+        "radius_mm": 200.00028610229492,
+        "square": false,
+        "label": null
+      },
+      {
+        "center": {
+          "x": 10500.0,
+          "y": 24500.0
+        },
+        "radius_mm": 200.00028610229492,
+        "square": false,
+        "label": null
+      },
+      {
+        "center": {
+          "x": 10500.0,
+          "y": 31500.0
+        },
+        "radius_mm": 200.00028610229492,
+        "square": false,
+        "label": null
+      },
+      {
+        "center": {
+          "x": 10500.0,
+          "y": 38500.0
+        },
+        "radius_mm": 200.00028610229492,
+        "square": false,
+        "label": null
+      },
+      {
+        "center": {
+          "x": 17500.0,
+          "y": 3500.0
+        },
+        "radius_mm": 200.00076293945312,
+        "square": false,
+        "label": null
+      },
+      {
+        "center": {
+          "x": 17500.0,
+          "y": 10500.0
+        },
+        "radius_mm": 200.00076293945312,
+        "square": false,
+        "label": null
+      },
+      {
+        "center": {
+          "x": 17500.0,
+          "y": 17500.0
+        },
+        "radius_mm": 200.00076293945312,
+        "square": false,
+        "label": null
+      },
+      {
+        "center": {
+          "x": 17500.0,
+          "y": 24500.0
+        },
+        "radius_mm": 200.00076293945312,
+        "square": false,
+        "label": null
+      },
+      {
+        "center": {
+          "x": 17500.0,
+          "y": 31500.0
+        },
+        "radius_mm": 200.00076293945312,
+        "square": false,
+        "label": null
+      },
+      {
+        "center": {
+          "x": 17500.0,
+          "y": 38500.0
+        },
+        "radius_mm": 200.00076293945312,
+        "square": false,
+        "label": null
+      },
+      {
+        "center": {
+          "x": 24500.0,
+          "y": 3500.0
+        },
+        "radius_mm": 200.00076293945312,
+        "square": false,
+        "label": null
+      },
+      {
+        "center": {
+          "x": 24500.0,
+          "y": 10500.0
+        },
+        "radius_mm": 200.00076293945312,
+        "square": false,
+        "label": null
+      },
+      {
+        "center": {
+          "x": 24500.0,
+          "y": 17500.0
+        },
+        "radius_mm": 200.00076293945312,
+        "square": false,
+        "label": null
+      },
+      {
+        "center": {
+          "x": 24500.0,
+          "y": 24500.0
+        },
+        "radius_mm": 200.00076293945312,
+        "square": false,
+        "label": null
+      },
+      {
+        "center": {
+          "x": 24500.0,
+          "y": 31500.0
+        },
+        "radius_mm": 200.00076293945312,
+        "square": false,
+        "label": null
+      },
+      {
+        "center": {
+          "x": 24500.0,
+          "y": 38500.0
+        },
+        "radius_mm": 200.00076293945312,
+        "square": false,
+        "label": null
+      },
+      {
+        "center": {
+          "x": 31500.0,
+          "y": 3500.0
+        },
+        "radius_mm": 200.00076293945312,
+        "square": false,
+        "label": null
+      },
+      {
+        "center": {
+          "x": 31500.0,
+          "y": 10500.0
+        },
+        "radius_mm": 200.00076293945312,
+        "square": false,
+        "label": null
+      },
+      {
+        "center": {
+          "x": 31500.0,
+          "y": 17500.0
+        },
+        "radius_mm": 200.00076293945312,
+        "square": false,
+        "label": null
+      },
+      {
+        "center": {
+          "x": 31500.0,
+          "y": 24500.0
+        },
+        "radius_mm": 200.00076293945312,
+        "square": false,
+        "label": null
+      },
+      {
+        "center": {
+          "x": 31500.0,
+          "y": 31500.0
+        },
+        "radius_mm": 200.00076293945312,
+        "square": false,
+        "label": null
+      },
+      {
+        "center": {
+          "x": 31500.0,
+          "y": 38500.0
+        },
+        "radius_mm": 200.00076293945312,
+        "square": false,
+        "label": null
+      },
+      {
+        "center": {
+          "x": 38500.0,
+          "y": 3500.0
+        },
+        "radius_mm": 200.00076293945312,
+        "square": false,
+        "label": null
+      },
+      {
+        "center": {
+          "x": 38500.0,
+          "y": 10500.0
+        },
+        "radius_mm": 200.00076293945312,
+        "square": false,
+        "label": null
+      },
+      {
+        "center": {
+          "x": 38500.0,
+          "y": 17500.0
+        },
+        "radius_mm": 200.00076293945312,
+        "square": false,
+        "label": null
+      },
+      {
+        "center": {
+          "x": 38500.0,
+          "y": 24500.0
+        },
+        "radius_mm": 200.00076293945312,
+        "square": false,
+        "label": null
+      },
+      {
+        "center": {
+          "x": 38500.0,
+          "y": 31500.0
+        },
+        "radius_mm": 200.00076293945312,
+        "square": false,
+        "label": null
+      },
+      {
+        "center": {
+          "x": 38500.0,
+          "y": 38500.0
+        },
+        "radius_mm": 200.00076293945312,
+        "square": false,
+        "label": null
+      },
+      {
+        "center": {
+          "x": 45500.0,
+          "y": 3500.0
+        },
+        "radius_mm": 200.00076293945312,
+        "square": false,
+        "label": null
+      },
+      {
+        "center": {
+          "x": 45500.0,
+          "y": 10500.0
+        },
+        "radius_mm": 200.00076293945312,
+        "square": false,
+        "label": null
+      },
+      {
+        "center": {
+          "x": 45500.0,
+          "y": 17500.0
+        },
+        "radius_mm": 200.00076293945312,
+        "square": false,
+        "label": null
+      },
+      {
+        "center": {
+          "x": 45500.0,
+          "y": 24500.0
+        },
+        "radius_mm": 200.00076293945312,
+        "square": false,
+        "label": null
+      },
+      {
+        "center": {
+          "x": 45500.0,
+          "y": 31500.0
+        },
+        "radius_mm": 200.00076293945312,
+        "square": false,
+        "label": null
+      },
+      {
+        "center": {
+          "x": 45500.0,
+          "y": 38500.0
+        },
+        "radius_mm": 200.00076293945312,
+        "square": false,
+        "label": null
+      },
+      {
+        "center": {
+          "x": 52500.0,
+          "y": 3500.0
+        },
+        "radius_mm": 200.00076293945312,
+        "square": false,
+        "label": null
+      },
+      {
+        "center": {
+          "x": 52500.0,
+          "y": 10500.0
+        },
+        "radius_mm": 200.00076293945312,
+        "square": false,
+        "label": null
+      },
+      {
+        "center": {
+          "x": 52500.0,
+          "y": 17500.0
+        },
+        "radius_mm": 200.00076293945312,
+        "square": false,
+        "label": null
+      },
+      {
+        "center": {
+          "x": 52500.0,
+          "y": 24500.0
+        },
+        "radius_mm": 200.00076293945312,
+        "square": false,
+        "label": null
+      },
+      {
+        "center": {
+          "x": 52500.0,
+          "y": 31500.0
+        },
+        "radius_mm": 200.00076293945312,
+        "square": false,
+        "label": null
+      },
+      {
+        "center": {
+          "x": 52500.0,
+          "y": 38500.0
+        },
+        "radius_mm": 200.00076293945312,
+        "square": false,
+        "label": null
+      },
+      {
+        "center": {
+          "x": 59500.0,
+          "y": 3500.0
+        },
+        "radius_mm": 200.00076293945312,
+        "square": false,
+        "label": null
+      },
+      {
+        "center": {
+          "x": 59500.0,
+          "y": 10500.0
+        },
+        "radius_mm": 200.00076293945312,
+        "square": false,
+        "label": null
+      },
+      {
+        "center": {
+          "x": 59500.0,
+          "y": 17500.0
+        },
+        "radius_mm": 200.00076293945312,
+        "square": false,
+        "label": null
+      },
+      {
+        "center": {
+          "x": 59500.0,
+          "y": 24500.0
+        },
+        "radius_mm": 200.00076293945312,
+        "square": false,
+        "label": null
+      },
+      {
+        "center": {
+          "x": 59500.0,
+          "y": 31500.0
+        },
+        "radius_mm": 200.00076293945312,
+        "square": false,
+        "label": null
+      },
+      {
+        "center": {
+          "x": 59500.0,
+          "y": 38500.0
+        },
+        "radius_mm": 200.00076293945312,
+        "square": false,
+        "label": null
+      }
+    ],
+    "cores": [
+      {
+        "kind": "elevator",
+        "outline": {
+          "points": [
+            {
+              "x": 18000.0,
+              "y": 17000.0
+            },
+            {
+              "x": 24000.0,
+              "y": 17000.0
+            },
+            {
+              "x": 24000.0,
+              "y": 23000.0
+            },
+            {
+              "x": 18000.0,
+              "y": 23000.0
+            }
+          ]
+        },
+        "label": null
+      },
+      {
+        "kind": "elevator",
+        "outline": {
+          "points": [
+            {
+              "x": 36000.0,
+              "y": 17000.0
+            },
+            {
+              "x": 42000.0,
+              "y": 17000.0
+            },
+            {
+              "x": 42000.0,
+              "y": 23000.0
+            },
+            {
+              "x": 36000.0,
+              "y": 23000.0
+            }
+          ]
+        },
+        "label": null
+      }
+    ],
+    "windows": [
+      {
+        "start": {
+          "x": 3000.0,
+          "y": 0.0
+        },
+        "end": {
+          "x": 6000.0,
+          "y": 0.0
+        },
+        "facade": "south",
+        "sill_height_mm": null,
+        "note": null
+      },
+      {
+        "start": {
+          "x": 12000.0,
+          "y": 0.0
+        },
+        "end": {
+          "x": 15000.0,
+          "y": 0.0
+        },
+        "facade": "south",
+        "sill_height_mm": null,
+        "note": null
+      },
+      {
+        "start": {
+          "x": 21000.0,
+          "y": 0.0
+        },
+        "end": {
+          "x": 24000.0,
+          "y": 0.0
+        },
+        "facade": "south",
+        "sill_height_mm": null,
+        "note": null
+      },
+      {
+        "start": {
+          "x": 30000.0,
+          "y": 0.0
+        },
+        "end": {
+          "x": 33000.0,
+          "y": 0.0
+        },
+        "facade": "south",
+        "sill_height_mm": null,
+        "note": null
+      },
+      {
+        "start": {
+          "x": 39000.0,
+          "y": 0.0
+        },
+        "end": {
+          "x": 42000.0,
+          "y": 0.0
+        },
+        "facade": "south",
+        "sill_height_mm": null,
+        "note": null
+      },
+      {
+        "start": {
+          "x": 48000.0,
+          "y": 0.0
+        },
+        "end": {
+          "x": 51000.0,
+          "y": 0.0
+        },
+        "facade": "south",
+        "sill_height_mm": null,
+        "note": null
+      },
+      {
+        "start": {
+          "x": 3000.0,
+          "y": 40000.0
+        },
+        "end": {
+          "x": 6000.0,
+          "y": 40000.0
+        },
+        "facade": "north",
+        "sill_height_mm": null,
+        "note": null
+      },
+      {
+        "start": {
+          "x": 12000.0,
+          "y": 40000.0
+        },
+        "end": {
+          "x": 15000.0,
+          "y": 40000.0
+        },
+        "facade": "north",
+        "sill_height_mm": null,
+        "note": null
+      },
+      {
+        "start": {
+          "x": 21000.0,
+          "y": 40000.0
+        },
+        "end": {
+          "x": 24000.0,
+          "y": 40000.0
+        },
+        "facade": "north",
+        "sill_height_mm": null,
+        "note": null
+      },
+      {
+        "start": {
+          "x": 30000.0,
+          "y": 40000.0
+        },
+        "end": {
+          "x": 33000.0,
+          "y": 40000.0
+        },
+        "facade": "north",
+        "sill_height_mm": null,
+        "note": null
+      },
+      {
+        "start": {
+          "x": 39000.0,
+          "y": 40000.0
+        },
+        "end": {
+          "x": 42000.0,
+          "y": 40000.0
+        },
+        "facade": "north",
+        "sill_height_mm": null,
+        "note": null
+      },
+      {
+        "start": {
+          "x": 48000.0,
+          "y": 40000.0
+        },
+        "end": {
+          "x": 51000.0,
+          "y": 40000.0
+        },
+        "facade": "north",
+        "sill_height_mm": null,
+        "note": null
+      }
+    ],
+    "doors": [],
+    "stairs": [
+      {
+        "outline": {
+          "points": [
+            {
+              "x": 28000.0,
+              "y": 17500.0
+            },
+            {
+              "x": 32000.0,
+              "y": 17500.0
+            },
+            {
+              "x": 32000.0,
+              "y": 22500.0
+            },
+            {
+              "x": 28000.0,
+              "y": 22500.0
+            }
+          ]
+        },
+        "connects_levels": [
+          0,
+          1
+        ],
+        "is_fire_escape": false,
+        "label": null
+      }
+    ],
+    "text_labels": [],
+    "source_confidence": 0.7,
+    "source_notes": "PyMuPDF only (Vision skipped)"
+  },
+  "variants": [
+    {
+      "style": "villageois",
+      "title": "Le Village Lumen",
+      "narrative": "Le Village Lumen organise le plateau de 2 400 m² (60 × 40 m) comme un village méditerranéen : une place centrale vivante ancrée sur les deux noyaux d'ascenseurs et l'escalier, autour de laquelle rayonnent quatre quartiers de travail. La place — café de 260 m², town hall de 120 m², îlots lounge — occupe la bande médiane (y ≈ 13 000 – 27 000), absorbant les circulations verticales comme un marché absorbe son clocher. Chaque quartier possède son identité matérielle et accueille 32 à 34 postes en bench, pour un total de 130 postes à flex ratio 0.75 (programme Lumen § FTE).\n\nLes quartiers de concentration (focus ring) hugent les façades nord et sud pour capter la lumière naturelle la plus constante, respectant la cible Browning pattern 6 (dynamic & diffuse light) et le seuil de 7 m à une fenêtre recommandé par design://biophilic-office §5. Les salles de réunion moyennes et les focus rooms sont consolidées en anneau intermédiaire, jouant un rôle de tampon acoustique entre l'open-plan et la place collaborative — on cible un DnT,A ≥ 40 dB (niveau Performant NF S 31-080) sur les parois de réunion et un TR60 ≤ 0.5 s dans les salles ≤ 50 m³.\n\nLes 14 phone booths sont distribuées aux jonctions de quartiers (tous les 18 – 22 m le long de la dorsale principale) pour satisfaire la règle de distance de marche < 15 m (design://collaboration-spaces §10). Les 2 boardrooms sont positionnées aux extrémités ouest et est, proches de la réception symbolique (façade sud) et accessibles sans traverser l'open-plan. Les 8 huddles et 6 focus rooms sont dispersés au contact des quartiers qu'ils servent, matérialisant le principe \"meetings near neighbourhoods\" de design://collaboration-spaces §10.\n\nLa circulation principale — la dorsale est-ouest à y = 20 000 — respecte 1.80 m de large (au-delà du minimum PMR de 1.40 m, arrêté 20 avril 2017). Une rue nord-sud à x = 14 000 et une autre à x = 48 000 relient les façades, garantissant deux issues distinctes (ERP type W). Les colonnes (trame 7 000 mm) sont absorbées dans les refends partitifs ou laissées libres dans les zones collab.\n\nLes accents biophiliques se concentrent sur la place (mur végétal derrière le town hall, arbre signature à l'atrium central près de l'escalier, îlots plantés des lounges) et se distribuent en planteurs mi-hauteur aux frontières de quartier — densité moderate (4 % du sol, ≈ 96 m² planté, ~320 plantes, cf. design://biophilic-office §13). Chaque poste voit au moins un végétal dans son champ à 7 m. Palette matérielle : chêne clair + laine naturelle dans les quartiers, terrazzo dans la place, liège acoustique en ceinture des boardrooms.",
+      "metrics": {
+        "workstation_count": 130,
+        "meeting_room_count": 22,
+        "phone_booth_count": 14,
+        "collab_surface_m2": 512.0,
+        "amenity_surface_m2": 280.0,
+        "circulation_m2": 395.0,
+        "total_programmed_m2": 2290.0,
+        "flex_ratio_applied": 0.75,
+        "notes": [
+          "130 postes = 170 FTE × 0.75 flex ratio + marge pic (cf. ratios_json flex_ratio_by_policy 3_2_hybrid_standard).",
+          "22 salles décomposées : 8 huddles (objectif 8), 6 medium 6-8p (objectif 6), 2 boardrooms 14p (objectif 2), 6 focus rooms (objectif 6). Town hall 120 m² et café 260 m² comptés en collab_surface.",
+          "14 phone booths distribuées tous les 18-22 m le long de la dorsale est-ouest (design://collaboration-spaces §10, < 15 m de marche).",
+          "Main circulation est-ouest y=19000-21000 : 2 000 mm clair (> 1 400 mm PMR arrêté 20 avril 2017). Rues nord-sud x=14000 et x=48000 assurent 2 issues distinctes (ERP type W).",
+          "Boardrooms positionnées en tête de plateau (x=0-6500 et x=53500-60000) en ceinture glazed pour borrow light, STC cible 45 dB (NF S 31-080 très performant).",
+          "Focus rooms petite capacité (2 p) sans table de réunion catalogue : produit null, desk 1400×800 à spécifier par vendor.",
+          "Continuum café+lounge+town hall = environ 512 m² : déclenche désenfumage ERP W et exige plafond acoustique Class A αw ≥ 0.90 + baffles intermédiaires (design://acoustic-standards §10 red-flag Lumen).",
+          "Biophilic moderate tier ~4 % sol : 3 zones explicites + planteurs distribués en bordure de quartier (non modélisés ici, ~320 plantes total cf. design://biophilic-office §13).",
+          "Colonnes trame 7000 mm : aucun poste placé sur une colonne, benchs de 16-17 postes positionnés entre files x=5000-16600 et x=32000-43600.",
+          "Escalier (28000-32000, 17500-22500) laissé dégagé ≥ 2 m sur toutes faces par le creux central du town hall.",
+          "Meuble pour phone booth_1p = framery_one_compact (1030×1000), footprint 1.03 m², réduction 30 dB annoncée (design://acoustic-standards §7, à commissionner in situ).",
+          "total_programmed_m2 légèrement au-dessus du NIA (2400) car inclut empreintes clearance ; valider en surface net dans la phase review."
+        ]
+      },
+      "sketchup_trace": [
+        {
+          "tool": "new_scene",
+          "params": {
+            "name": "Lumen — villageois"
+          }
+        },
+        {
+          "tool": "draw_envelope",
+          "params": {
+            "points_mm": [
+              [
+                0.0,
+                0.0
+              ],
+              [
+                60000.0,
+                0.0
+              ],
+              [
+                60000.0,
+                40000.0
+              ],
+              [
+                0.0,
+                40000.0
+              ]
+            ]
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 3500.0,
+            "y_mm": 3500.0,
+            "radius_mm": 200.00028610229492
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 3500.0,
+            "y_mm": 10500.0,
+            "radius_mm": 200.00028610229492
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 3500.0,
+            "y_mm": 17500.0,
+            "radius_mm": 200.00028610229492
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 3500.0,
+            "y_mm": 24500.0,
+            "radius_mm": 200.00028610229492
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 3500.0,
+            "y_mm": 31500.0,
+            "radius_mm": 200.00028610229492
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 3500.0,
+            "y_mm": 38500.0,
+            "radius_mm": 200.00028610229492
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 10500.0,
+            "y_mm": 3500.0,
+            "radius_mm": 200.00028610229492
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 10500.0,
+            "y_mm": 10500.0,
+            "radius_mm": 200.00028610229492
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 10500.0,
+            "y_mm": 17500.0,
+            "radius_mm": 200.00028610229492
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 10500.0,
+            "y_mm": 24500.0,
+            "radius_mm": 200.00028610229492
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 10500.0,
+            "y_mm": 31500.0,
+            "radius_mm": 200.00028610229492
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 10500.0,
+            "y_mm": 38500.0,
+            "radius_mm": 200.00028610229492
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 17500.0,
+            "y_mm": 3500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 17500.0,
+            "y_mm": 10500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 17500.0,
+            "y_mm": 17500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 17500.0,
+            "y_mm": 24500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 17500.0,
+            "y_mm": 31500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 17500.0,
+            "y_mm": 38500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 24500.0,
+            "y_mm": 3500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 24500.0,
+            "y_mm": 10500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 24500.0,
+            "y_mm": 17500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 24500.0,
+            "y_mm": 24500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 24500.0,
+            "y_mm": 31500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 24500.0,
+            "y_mm": 38500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 31500.0,
+            "y_mm": 3500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 31500.0,
+            "y_mm": 10500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 31500.0,
+            "y_mm": 17500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 31500.0,
+            "y_mm": 24500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 31500.0,
+            "y_mm": 31500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 31500.0,
+            "y_mm": 38500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 38500.0,
+            "y_mm": 3500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 38500.0,
+            "y_mm": 10500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 38500.0,
+            "y_mm": 17500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 38500.0,
+            "y_mm": 24500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 38500.0,
+            "y_mm": 31500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 38500.0,
+            "y_mm": 38500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 45500.0,
+            "y_mm": 3500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 45500.0,
+            "y_mm": 10500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 45500.0,
+            "y_mm": 17500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 45500.0,
+            "y_mm": 24500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 45500.0,
+            "y_mm": 31500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 45500.0,
+            "y_mm": 38500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 52500.0,
+            "y_mm": 3500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 52500.0,
+            "y_mm": 10500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 52500.0,
+            "y_mm": 17500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 52500.0,
+            "y_mm": 24500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 52500.0,
+            "y_mm": 31500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 52500.0,
+            "y_mm": 38500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 59500.0,
+            "y_mm": 3500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 59500.0,
+            "y_mm": 10500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 59500.0,
+            "y_mm": 17500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 59500.0,
+            "y_mm": 24500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 59500.0,
+            "y_mm": 31500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 59500.0,
+            "y_mm": 38500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_core",
+          "params": {
+            "kind": "elevator",
+            "points_mm": [
+              [
+                18000.0,
+                17000.0
+              ],
+              [
+                24000.0,
+                17000.0
+              ],
+              [
+                24000.0,
+                23000.0
+              ],
+              [
+                18000.0,
+                23000.0
+              ]
+            ]
+          }
+        },
+        {
+          "tool": "place_core",
+          "params": {
+            "kind": "elevator",
+            "points_mm": [
+              [
+                36000.0,
+                17000.0
+              ],
+              [
+                42000.0,
+                17000.0
+              ],
+              [
+                42000.0,
+                23000.0
+              ],
+              [
+                36000.0,
+                23000.0
+              ]
+            ]
+          }
+        },
+        {
+          "tool": "place_stair",
+          "params": {
+            "points_mm": [
+              [
+                28000.0,
+                17500.0
+              ],
+              [
+                32000.0,
+                17500.0
+              ],
+              [
+                32000.0,
+                22500.0
+              ],
+              [
+                28000.0,
+                22500.0
+              ]
+            ]
+          }
+        },
+        {
+          "tool": "create_collab_zone",
+          "params": {
+            "bbox_mm": [
+              14000,
+              13000,
+              33000,
+              27000
+            ],
+            "style": "cafe"
+          }
+        },
+        {
+          "tool": "create_collab_zone",
+          "params": {
+            "bbox_mm": [
+              33000,
+              13000,
+              48000,
+              27000
+            ],
+            "style": "townhall"
+          }
+        },
+        {
+          "tool": "create_collab_zone",
+          "params": {
+            "bbox_mm": [
+              14000,
+              17500,
+              33000,
+              22500
+            ],
+            "style": "lounge"
+          }
+        },
+        {
+          "tool": "apply_biophilic_zone",
+          "params": {
+            "bbox_mm": [
+              26000,
+              17000,
+              34000,
+              23000
+            ]
+          }
+        },
+        {
+          "tool": "apply_biophilic_zone",
+          "params": {
+            "bbox_mm": [
+              14500,
+              24000,
+              17500,
+              27000
+            ]
+          }
+        },
+        {
+          "tool": "apply_biophilic_zone",
+          "params": {
+            "bbox_mm": [
+              44500,
+              13000,
+              47500,
+              16000
+            ]
+          }
+        },
+        {
+          "tool": "create_workstation_cluster",
+          "params": {
+            "origin_mm": [
+              5000,
+              32500
+            ],
+            "orientation_deg": 0.0,
+            "count": 16,
+            "row_spacing_mm": 1600,
+            "product_id": "steelcase_migration_se_1600"
+          }
+        },
+        {
+          "tool": "create_workstation_cluster",
+          "params": {
+            "origin_mm": [
+              5000,
+              35500
+            ],
+            "orientation_deg": 0.0,
+            "count": 16,
+            "row_spacing_mm": 1600,
+            "product_id": "steelcase_migration_se_1600"
+          }
+        },
+        {
+          "tool": "create_workstation_cluster",
+          "params": {
+            "origin_mm": [
+              32000,
+              32500
+            ],
+            "orientation_deg": 0.0,
+            "count": 16,
+            "row_spacing_mm": 1600,
+            "product_id": "steelcase_migration_se_1600"
+          }
+        },
+        {
+          "tool": "create_workstation_cluster",
+          "params": {
+            "origin_mm": [
+              32000,
+              35500
+            ],
+            "orientation_deg": 0.0,
+            "count": 17,
+            "row_spacing_mm": 1600,
+            "product_id": "steelcase_migration_se_1600"
+          }
+        },
+        {
+          "tool": "create_workstation_cluster",
+          "params": {
+            "origin_mm": [
+              5000,
+              4500
+            ],
+            "orientation_deg": 180.0,
+            "count": 16,
+            "row_spacing_mm": 1600,
+            "product_id": "steelcase_migration_se_1600"
+          }
+        },
+        {
+          "tool": "create_workstation_cluster",
+          "params": {
+            "origin_mm": [
+              5000,
+              7500
+            ],
+            "orientation_deg": 180.0,
+            "count": 16,
+            "row_spacing_mm": 1600,
+            "product_id": "steelcase_migration_se_1600"
+          }
+        },
+        {
+          "tool": "create_workstation_cluster",
+          "params": {
+            "origin_mm": [
+              32000,
+              4500
+            ],
+            "orientation_deg": 180.0,
+            "count": 16,
+            "row_spacing_mm": 1600,
+            "product_id": "steelcase_migration_se_1600"
+          }
+        },
+        {
+          "tool": "create_workstation_cluster",
+          "params": {
+            "origin_mm": [
+              32000,
+              7500
+            ],
+            "orientation_deg": 180.0,
+            "count": 17,
+            "row_spacing_mm": 1600,
+            "product_id": "steelcase_migration_se_1600"
+          }
+        },
+        {
+          "tool": "create_meeting_room",
+          "params": {
+            "corner1_mm": [
+              500,
+              28500
+            ],
+            "corner2_mm": [
+              5500,
+              32000
+            ],
+            "capacity": 6,
+            "name": "Cèdre (medium NO)",
+            "table_product": "vitra_eames_segmented_2400"
+          }
+        },
+        {
+          "tool": "create_meeting_room",
+          "params": {
+            "corner1_mm": [
+              5500,
+              28500
+            ],
+            "corner2_mm": [
+              10500,
+              32000
+            ],
+            "capacity": 8,
+            "name": "Olivier (medium NO)",
+            "table_product": "vitra_eames_segmented_2400"
+          }
+        },
+        {
+          "tool": "create_meeting_room",
+          "params": {
+            "corner1_mm": [
+              49500,
+              28500
+            ],
+            "corner2_mm": [
+              54500,
+              32000
+            ],
+            "capacity": 6,
+            "name": "Platane (medium NE)",
+            "table_product": "vitra_eames_segmented_2400"
+          }
+        },
+        {
+          "tool": "create_meeting_room",
+          "params": {
+            "corner1_mm": [
+              54500,
+              28500
+            ],
+            "corner2_mm": [
+              59500,
+              32000
+            ],
+            "capacity": 8,
+            "name": "Tilleul (medium NE)",
+            "table_product": "vitra_eames_segmented_2400"
+          }
+        },
+        {
+          "tool": "create_meeting_room",
+          "params": {
+            "corner1_mm": [
+              500,
+              8500
+            ],
+            "corner2_mm": [
+              5500,
+              12000
+            ],
+            "capacity": 6,
+            "name": "Laurier (medium SO)",
+            "table_product": "vitra_eames_segmented_2400"
+          }
+        },
+        {
+          "tool": "create_meeting_room",
+          "params": {
+            "corner1_mm": [
+              54500,
+              8500
+            ],
+            "corner2_mm": [
+              59500,
+              12000
+            ],
+            "capacity": 6,
+            "name": "Mimosa (medium SE)",
+            "table_product": "vitra_eames_segmented_2400"
+          }
+        },
+        {
+          "tool": "create_meeting_room",
+          "params": {
+            "corner1_mm": [
+              500,
+              12500
+            ],
+            "corner2_mm": [
+              6500,
+              19500
+            ],
+            "capacity": 14,
+            "name": "Boardroom Ouest",
+            "table_product": "vitra_eames_segmented_4000"
+          }
+        },
+        {
+          "tool": "create_meeting_room",
+          "params": {
+            "corner1_mm": [
+              53500,
+              12500
+            ],
+            "corner2_mm": [
+              59500,
+              19500
+            ],
+            "capacity": 14,
+            "name": "Boardroom Est",
+            "table_product": "vitra_eames_segmented_4000"
+          }
+        },
+        {
+          "tool": "create_meeting_room",
+          "params": {
+            "corner1_mm": [
+              7000,
+              12500
+            ],
+            "corner2_mm": [
+              10500,
+              16000
+            ],
+            "capacity": 4,
+            "name": "Huddle Jasmin",
+            "table_product": "hm_everywhere_round_1200"
+          }
+        },
+        {
+          "tool": "create_meeting_room",
+          "params": {
+            "corner1_mm": [
+              7000,
+              23500
+            ],
+            "corner2_mm": [
+              10500,
+              27000
+            ],
+            "capacity": 4,
+            "name": "Huddle Romarin",
+            "table_product": "hm_everywhere_round_1200"
+          }
+        },
+        {
+          "tool": "create_meeting_room",
+          "params": {
+            "corner1_mm": [
+              49500,
+              12500
+            ],
+            "corner2_mm": [
+              53000,
+              16000
+            ],
+            "capacity": 4,
+            "name": "Huddle Thym",
+            "table_product": "hm_everywhere_round_1200"
+          }
+        },
+        {
+          "tool": "create_meeting_room",
+          "params": {
+            "corner1_mm": [
+              49500,
+              23500
+            ],
+            "corner2_mm": [
+              53000,
+              27000
+            ],
+            "capacity": 4,
+            "name": "Huddle Sauge",
+            "table_product": "hm_everywhere_round_1200"
+          }
+        },
+        {
+          "tool": "create_meeting_room",
+          "params": {
+            "corner1_mm": [
+              11500,
+              12500
+            ],
+            "corner2_mm": [
+              15000,
+              16000
+            ],
+            "capacity": 4,
+            "name": "Huddle Basilic",
+            "table_product": "hm_everywhere_round_1200"
+          }
+        },
+        {
+          "tool": "create_meeting_room",
+          "params": {
+            "corner1_mm": [
+              11500,
+              24000
+            ],
+            "corner2_mm": [
+              15000,
+              27000
+            ],
+            "capacity": 4,
+            "name": "Huddle Menthe",
+            "table_product": "hm_everywhere_round_1200"
+          }
+        },
+        {
+          "tool": "create_meeting_room",
+          "params": {
+            "corner1_mm": [
+              45500,
+              12500
+            ],
+            "corner2_mm": [
+              49000,
+              16000
+            ],
+            "capacity": 4,
+            "name": "Huddle Verveine",
+            "table_product": "hm_everywhere_round_1200"
+          }
+        },
+        {
+          "tool": "create_meeting_room",
+          "params": {
+            "corner1_mm": [
+              45500,
+              24000
+            ],
+            "corner2_mm": [
+              49000,
+              27000
+            ],
+            "capacity": 4,
+            "name": "Huddle Origan",
+            "table_product": "hm_everywhere_round_1200"
+          }
+        },
+        {
+          "tool": "create_meeting_room",
+          "params": {
+            "corner1_mm": [
+              6500,
+              32500
+            ],
+            "corner2_mm": [
+              9000,
+              35000
+            ],
+            "capacity": 2,
+            "name": "Focus Lavande",
+            "table_product": "None"
+          }
+        },
+        {
+          "tool": "create_meeting_room",
+          "params": {
+            "corner1_mm": [
+              25000,
+              32500
+            ],
+            "corner2_mm": [
+              27500,
+              35000
+            ],
+            "capacity": 2,
+            "name": "Focus Genêt",
+            "table_product": "None"
+          }
+        },
+        {
+          "tool": "create_meeting_room",
+          "params": {
+            "corner1_mm": [
+              50000,
+              32500
+            ],
+            "corner2_mm": [
+              52500,
+              35000
+            ],
+            "capacity": 2,
+            "name": "Focus Ciste",
+            "table_product": "None"
+          }
+        },
+        {
+          "tool": "create_meeting_room",
+          "params": {
+            "corner1_mm": [
+              6500,
+              5000
+            ],
+            "corner2_mm": [
+              9000,
+              7500
+            ],
+            "capacity": 2,
+            "name": "Focus Iris",
+            "table_product": "None"
+          }
+        },
+        {
+          "tool": "create_meeting_room",
+          "params": {
+            "corner1_mm": [
+              25000,
+              5000
+            ],
+            "corner2_mm": [
+              27500,
+              7500
+            ],
+            "capacity": 2,
+            "name": "Focus Myrte",
+            "table_product": "None"
+          }
+        },
+        {
+          "tool": "create_meeting_room",
+          "params": {
+            "corner1_mm": [
+              50000,
+              5000
+            ],
+            "corner2_mm": [
+              52500,
+              7500
+            ],
+            "capacity": 2,
+            "name": "Focus Acacia",
+            "table_product": "None"
+          }
+        },
+        {
+          "tool": "create_phone_booth",
+          "params": {
+            "position_mm": [
+              13500,
+              29500
+            ],
+            "product_id": "framery_one_compact"
+          }
+        },
+        {
+          "tool": "create_phone_booth",
+          "params": {
+            "position_mm": [
+              13500,
+              10000
+            ],
+            "product_id": "framery_one_compact"
+          }
+        },
+        {
+          "tool": "create_phone_booth",
+          "params": {
+            "position_mm": [
+              46500,
+              29500
+            ],
+            "product_id": "framery_one_compact"
+          }
+        },
+        {
+          "tool": "create_phone_booth",
+          "params": {
+            "position_mm": [
+              46500,
+              10000
+            ],
+            "product_id": "framery_one_compact"
+          }
+        },
+        {
+          "tool": "create_phone_booth",
+          "params": {
+            "position_mm": [
+              20000,
+              29500
+            ],
+            "product_id": "framery_one_compact"
+          }
+        },
+        {
+          "tool": "create_phone_booth",
+          "params": {
+            "position_mm": [
+              20000,
+              10000
+            ],
+            "product_id": "framery_one_compact"
+          }
+        },
+        {
+          "tool": "create_phone_booth",
+          "params": {
+            "position_mm": [
+              40000,
+              29500
+            ],
+            "product_id": "framery_one_compact"
+          }
+        },
+        {
+          "tool": "create_phone_booth",
+          "params": {
+            "position_mm": [
+              40000,
+              10000
+            ],
+            "product_id": "framery_one_compact"
+          }
+        },
+        {
+          "tool": "create_phone_booth",
+          "params": {
+            "position_mm": [
+              28500,
+              29500
+            ],
+            "product_id": "framery_one_compact"
+          }
+        },
+        {
+          "tool": "create_phone_booth",
+          "params": {
+            "position_mm": [
+              28500,
+              10000
+            ],
+            "product_id": "framery_one_compact"
+          }
+        },
+        {
+          "tool": "create_phone_booth",
+          "params": {
+            "position_mm": [
+              33500,
+              29500
+            ],
+            "product_id": "framery_one_compact"
+          }
+        },
+        {
+          "tool": "create_phone_booth",
+          "params": {
+            "position_mm": [
+              33500,
+              10000
+            ],
+            "product_id": "framery_one_compact"
+          }
+        },
+        {
+          "tool": "create_phone_booth",
+          "params": {
+            "position_mm": [
+              8000,
+              20000
+            ],
+            "product_id": "framery_one_compact"
+          }
+        },
+        {
+          "tool": "create_phone_booth",
+          "params": {
+            "position_mm": [
+              51500,
+              20000
+            ],
+            "product_id": "framery_one_compact"
+          }
+        },
+        {
+          "tool": "create_partition_wall",
+          "params": {
+            "start_mm": [
+              11500,
+              28500
+            ],
+            "end_mm": [
+              48500,
+              28500
+            ],
+            "kind": "acoustic"
+          }
+        },
+        {
+          "tool": "create_partition_wall",
+          "params": {
+            "start_mm": [
+              11500,
+              11500
+            ],
+            "end_mm": [
+              48500,
+              11500
+            ],
+            "kind": "acoustic"
+          }
+        },
+        {
+          "tool": "create_partition_wall",
+          "params": {
+            "start_mm": [
+              500,
+              28500
+            ],
+            "end_mm": [
+              10500,
+              28500
+            ],
+            "kind": "acoustic"
+          }
+        },
+        {
+          "tool": "create_partition_wall",
+          "params": {
+            "start_mm": [
+              49500,
+              28500
+            ],
+            "end_mm": [
+              59500,
+              28500
+            ],
+            "kind": "acoustic"
+          }
+        },
+        {
+          "tool": "create_partition_wall",
+          "params": {
+            "start_mm": [
+              500,
+              11500
+            ],
+            "end_mm": [
+              10500,
+              11500
+            ],
+            "kind": "acoustic"
+          }
+        },
+        {
+          "tool": "create_partition_wall",
+          "params": {
+            "start_mm": [
+              49500,
+              11500
+            ],
+            "end_mm": [
+              59500,
+              11500
+            ],
+            "kind": "acoustic"
+          }
+        },
+        {
+          "tool": "create_partition_wall",
+          "params": {
+            "start_mm": [
+              6500,
+              19500
+            ],
+            "end_mm": [
+              6500,
+              12500
+            ],
+            "kind": "glazed"
+          }
+        },
+        {
+          "tool": "create_partition_wall",
+          "params": {
+            "start_mm": [
+              53500,
+              19500
+            ],
+            "end_mm": [
+              53500,
+              12500
+            ],
+            "kind": "glazed"
+          }
+        },
+        {
+          "tool": "screenshot",
+          "params": {
+            "view_name": "iso"
+          }
+        }
+      ],
+      "screenshot_paths": [],
+      "adjacency_audit": {
+        "score": 82,
+        "summary": "Solid village layout with a central social spine, but a few meeting-room walls touch open-desk clusters and huddle doors open straight onto aisles.",
+        "violations": [
+          {
+            "rule_id": "acoustic.open_desks_next_to_boardroom",
+            "severity": "major",
+            "zones": [
+              "Boardroom Ouest",
+              "workstation_cluster_SO"
+            ],
+            "description": "The 14-pax west boardroom shares its north edge with the south-west bench cluster with no buffer room or storage wall between them.",
+            "suggestion": "Interpose the Laurier medium room or a full-height storage wall (Rw ≥ 45 dB) between Boardroom Ouest and the SO benches.",
+            "source": "WELL v2 Feature S02"
+          },
+          {
+            "rule_id": "acoustic.open_desks_next_to_boardroom",
+            "severity": "major",
+            "zones": [
+              "Boardroom Est",
+              "workstation_cluster_SE"
+            ],
+            "description": "The 14-pax east boardroom sits directly against the south-east bench cluster, exposing open desks to high-level speech without an acoustic buffer.",
+            "suggestion": "Shift the Mimosa medium room or a focus strip between Boardroom Est and the SE benches to restore a Rw ≥ 45 dB buffer.",
+            "source": "WELL v2 Feature S02"
+          },
+          {
+            "rule_id": "micro.huddle_door_not_onto_desk_aisle",
+            "severity": "minor",
+            "zones": [
+              "Huddle Jasmin",
+              "workstation_cluster_SO"
+            ],
+            "description": "Huddle Jasmin opens onto the narrow band between the café and the SO benches, so spill-out conversations land straight on the desk aisle.",
+            "suggestion": "Rotate the huddle door toward the central spine or offset it ≥ 1.20 m from the bench aisle.",
+            "source": "Steelcase WorkSpace Futures"
+          },
+          {
+            "rule_id": "micro.huddle_door_not_onto_desk_aisle",
+            "severity": "minor",
+            "zones": [
+              "Huddle Basilic",
+              "workstation_cluster_SO"
+            ],
+            "description": "Huddle Basilic's door sits on the same aisle edge as the south-west bench cluster, generating start/end-of-meeting noise on desks.",
+            "suggestion": "Flip the huddle entry to the café side of the partition or add a 1.20 m alcove before the door.",
+            "source": "Steelcase WorkSpace Futures"
+          },
+          {
+            "rule_id": "micro.huddle_door_not_onto_desk_aisle",
+            "severity": "minor",
+            "zones": [
+              "Huddle Romarin",
+              "workstation_cluster_NO"
+            ],
+            "description": "Huddle Romarin opens toward the north-west bench rows with less than 1.20 m clearance from the first desk aisle.",
+            "suggestion": "Offset Romarin's door onto the central spine or inset it into the partition by 1.20 m minimum.",
+            "source": "Steelcase WorkSpace Futures"
+          },
+          {
+            "rule_id": "micro.huddle_door_not_onto_desk_aisle",
+            "severity": "minor",
+            "zones": [
+              "Huddle Menthe",
+              "workstation_cluster_NO"
+            ],
+            "description": "Huddle Menthe's entry is flush with the NO desk aisle, so huddle exits interrupt the focus row immediately.",
+            "suggestion": "Re-hang the Menthe door toward the lounge side or create a 1.20 m entry recess.",
+            "source": "Steelcase WorkSpace Futures"
+          },
+          {
+            "rule_id": "daylight.focus_rooms_off_facade",
+            "severity": "info",
+            "zones": [
+              "Focus Iris",
+              "workstation_cluster_SO"
+            ],
+            "description": "Single-person focus rooms are pushed within 5 m of the south façade, consuming daylight that the open-desk rows would benefit from first.",
+            "suggestion": "Swap Focus Iris/Myrte/Acacia with the first desk row so benches enjoy façade daylight and focus pods sit inland.",
+            "source": "Leesman Index 2022"
+          },
+          {
+            "rule_id": "micro.phone_booth_in_focus_cluster_ratio",
+            "severity": "info",
+            "zones": [
+              "workstation_cluster_NE",
+              "phone_booth_ring"
+            ],
+            "description": "The 33-desk NE cluster is served by roughly 3 booths on its spine edge — under the 1-per-5 target for focus-leaning clusters.",
+            "suggestion": "Add one booth on the NE quadrant near x≈37 000, y≈29 500 to reach the 1-per-5 booth-to-desk ratio.",
+            "source": "Leesman Index 2022"
+          }
+        ],
+        "recommendations": [
+          "Wrap each boardroom with a focus-room or storage buffer so no open-desk cluster shares a wall with a 14-pax speech source.",
+          "Recess huddle doors along the medial ring by 1.20 m so meeting spill-out lands on the spine, not on bench aisles.",
+          "Pull single-person focus pods one bay inland and let the façade rows keep the daylight Leesman rates #1."
+        ]
+      }
+    },
+    {
+      "style": "atelier",
+      "title": "L'Atelier Lumière du Nord",
+      "narrative": "L'Atelier Lumière du Nord organise le plateau Lumen comme un vaste atelier d'horlogerie ou d'ébénisterie : les postes de travail individuels sont rangés le long de la façade nord, la plus lumineuse et la plus calme, pour offrir à chaque développeur une position de concentration quasi-monastique. Les blocs de réunion, les cabines et les fonctions bruyantes sont consolidés dans la profondeur du plan, autour des cores d'ascenseurs et de l'escalier central. Cette organisation inverse le réflexe habituel — collab au centre — pour répondre à la réalité Lumen : 170 FTE en 3/2, policy hybride, 130 postes flex (ratio 0.76), mais surtout une pathologie acoustique connue (Leesman 2024 : 35 % seulement des salariés satisfaits du bruit).\n\nLa façade nord (y = 40 000) accueille cinq neighbourhoods de 24 à 28 postes, en bancs de 8 orientés parallèles à la façade, avec un recul de 3,5 m entre la façade et le premier rang pour la circulation principale PMR (≥ 1,40 m, cf. arrêté 20 avril 2017). La lumière y est diffuse, sans éblouissement direct (façade nord, Browning pattern 6), idéale pour 8 h de travail sur écran à 500 lux EN 12464-1. Les postes Steelcase Migration SE 1600 sont espacés à 1600 mm entre axes latéraux, bench de 1600 × 800, entrée à 1200 mm libre devant (ratio ergonomique catalogue).\n\nLa bande centrale, entre y ≈ 11 000 et y ≈ 29 000, regroupe les salles de réunion, focus rooms, phone booths et boardrooms, dans une logique de bibliothèque : cloisons acoustiques 45 dB DnT,A (performant NF S 31-080), plafond Class A αw ≥ 0,90, moquette continue. Les 6 salles moyennes, 2 boardrooms, 8 huddles et 6 focus rooms sont regroupés autour des cores, exploitant la profondeur du plan où la lumière naturelle est faible de toute façon (> 8 m des fenêtres). 14 cabines Framery sont distribuées en grappes aux jonctions des neighbourhoods, jamais à plus de 15 m d'un poste (cf. design://collaboration-spaces §10).\n\nLa façade sud (y = 0) héberge le continuum convivial : café 260 m², town hall 120 m², et lounge-tampon. Cette bande est traitée comme un atelier plus ouvert, avec matériaux chauds (bois, liège), plantes de soleil direct (Ficus elastica, Strelitzia) et éclairage d'ambiance. C'est la seule zone où la biophilie est déployée généreusement (tier moderate 4 % concentré en sud), conformément à la directive atelier : accents biophiliques ciblés sur collab et pause. Un rappel discret (ZZ, Sansevieria) ponctue les neighbourhoods nord à chaque jonction.\n\nCette parti pris sert le brief Lumen de trois manières : (1) productivité — les 130 postes sont tous à moins de 7 m d'une fenêtre nord, conforme à Heerwagen/Kellert ; (2) acoustique — séparation stricte focus/collab, STI externe < 0,20 dans l'open-space (Hongisto) grâce à la distance, aux cabines et au masking pink noise 45 dBA ; (3) identité — l'atelier comme métaphore d'un studio produit sérieux, à rebours du « campus festif » générique.",
+      "metrics": {
+        "workstation_count": 130,
+        "meeting_room_count": 22,
+        "phone_booth_count": 14,
+        "collab_surface_m2": 500.0,
+        "amenity_surface_m2": 280.0,
+        "circulation_m2": 420.0,
+        "total_programmed_m2": 2400.0,
+        "flex_ratio_applied": 0.76,
+        "notes": [
+          "Atelier parti : 5 neighbourhoods en façade nord (26 postes × 5 = 130), tous à ≤ 7 m d'une fenêtre.",
+          "Salles consolidées en bande centrale profonde, exploitant zone sombre ; cloisons acoustiques 45 dB DnT,A.",
+          "14 Framery One Compact distribuées en grappes aux jonctions — jamais > 15 m d'un poste.",
+          "6 focus rooms (F1-F6) alignées contre le bloc core est pour utiliser la profondeur.",
+          "8 huddles (H1-H8) + 6 médiums + 2 boardrooms = 16 rooms ; ajout de 6 focus = 22 salles totales.",
+          "Boardroom tables Vitra Eames 4000 pour 14 pax ; à valider si produit réellement 14 pax vs 10 [À VÉRIFIER].",
+          "Circulation principale spine à y = 17 500 ~ y = 22 500 entre les deux cores, clear ≥ 1.40 m.",
+          "Escalier (x 28000-32000, y 17500-22500) préservé avec 2 m clear sur tous les côtés.",
+          "Biophilie concentrée sud (café, lounge) tier moderate ≈ 4 % ; accents ponctuels nord (ZZ, Sansevieria).",
+          "Plafond Class A αw ≥ 0,90 sur toute la zone nord (focus), masking pink noise 45 dBA recommandé.",
+          "Town hall 120 m² = bande y 0-9500, x 28500-44000 ; café 260 m² côté ouest ; continuum > 300 m² → désenfumage ERP type W à confirmer.",
+          "Postes vérifiés sans collision colonne : neighbourhoods alignés sur maille entre colonnes y=31500 et y=38500."
+        ]
+      },
+      "sketchup_trace": [
+        {
+          "tool": "new_scene",
+          "params": {
+            "name": "Lumen — atelier"
+          }
+        },
+        {
+          "tool": "draw_envelope",
+          "params": {
+            "points_mm": [
+              [
+                0.0,
+                0.0
+              ],
+              [
+                60000.0,
+                0.0
+              ],
+              [
+                60000.0,
+                40000.0
+              ],
+              [
+                0.0,
+                40000.0
+              ]
+            ]
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 3500.0,
+            "y_mm": 3500.0,
+            "radius_mm": 200.00028610229492
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 3500.0,
+            "y_mm": 10500.0,
+            "radius_mm": 200.00028610229492
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 3500.0,
+            "y_mm": 17500.0,
+            "radius_mm": 200.00028610229492
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 3500.0,
+            "y_mm": 24500.0,
+            "radius_mm": 200.00028610229492
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 3500.0,
+            "y_mm": 31500.0,
+            "radius_mm": 200.00028610229492
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 3500.0,
+            "y_mm": 38500.0,
+            "radius_mm": 200.00028610229492
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 10500.0,
+            "y_mm": 3500.0,
+            "radius_mm": 200.00028610229492
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 10500.0,
+            "y_mm": 10500.0,
+            "radius_mm": 200.00028610229492
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 10500.0,
+            "y_mm": 17500.0,
+            "radius_mm": 200.00028610229492
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 10500.0,
+            "y_mm": 24500.0,
+            "radius_mm": 200.00028610229492
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 10500.0,
+            "y_mm": 31500.0,
+            "radius_mm": 200.00028610229492
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 10500.0,
+            "y_mm": 38500.0,
+            "radius_mm": 200.00028610229492
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 17500.0,
+            "y_mm": 3500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 17500.0,
+            "y_mm": 10500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 17500.0,
+            "y_mm": 17500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 17500.0,
+            "y_mm": 24500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 17500.0,
+            "y_mm": 31500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 17500.0,
+            "y_mm": 38500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 24500.0,
+            "y_mm": 3500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 24500.0,
+            "y_mm": 10500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 24500.0,
+            "y_mm": 17500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 24500.0,
+            "y_mm": 24500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 24500.0,
+            "y_mm": 31500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 24500.0,
+            "y_mm": 38500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 31500.0,
+            "y_mm": 3500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 31500.0,
+            "y_mm": 10500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 31500.0,
+            "y_mm": 17500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 31500.0,
+            "y_mm": 24500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 31500.0,
+            "y_mm": 31500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 31500.0,
+            "y_mm": 38500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 38500.0,
+            "y_mm": 3500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 38500.0,
+            "y_mm": 10500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 38500.0,
+            "y_mm": 17500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 38500.0,
+            "y_mm": 24500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 38500.0,
+            "y_mm": 31500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 38500.0,
+            "y_mm": 38500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 45500.0,
+            "y_mm": 3500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 45500.0,
+            "y_mm": 10500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 45500.0,
+            "y_mm": 17500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 45500.0,
+            "y_mm": 24500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 45500.0,
+            "y_mm": 31500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 45500.0,
+            "y_mm": 38500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 52500.0,
+            "y_mm": 3500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 52500.0,
+            "y_mm": 10500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 52500.0,
+            "y_mm": 17500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 52500.0,
+            "y_mm": 24500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 52500.0,
+            "y_mm": 31500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 52500.0,
+            "y_mm": 38500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 59500.0,
+            "y_mm": 3500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 59500.0,
+            "y_mm": 10500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 59500.0,
+            "y_mm": 17500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 59500.0,
+            "y_mm": 24500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 59500.0,
+            "y_mm": 31500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 59500.0,
+            "y_mm": 38500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_core",
+          "params": {
+            "kind": "elevator",
+            "points_mm": [
+              [
+                18000.0,
+                17000.0
+              ],
+              [
+                24000.0,
+                17000.0
+              ],
+              [
+                24000.0,
+                23000.0
+              ],
+              [
+                18000.0,
+                23000.0
+              ]
+            ]
+          }
+        },
+        {
+          "tool": "place_core",
+          "params": {
+            "kind": "elevator",
+            "points_mm": [
+              [
+                36000.0,
+                17000.0
+              ],
+              [
+                42000.0,
+                17000.0
+              ],
+              [
+                42000.0,
+                23000.0
+              ],
+              [
+                36000.0,
+                23000.0
+              ]
+            ]
+          }
+        },
+        {
+          "tool": "place_stair",
+          "params": {
+            "points_mm": [
+              [
+                28000.0,
+                17500.0
+              ],
+              [
+                32000.0,
+                17500.0
+              ],
+              [
+                32000.0,
+                22500.0
+              ],
+              [
+                28000.0,
+                22500.0
+              ]
+            ]
+          }
+        },
+        {
+          "tool": "create_workstation_cluster",
+          "params": {
+            "origin_mm": [
+              4500,
+              34500
+            ],
+            "orientation_deg": 0.0,
+            "count": 26,
+            "row_spacing_mm": 1600,
+            "product_id": "steelcase_migration_se_1600"
+          }
+        },
+        {
+          "tool": "create_workstation_cluster",
+          "params": {
+            "origin_mm": [
+              4500,
+              29500
+            ],
+            "orientation_deg": 0.0,
+            "count": 26,
+            "row_spacing_mm": 1600,
+            "product_id": "steelcase_migration_se_1600"
+          }
+        },
+        {
+          "tool": "create_workstation_cluster",
+          "params": {
+            "origin_mm": [
+              33000,
+              34500
+            ],
+            "orientation_deg": 0.0,
+            "count": 26,
+            "row_spacing_mm": 1600,
+            "product_id": "steelcase_migration_se_1600"
+          }
+        },
+        {
+          "tool": "create_workstation_cluster",
+          "params": {
+            "origin_mm": [
+              33000,
+              29500
+            ],
+            "orientation_deg": 0.0,
+            "count": 26,
+            "row_spacing_mm": 1600,
+            "product_id": "steelcase_migration_se_1600"
+          }
+        },
+        {
+          "tool": "create_workstation_cluster",
+          "params": {
+            "origin_mm": [
+              47000,
+              24000
+            ],
+            "orientation_deg": 0.0,
+            "count": 26,
+            "row_spacing_mm": 1600,
+            "product_id": "steelcase_migration_se_1600"
+          }
+        },
+        {
+          "tool": "create_meeting_room",
+          "params": {
+            "corner1_mm": [
+              5000,
+              12000
+            ],
+            "corner2_mm": [
+              10000,
+              17000
+            ],
+            "capacity": 8,
+            "name": "Salle Étain",
+            "table_product": "vitra_eames_segmented_2400"
+          }
+        },
+        {
+          "tool": "create_meeting_room",
+          "params": {
+            "corner1_mm": [
+              5000,
+              19000
+            ],
+            "corner2_mm": [
+              10000,
+              24000
+            ],
+            "capacity": 8,
+            "name": "Salle Cuivre",
+            "table_product": "vitra_eames_segmented_2400"
+          }
+        },
+        {
+          "tool": "create_meeting_room",
+          "params": {
+            "corner1_mm": [
+              12000,
+              12000
+            ],
+            "corner2_mm": [
+              17000,
+              17000
+            ],
+            "capacity": 6,
+            "name": "Salle Chêne",
+            "table_product": "hm_everywhere_1800"
+          }
+        },
+        {
+          "tool": "create_meeting_room",
+          "params": {
+            "corner1_mm": [
+              12000,
+              19000
+            ],
+            "corner2_mm": [
+              17000,
+              24000
+            ],
+            "capacity": 6,
+            "name": "Salle Frêne",
+            "table_product": "hm_everywhere_1800"
+          }
+        },
+        {
+          "tool": "create_meeting_room",
+          "params": {
+            "corner1_mm": [
+              43000,
+              12000
+            ],
+            "corner2_mm": [
+              48000,
+              17000
+            ],
+            "capacity": 6,
+            "name": "Salle Noyer",
+            "table_product": "hm_everywhere_1800"
+          }
+        },
+        {
+          "tool": "create_meeting_room",
+          "params": {
+            "corner1_mm": [
+              43000,
+              23500
+            ],
+            "corner2_mm": [
+              48000,
+              28500
+            ],
+            "capacity": 8,
+            "name": "Salle Érable",
+            "table_product": "vitra_eames_segmented_2400"
+          }
+        },
+        {
+          "tool": "create_meeting_room",
+          "params": {
+            "corner1_mm": [
+              19000,
+              10000
+            ],
+            "corner2_mm": [
+              25000,
+              16000
+            ],
+            "capacity": 14,
+            "name": "Boardroom Atelier Sud",
+            "table_product": "vitra_eames_segmented_4000"
+          }
+        },
+        {
+          "tool": "create_meeting_room",
+          "params": {
+            "corner1_mm": [
+              35500,
+              10000
+            ],
+            "corner2_mm": [
+              41500,
+              16000
+            ],
+            "capacity": 14,
+            "name": "Boardroom Atelier Est",
+            "table_product": "vitra_eames_segmented_4000"
+          }
+        },
+        {
+          "tool": "create_meeting_room",
+          "params": {
+            "corner1_mm": [
+              19000,
+              24500
+            ],
+            "corner2_mm": [
+              24500,
+              28500
+            ],
+            "capacity": 4,
+            "name": "Huddle H1",
+            "table_product": "hm_everywhere_round_1200"
+          }
+        },
+        {
+          "tool": "create_meeting_room",
+          "params": {
+            "corner1_mm": [
+              26000,
+              24500
+            ],
+            "corner2_mm": [
+              30500,
+              28500
+            ],
+            "capacity": 4,
+            "name": "Huddle H2",
+            "table_product": "hm_everywhere_round_1200"
+          }
+        },
+        {
+          "tool": "create_meeting_room",
+          "params": {
+            "corner1_mm": [
+              32500,
+              24500
+            ],
+            "corner2_mm": [
+              37000,
+              28500
+            ],
+            "capacity": 4,
+            "name": "Huddle H3",
+            "table_product": "hm_everywhere_round_1200"
+          }
+        },
+        {
+          "tool": "create_meeting_room",
+          "params": {
+            "corner1_mm": [
+              38500,
+              24500
+            ],
+            "corner2_mm": [
+              43000,
+              28500
+            ],
+            "capacity": 4,
+            "name": "Huddle H4",
+            "table_product": "hm_everywhere_round_1200"
+          }
+        },
+        {
+          "tool": "create_meeting_room",
+          "params": {
+            "corner1_mm": [
+              19000,
+              29500
+            ],
+            "corner2_mm": [
+              23000,
+              33000
+            ],
+            "capacity": 4,
+            "name": "Huddle H5",
+            "table_product": "hm_everywhere_round_1200"
+          }
+        },
+        {
+          "tool": "create_meeting_room",
+          "params": {
+            "corner1_mm": [
+              24000,
+              29500
+            ],
+            "corner2_mm": [
+              28000,
+              33000
+            ],
+            "capacity": 4,
+            "name": "Huddle H6",
+            "table_product": "hm_everywhere_round_1200"
+          }
+        },
+        {
+          "tool": "create_meeting_room",
+          "params": {
+            "corner1_mm": [
+              29000,
+              29500
+            ],
+            "corner2_mm": [
+              33000,
+              33000
+            ],
+            "capacity": 4,
+            "name": "Huddle H7",
+            "table_product": "hm_everywhere_round_1200"
+          }
+        },
+        {
+          "tool": "create_meeting_room",
+          "params": {
+            "corner1_mm": [
+              42500,
+              29500
+            ],
+            "corner2_mm": [
+              46500,
+              33000
+            ],
+            "capacity": 4,
+            "name": "Huddle H8",
+            "table_product": "hm_everywhere_round_1200"
+          }
+        },
+        {
+          "tool": "create_meeting_room",
+          "params": {
+            "corner1_mm": [
+              49000,
+              12000
+            ],
+            "corner2_mm": [
+              52000,
+              15500
+            ],
+            "capacity": 2,
+            "name": "Focus F1",
+            "table_product": "None"
+          }
+        },
+        {
+          "tool": "create_meeting_room",
+          "params": {
+            "corner1_mm": [
+              49000,
+              16000
+            ],
+            "corner2_mm": [
+              52000,
+              19500
+            ],
+            "capacity": 2,
+            "name": "Focus F2",
+            "table_product": "None"
+          }
+        },
+        {
+          "tool": "create_meeting_room",
+          "params": {
+            "corner1_mm": [
+              49000,
+              20000
+            ],
+            "corner2_mm": [
+              52000,
+              23500
+            ],
+            "capacity": 2,
+            "name": "Focus F3",
+            "table_product": "None"
+          }
+        },
+        {
+          "tool": "create_meeting_room",
+          "params": {
+            "corner1_mm": [
+              54000,
+              12000
+            ],
+            "corner2_mm": [
+              57000,
+              15500
+            ],
+            "capacity": 2,
+            "name": "Focus F4",
+            "table_product": "None"
+          }
+        },
+        {
+          "tool": "create_meeting_room",
+          "params": {
+            "corner1_mm": [
+              54000,
+              16000
+            ],
+            "corner2_mm": [
+              57000,
+              19500
+            ],
+            "capacity": 2,
+            "name": "Focus F5",
+            "table_product": "None"
+          }
+        },
+        {
+          "tool": "create_meeting_room",
+          "params": {
+            "corner1_mm": [
+              54000,
+              20000
+            ],
+            "corner2_mm": [
+              57000,
+              23500
+            ],
+            "capacity": 2,
+            "name": "Focus F6",
+            "table_product": "None"
+          }
+        },
+        {
+          "tool": "create_phone_booth",
+          "params": {
+            "position_mm": [
+              14500,
+              26000
+            ],
+            "product_id": "framery_one_compact"
+          }
+        },
+        {
+          "tool": "create_phone_booth",
+          "params": {
+            "position_mm": [
+              14500,
+              27500
+            ],
+            "product_id": "framery_one_compact"
+          }
+        },
+        {
+          "tool": "create_phone_booth",
+          "params": {
+            "position_mm": [
+              26000,
+              10500
+            ],
+            "product_id": "framery_one_compact"
+          }
+        },
+        {
+          "tool": "create_phone_booth",
+          "params": {
+            "position_mm": [
+              27500,
+              10500
+            ],
+            "product_id": "framery_one_compact"
+          }
+        },
+        {
+          "tool": "create_phone_booth",
+          "params": {
+            "position_mm": [
+              29000,
+              10500
+            ],
+            "product_id": "framery_one_compact"
+          }
+        },
+        {
+          "tool": "create_phone_booth",
+          "params": {
+            "position_mm": [
+              42000,
+              10500
+            ],
+            "product_id": "framery_one_compact"
+          }
+        },
+        {
+          "tool": "create_phone_booth",
+          "params": {
+            "position_mm": [
+              43500,
+              10500
+            ],
+            "product_id": "framery_one_compact"
+          }
+        },
+        {
+          "tool": "create_phone_booth",
+          "params": {
+            "position_mm": [
+              45000,
+              10500
+            ],
+            "product_id": "framery_one_compact"
+          }
+        },
+        {
+          "tool": "create_phone_booth",
+          "params": {
+            "position_mm": [
+              46500,
+              10500
+            ],
+            "product_id": "framery_one_compact"
+          }
+        },
+        {
+          "tool": "create_phone_booth",
+          "params": {
+            "position_mm": [
+              50000,
+              26000
+            ],
+            "product_id": "framery_one_compact"
+          }
+        },
+        {
+          "tool": "create_phone_booth",
+          "params": {
+            "position_mm": [
+              51500,
+              26000
+            ],
+            "product_id": "framery_one_compact"
+          }
+        },
+        {
+          "tool": "create_phone_booth",
+          "params": {
+            "position_mm": [
+              53000,
+              26000
+            ],
+            "product_id": "framery_one_compact"
+          }
+        },
+        {
+          "tool": "create_phone_booth",
+          "params": {
+            "position_mm": [
+              55000,
+              26000
+            ],
+            "product_id": "framery_one_compact"
+          }
+        },
+        {
+          "tool": "create_phone_booth",
+          "params": {
+            "position_mm": [
+              56500,
+              26000
+            ],
+            "product_id": "framery_one_compact"
+          }
+        },
+        {
+          "tool": "create_collab_zone",
+          "params": {
+            "bbox_mm": [
+              2000,
+              500,
+              28000,
+              9500
+            ],
+            "style": "cafe"
+          }
+        },
+        {
+          "tool": "create_collab_zone",
+          "params": {
+            "bbox_mm": [
+              28500,
+              500,
+              44000,
+              9500
+            ],
+            "style": "townhall"
+          }
+        },
+        {
+          "tool": "create_collab_zone",
+          "params": {
+            "bbox_mm": [
+              44500,
+              500,
+              59000,
+              9500
+            ],
+            "style": "lounge"
+          }
+        },
+        {
+          "tool": "apply_biophilic_zone",
+          "params": {
+            "bbox_mm": [
+              2000,
+              500,
+              15000,
+              4000
+            ]
+          }
+        },
+        {
+          "tool": "apply_biophilic_zone",
+          "params": {
+            "bbox_mm": [
+              44500,
+              500,
+              59000,
+              4000
+            ]
+          }
+        },
+        {
+          "tool": "apply_biophilic_zone",
+          "params": {
+            "bbox_mm": [
+              26500,
+              17500,
+              28000,
+              22500
+            ]
+          }
+        },
+        {
+          "tool": "create_partition_wall",
+          "params": {
+            "start_mm": [
+              2000,
+              10000
+            ],
+            "end_mm": [
+              17500,
+              10000
+            ],
+            "kind": "acoustic"
+          }
+        },
+        {
+          "tool": "create_partition_wall",
+          "params": {
+            "start_mm": [
+              43000,
+              10000
+            ],
+            "end_mm": [
+              59000,
+              10000
+            ],
+            "kind": "acoustic"
+          }
+        },
+        {
+          "tool": "create_partition_wall",
+          "params": {
+            "start_mm": [
+              2000,
+              28000
+            ],
+            "end_mm": [
+              18000,
+              28000
+            ],
+            "kind": "semi_glazed"
+          }
+        },
+        {
+          "tool": "create_partition_wall",
+          "params": {
+            "start_mm": [
+              42000,
+              28000
+            ],
+            "end_mm": [
+              59000,
+              28000
+            ],
+            "kind": "semi_glazed"
+          }
+        },
+        {
+          "tool": "create_partition_wall",
+          "params": {
+            "start_mm": [
+              17500,
+              10000
+            ],
+            "end_mm": [
+              17500,
+              17000
+            ],
+            "kind": "glazed"
+          }
+        },
+        {
+          "tool": "create_partition_wall",
+          "params": {
+            "start_mm": [
+              43000,
+              10000
+            ],
+            "end_mm": [
+              43000,
+              17000
+            ],
+            "kind": "glazed"
+          }
+        },
+        {
+          "tool": "screenshot",
+          "params": {
+            "view_name": "iso"
+          }
+        }
+      ],
+      "screenshot_paths": [],
+      "adjacency_audit": {
+        "score": 82,
+        "summary": "Solid atelier parti with strong acoustic separation, but the southern hospitality continuum sits directly adjacent to the central meeting band and a few huddle clusters risk spilling onto desk aisles.",
+        "violations": [
+          {
+            "rule_id": "acoustic.quiet_room_min_distance_from_hospitality",
+            "severity": "major",
+            "zones": [
+              "Boardroom Atelier Sud",
+              "collab_zone_townhall"
+            ],
+            "description": "The 14-pax boardroom sits only ~1 m north of the town-hall / café band, well under the 8 m buffer required from hospitality noise sources.",
+            "suggestion": "Insert a storage wall or a row of phone booths between the southern meeting rooms and the café/town-hall strip.",
+            "source": "WELL v2 Feature S03 ; Hongisto 2005"
+          },
+          {
+            "rule_id": "acoustic.quiet_room_min_distance_from_hospitality",
+            "severity": "major",
+            "zones": [
+              "Salle Étain",
+              "collab_zone_cafe"
+            ],
+            "description": "Salle Étain and Salle Cuivre share their southern wall with the 260 m² café, breaching the 8 m or two-partition acoustic buffer.",
+            "suggestion": "Add a 2–3 m buffer corridor or a double-wall assembly (Rw ≥ 40 dB each) between the café and the western meeting pair.",
+            "source": "WELL v2 Feature S03 ; NF S 31-080"
+          },
+          {
+            "rule_id": "acoustic.phone_booths_cluster_must_buffer_open_desks",
+            "severity": "minor",
+            "zones": [
+              "phone_booth_cluster_east",
+              "workstation_cluster_east_upper"
+            ],
+            "description": "The five-booth cluster around x≈50–57k, y=26 000 sits less than 2 m from the eastern desk bench at y≈29 500 without a partition buffer.",
+            "suggestion": "Shift the booth row south against the focus-room wall or add an acoustic screen H≥1600 mm facing the desk aisle.",
+            "source": "Steelcase WorkSpace Futures 2014"
+          },
+          {
+            "rule_id": "micro.huddle_door_not_onto_desk_aisle",
+            "severity": "minor",
+            "zones": [
+              "Huddle H5",
+              "workstation_cluster_north_west"
+            ],
+            "description": "Huddles H5–H7 open straight onto the desk aisle at y≈33 000 without the 1.20 m offset, risking standing conversations inside the neighbourhood.",
+            "suggestion": "Rotate the huddle doors to face the central spine, or recess them behind a 1.20 m lobby against the north-facing desk bench.",
+            "source": "Steelcase WorkSpace Futures"
+          },
+          {
+            "rule_id": "zoning.team_neighbourhood_has_own_gravity",
+            "severity": "minor",
+            "zones": [
+              "workstation_cluster_north_east_upper",
+              "phone_booth_cluster_south"
+            ],
+            "description": "The north-east 26-desk neighbourhood has no phone booth within its footprint; the nearest booths are 15+ m away across the central meeting band.",
+            "suggestion": "Relocate one Framery booth into the north-east neighbourhood, ideally at the junction between the two upper east clusters.",
+            "source": "Gensler 2022 Workplace Survey"
+          },
+          {
+            "rule_id": "daylight.focus_rooms_off_facade",
+            "severity": "info",
+            "zones": [
+              "Focus F4",
+              "Focus F5"
+            ],
+            "description": "Focus rooms F4–F6 occupy the east façade (x=54–57k), taking daylight that the atelier narrative explicitly reserves for shared desks.",
+            "suggestion": "Swap the eastern focus column with the adjacent desk bench so façade daylight serves the open workstations.",
+            "source": "Leesman Index 2022"
+          },
+          {
+            "rule_id": "zoning.calm_energy_gradient",
+            "severity": "minor",
+            "zones": [
+              "Focus F1",
+              "collab_zone_lounge"
+            ],
+            "description": "Focus F1 sits ~3 m above the south-east lounge, breaking the intended north-to-south calm-to-energy gradient of the atelier scheme.",
+            "suggestion": "Move the eastern focus stack further north into the central band, or interpose an acoustic wall between F1–F2 and the lounge.",
+            "source": "Steelcase Global Report 2016"
+          }
+        ],
+        "recommendations": [
+          "Add a continuous storage or locker wall along y≈10 000 to acoustically seal the central meeting band from the south hospitality continuum.",
+          "Drop one Framery booth into each of the two north-east neighbourhoods to satisfy the zero-walk huddle+booth gravity rule.",
+          "Flip the eastern focus-room column inland so the east façade daylight reaches the 26-desk cluster rather than 2-pax rooms."
+        ]
+      }
+    },
+    {
+      "style": "hybride_flex",
+      "title": "Lumen Flex Village",
+      "narrative": "Lumen Flex Village pushes the hybride_flex directive to its logical conclusion: a 60 × 40 m plate organised as a bookable landscape where nothing is 'owned' and everything is reconfigurable. The flex ratio is held at 0.75 as per the consolidated programme (130 desks for 170 FTE on a 3/2 policy, aligned with ratios_json.flex_ratio_by_policy.3_2_hybrid_standard) but the design language is resolutely mobile-first: Vitra Joyn benches on casters where possible, USM Haller conference tables that accept reconfiguration, Framery One Compact booths that can be relocated without base-build works. The brief's 120 m² town hall becomes the dominant civic gesture, combined with the 260 m² café along the south façade to form a single 380 m² bookable 'Forum' that hosts all-hands by evening and informal collab by day — a pattern explicitly endorsed by design://collaboration-spaces §5.\n\nThe plan reads as four bands north-to-south. Along the north façade (y = 31500 → 40000), 130 workstations in six Joyn-bench clusters take the quietest edge — validated against design://acoustic-standards §10 (devs concentration performant, L50 ≤ 35 dBA). The middle band (y = 10500 → 31500) hosts enclosed program around the two elevator cores and the stair: 6 focus rooms, 14 phone booths, 8 huddles, 6 medium meeting rooms, and 2 boardrooms, distributed so no desk is more than 20 m from a phone booth (design://collaboration-spaces §10). The south band (y = 0 → 10500) is the Forum: café + town hall + lounge tampon, all sharing one continuous Class A ceiling with baffles every 4 m to handle the 380 m² acoustic continuum flagged by the Reviewer.\n\nBranded wayfinding and a single accent colour per band deliver the hybride_flex identity requirement: north = Lumen indigo (focus), middle = warm oak (encounter), south = citrus accent (social). The neutral base palette (oak, off-white, charcoal) keeps the plate photogenic for the all-hands livestreams. All partition walls are semi-glazed to borrow daylight into the deep core zones — critical given the 6 m core-to-core band which otherwise sits below the 500 lux EN 12464-1 floor.\n\nBiophilic accents (moderate tier, ~4 % floor footprint per design://biophilic-office §1.1) are concentrated in the Forum and along the central spine, with trailing Pothos overhead at the stair void and a hero Ficus lyrata anchoring the café. Every workstation cluster has at least one mid-height Dracaena planter within the 60° field of view. Acoustic performance targets: NF S 31-080 Performant across the plate, Très Performant for boardrooms and phone booths, with sound masking at 45 dBA across the open plan.\n\nPeak-day sanity check: 170 FTE × 0.60 average presence × 1.25 peak factor (ratios_json.peak_day_factor.3_2_hybrid_standard) = 128 seated users at peak, 130 desks absorb it with 2 seats of headroom — on spec.",
+      "metrics": {
+        "workstation_count": 130,
+        "meeting_room_count": 22,
+        "phone_booth_count": 14,
+        "collab_surface_m2": 470.0,
+        "amenity_surface_m2": 310.0,
+        "circulation_m2": 395.0,
+        "total_programmed_m2": 2180.0,
+        "flex_ratio_applied": 0.76,
+        "notes": [
+          "Workstation count 130 matches programme target (170 FTE × 0.76 flex ratio).",
+          "Meeting room count 22 = 6 focus + 8 huddles + 6 medium + 2 boardrooms, exactly per programme.",
+          "Phone booth count 14 matches programme target exactly.",
+          "Forum (café 260 m² + town hall 120 m² + lounge tampon) sits along south façade sharing daylight and acoustic strategy; >300 m² continuum requires désenfumage per design://erp-safety and continuous Class A ceiling per design://acoustic-standards §10.",
+          "Focus rooms are 2.5×2.5 m cells grouped as a 'focus library' on the west spine — consolidated rather than distributed, per hybride_flex preference for bookable zones.",
+          "All partition walls are semi-glazed or glazed where possible to borrow daylight into the deep core band (cores at y=17000-23000 block direct sightlines).",
+          "Biophilic zones located at the atrium around the stair, at the café hero tree, and in the lounge; moderate tier ~4% floor footprint per design://biophilic-office §13.",
+          "Column grid (7m x 7m) respected — workstation clusters placed in the 5.5m clear bays between column lines.",
+          "PMR main spine: 4m clear band y=10500→17000 east-west across the plate between meeting rooms and boardrooms, >>1.40m.",
+          "Peak-day validation: 170 FTE × 0.60 presence × 1.25 peak factor = 128 users; 130 desks absorb at 98% utilisation — tight but on-spec."
+        ]
+      },
+      "sketchup_trace": [
+        {
+          "tool": "new_scene",
+          "params": {
+            "name": "Lumen — hybride_flex"
+          }
+        },
+        {
+          "tool": "draw_envelope",
+          "params": {
+            "points_mm": [
+              [
+                0.0,
+                0.0
+              ],
+              [
+                60000.0,
+                0.0
+              ],
+              [
+                60000.0,
+                40000.0
+              ],
+              [
+                0.0,
+                40000.0
+              ]
+            ]
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 3500.0,
+            "y_mm": 3500.0,
+            "radius_mm": 200.00028610229492
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 3500.0,
+            "y_mm": 10500.0,
+            "radius_mm": 200.00028610229492
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 3500.0,
+            "y_mm": 17500.0,
+            "radius_mm": 200.00028610229492
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 3500.0,
+            "y_mm": 24500.0,
+            "radius_mm": 200.00028610229492
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 3500.0,
+            "y_mm": 31500.0,
+            "radius_mm": 200.00028610229492
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 3500.0,
+            "y_mm": 38500.0,
+            "radius_mm": 200.00028610229492
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 10500.0,
+            "y_mm": 3500.0,
+            "radius_mm": 200.00028610229492
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 10500.0,
+            "y_mm": 10500.0,
+            "radius_mm": 200.00028610229492
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 10500.0,
+            "y_mm": 17500.0,
+            "radius_mm": 200.00028610229492
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 10500.0,
+            "y_mm": 24500.0,
+            "radius_mm": 200.00028610229492
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 10500.0,
+            "y_mm": 31500.0,
+            "radius_mm": 200.00028610229492
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 10500.0,
+            "y_mm": 38500.0,
+            "radius_mm": 200.00028610229492
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 17500.0,
+            "y_mm": 3500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 17500.0,
+            "y_mm": 10500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 17500.0,
+            "y_mm": 17500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 17500.0,
+            "y_mm": 24500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 17500.0,
+            "y_mm": 31500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 17500.0,
+            "y_mm": 38500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 24500.0,
+            "y_mm": 3500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 24500.0,
+            "y_mm": 10500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 24500.0,
+            "y_mm": 17500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 24500.0,
+            "y_mm": 24500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 24500.0,
+            "y_mm": 31500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 24500.0,
+            "y_mm": 38500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 31500.0,
+            "y_mm": 3500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 31500.0,
+            "y_mm": 10500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 31500.0,
+            "y_mm": 17500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 31500.0,
+            "y_mm": 24500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 31500.0,
+            "y_mm": 31500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 31500.0,
+            "y_mm": 38500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 38500.0,
+            "y_mm": 3500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 38500.0,
+            "y_mm": 10500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 38500.0,
+            "y_mm": 17500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 38500.0,
+            "y_mm": 24500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 38500.0,
+            "y_mm": 31500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 38500.0,
+            "y_mm": 38500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 45500.0,
+            "y_mm": 3500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 45500.0,
+            "y_mm": 10500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 45500.0,
+            "y_mm": 17500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 45500.0,
+            "y_mm": 24500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 45500.0,
+            "y_mm": 31500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 45500.0,
+            "y_mm": 38500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 52500.0,
+            "y_mm": 3500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 52500.0,
+            "y_mm": 10500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 52500.0,
+            "y_mm": 17500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 52500.0,
+            "y_mm": 24500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 52500.0,
+            "y_mm": 31500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 52500.0,
+            "y_mm": 38500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 59500.0,
+            "y_mm": 3500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 59500.0,
+            "y_mm": 10500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 59500.0,
+            "y_mm": 17500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 59500.0,
+            "y_mm": 24500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 59500.0,
+            "y_mm": 31500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_column",
+          "params": {
+            "x_mm": 59500.0,
+            "y_mm": 38500.0,
+            "radius_mm": 200.00076293945312
+          }
+        },
+        {
+          "tool": "place_core",
+          "params": {
+            "kind": "elevator",
+            "points_mm": [
+              [
+                18000.0,
+                17000.0
+              ],
+              [
+                24000.0,
+                17000.0
+              ],
+              [
+                24000.0,
+                23000.0
+              ],
+              [
+                18000.0,
+                23000.0
+              ]
+            ]
+          }
+        },
+        {
+          "tool": "place_core",
+          "params": {
+            "kind": "elevator",
+            "points_mm": [
+              [
+                36000.0,
+                17000.0
+              ],
+              [
+                42000.0,
+                17000.0
+              ],
+              [
+                42000.0,
+                23000.0
+              ],
+              [
+                36000.0,
+                23000.0
+              ]
+            ]
+          }
+        },
+        {
+          "tool": "place_stair",
+          "params": {
+            "points_mm": [
+              [
+                28000.0,
+                17500.0
+              ],
+              [
+                32000.0,
+                17500.0
+              ],
+              [
+                32000.0,
+                22500.0
+              ],
+              [
+                28000.0,
+                22500.0
+              ]
+            ]
+          }
+        },
+        {
+          "tool": "create_workstation_cluster",
+          "params": {
+            "origin_mm": [
+              1500,
+              32200
+            ],
+            "orientation_deg": 0.0,
+            "count": 24,
+            "row_spacing_mm": 1600,
+            "product_id": "vitra_joyn_bench_3200"
+          }
+        },
+        {
+          "tool": "create_workstation_cluster",
+          "params": {
+            "origin_mm": [
+              12500,
+              32200
+            ],
+            "orientation_deg": 0.0,
+            "count": 24,
+            "row_spacing_mm": 1600,
+            "product_id": "vitra_joyn_bench_3200"
+          }
+        },
+        {
+          "tool": "create_workstation_cluster",
+          "params": {
+            "origin_mm": [
+              26500,
+              32200
+            ],
+            "orientation_deg": 0.0,
+            "count": 20,
+            "row_spacing_mm": 1600,
+            "product_id": "vitra_joyn_bench_3200"
+          }
+        },
+        {
+          "tool": "create_workstation_cluster",
+          "params": {
+            "origin_mm": [
+              40500,
+              32200
+            ],
+            "orientation_deg": 0.0,
+            "count": 24,
+            "row_spacing_mm": 1600,
+            "product_id": "vitra_joyn_bench_3200"
+          }
+        },
+        {
+          "tool": "create_workstation_cluster",
+          "params": {
+            "origin_mm": [
+              54500,
+              32200
+            ],
+            "orientation_deg": 0.0,
+            "count": 16,
+            "row_spacing_mm": 1600,
+            "product_id": "steelcase_migration_se_1600"
+          }
+        },
+        {
+          "tool": "create_workstation_cluster",
+          "params": {
+            "origin_mm": [
+              1500,
+              25200
+            ],
+            "orientation_deg": 0.0,
+            "count": 22,
+            "row_spacing_mm": 1600,
+            "product_id": "vitra_joyn_bench_3200"
+          }
+        },
+        {
+          "tool": "create_meeting_room",
+          "params": {
+            "corner1_mm": [
+              1000,
+              17000
+            ],
+            "corner2_mm": [
+              6500,
+              23500
+            ],
+            "capacity": 12,
+            "name": "Boardroom Nord-Ouest",
+            "table_product": "usm_haller_conference"
+          }
+        },
+        {
+          "tool": "create_meeting_room",
+          "params": {
+            "corner1_mm": [
+              7000,
+              17000
+            ],
+            "corner2_mm": [
+              12500,
+              23500
+            ],
+            "capacity": 12,
+            "name": "Boardroom Central-Ouest",
+            "table_product": "usm_haller_conference"
+          }
+        },
+        {
+          "tool": "create_meeting_room",
+          "params": {
+            "corner1_mm": [
+              13000,
+              11500
+            ],
+            "corner2_mm": [
+              18000,
+              16500
+            ],
+            "capacity": 8,
+            "name": "Studio Alpha",
+            "table_product": "hm_everywhere_1800"
+          }
+        },
+        {
+          "tool": "create_meeting_room",
+          "params": {
+            "corner1_mm": [
+              25000,
+              11500
+            ],
+            "corner2_mm": [
+              30000,
+              16500
+            ],
+            "capacity": 8,
+            "name": "Studio Beta",
+            "table_product": "hm_everywhere_1800"
+          }
+        },
+        {
+          "tool": "create_meeting_room",
+          "params": {
+            "corner1_mm": [
+              33000,
+              11500
+            ],
+            "corner2_mm": [
+              38000,
+              16500
+            ],
+            "capacity": 8,
+            "name": "Studio Gamma",
+            "table_product": "hm_everywhere_1800"
+          }
+        },
+        {
+          "tool": "create_meeting_room",
+          "params": {
+            "corner1_mm": [
+              43000,
+              11500
+            ],
+            "corner2_mm": [
+              48000,
+              16500
+            ],
+            "capacity": 8,
+            "name": "Studio Delta",
+            "table_product": "hm_everywhere_1800"
+          }
+        },
+        {
+          "tool": "create_meeting_room",
+          "params": {
+            "corner1_mm": [
+              53000,
+              17000
+            ],
+            "corner2_mm": [
+              58500,
+              22500
+            ],
+            "capacity": 8,
+            "name": "Studio Epsilon",
+            "table_product": "hm_everywhere_1800"
+          }
+        },
+        {
+          "tool": "create_meeting_room",
+          "params": {
+            "corner1_mm": [
+              53000,
+              23500
+            ],
+            "corner2_mm": [
+              58500,
+              28500
+            ],
+            "capacity": 6,
+            "name": "Studio Zeta",
+            "table_product": "hm_everywhere_1800"
+          }
+        },
+        {
+          "tool": "create_meeting_room",
+          "params": {
+            "corner1_mm": [
+              13000,
+              23500
+            ],
+            "corner2_mm": [
+              16000,
+              27500
+            ],
+            "capacity": 4,
+            "name": "Huddle H1",
+            "table_product": "hm_everywhere_round_1200"
+          }
+        },
+        {
+          "tool": "create_meeting_room",
+          "params": {
+            "corner1_mm": [
+              13000,
+              28000
+            ],
+            "corner2_mm": [
+              16000,
+              31000
+            ],
+            "capacity": 4,
+            "name": "Huddle H2",
+            "table_product": "hm_everywhere_round_1200"
+          }
+        },
+        {
+          "tool": "create_meeting_room",
+          "params": {
+            "corner1_mm": [
+              25000,
+              23500
+            ],
+            "corner2_mm": [
+              28000,
+              26500
+            ],
+            "capacity": 4,
+            "name": "Huddle H3",
+            "table_product": "hm_everywhere_round_1200"
+          }
+        },
+        {
+          "tool": "create_meeting_room",
+          "params": {
+            "corner1_mm": [
+              25000,
+              27500
+            ],
+            "corner2_mm": [
+              28000,
+              30500
+            ],
+            "capacity": 4,
+            "name": "Huddle H4",
+            "table_product": "hm_everywhere_round_1200"
+          }
+        },
+        {
+          "tool": "create_meeting_room",
+          "params": {
+            "corner1_mm": [
+              33000,
+              23500
+            ],
+            "corner2_mm": [
+              36000,
+              26500
+            ],
+            "capacity": 4,
+            "name": "Huddle H5",
+            "table_product": "hm_everywhere_round_1200"
+          }
+        },
+        {
+          "tool": "create_meeting_room",
+          "params": {
+            "corner1_mm": [
+              33000,
+              27500
+            ],
+            "corner2_mm": [
+              36000,
+              30500
+            ],
+            "capacity": 4,
+            "name": "Huddle H6",
+            "table_product": "hm_everywhere_round_1200"
+          }
+        },
+        {
+          "tool": "create_meeting_room",
+          "params": {
+            "corner1_mm": [
+              43000,
+              23500
+            ],
+            "corner2_mm": [
+              46000,
+              26500
+            ],
+            "capacity": 4,
+            "name": "Huddle H7",
+            "table_product": "hm_everywhere_round_1200"
+          }
+        },
+        {
+          "tool": "create_meeting_room",
+          "params": {
+            "corner1_mm": [
+              43000,
+              27500
+            ],
+            "corner2_mm": [
+              46000,
+              30500
+            ],
+            "capacity": 4,
+            "name": "Huddle H8",
+            "table_product": "hm_everywhere_round_1200"
+          }
+        },
+        {
+          "tool": "create_meeting_room",
+          "params": {
+            "corner1_mm": [
+              1000,
+              24500
+            ],
+            "corner2_mm": [
+              3500,
+              27000
+            ],
+            "capacity": 2,
+            "name": "Focus F1",
+            "table_product": "None"
+          }
+        },
+        {
+          "tool": "create_meeting_room",
+          "params": {
+            "corner1_mm": [
+              1000,
+              27500
+            ],
+            "corner2_mm": [
+              3500,
+              30000
+            ],
+            "capacity": 2,
+            "name": "Focus F2",
+            "table_product": "None"
+          }
+        },
+        {
+          "tool": "create_meeting_room",
+          "params": {
+            "corner1_mm": [
+              4500,
+              24500
+            ],
+            "corner2_mm": [
+              7000,
+              27000
+            ],
+            "capacity": 2,
+            "name": "Focus F3",
+            "table_product": "None"
+          }
+        },
+        {
+          "tool": "create_meeting_room",
+          "params": {
+            "corner1_mm": [
+              4500,
+              27500
+            ],
+            "corner2_mm": [
+              7000,
+              30000
+            ],
+            "capacity": 2,
+            "name": "Focus F4",
+            "table_product": "None"
+          }
+        },
+        {
+          "tool": "create_meeting_room",
+          "params": {
+            "corner1_mm": [
+              8000,
+              24500
+            ],
+            "corner2_mm": [
+              10500,
+              27000
+            ],
+            "capacity": 2,
+            "name": "Focus F5",
+            "table_product": "None"
+          }
+        },
+        {
+          "tool": "create_meeting_room",
+          "params": {
+            "corner1_mm": [
+              8000,
+              27500
+            ],
+            "corner2_mm": [
+              10500,
+              30000
+            ],
+            "capacity": 2,
+            "name": "Focus F6",
+            "table_product": "None"
+          }
+        },
+        {
+          "tool": "create_phone_booth",
+          "params": {
+            "position_mm": [
+              13200,
+              13500
+            ],
+            "product_id": "framery_one_compact"
+          }
+        },
+        {
+          "tool": "create_phone_booth",
+          "params": {
+            "position_mm": [
+              14700,
+              13500
+            ],
+            "product_id": "framery_one_compact"
+          }
+        },
+        {
+          "tool": "create_phone_booth",
+          "params": {
+            "position_mm": [
+              25200,
+              13500
+            ],
+            "product_id": "framery_one_compact"
+          }
+        },
+        {
+          "tool": "create_phone_booth",
+          "params": {
+            "position_mm": [
+              26700,
+              13500
+            ],
+            "product_id": "framery_one_compact"
+          }
+        },
+        {
+          "tool": "create_phone_booth",
+          "params": {
+            "position_mm": [
+              33200,
+              13500
+            ],
+            "product_id": "framery_one_compact"
+          }
+        },
+        {
+          "tool": "create_phone_booth",
+          "params": {
+            "position_mm": [
+              34700,
+              13500
+            ],
+            "product_id": "framery_one_compact"
+          }
+        },
+        {
+          "tool": "create_phone_booth",
+          "params": {
+            "position_mm": [
+              43200,
+              13500
+            ],
+            "product_id": "framery_one_compact"
+          }
+        },
+        {
+          "tool": "create_phone_booth",
+          "params": {
+            "position_mm": [
+              44700,
+              13500
+            ],
+            "product_id": "framery_one_compact"
+          }
+        },
+        {
+          "tool": "create_phone_booth",
+          "params": {
+            "position_mm": [
+              50500,
+              18500
+            ],
+            "product_id": "framery_one_compact"
+          }
+        },
+        {
+          "tool": "create_phone_booth",
+          "params": {
+            "position_mm": [
+              50500,
+              20000
+            ],
+            "product_id": "framery_one_compact"
+          }
+        },
+        {
+          "tool": "create_phone_booth",
+          "params": {
+            "position_mm": [
+              50500,
+              21500
+            ],
+            "product_id": "framery_one_compact"
+          }
+        },
+        {
+          "tool": "create_phone_booth",
+          "params": {
+            "position_mm": [
+              9500,
+              13000
+            ],
+            "product_id": "framery_one_compact"
+          }
+        },
+        {
+          "tool": "create_phone_booth",
+          "params": {
+            "position_mm": [
+              9500,
+              14500
+            ],
+            "product_id": "framery_one_compact"
+          }
+        },
+        {
+          "tool": "create_phone_booth",
+          "params": {
+            "position_mm": [
+              9500,
+              16000
+            ],
+            "product_id": "framery_one_compact"
+          }
+        },
+        {
+          "tool": "create_collab_zone",
+          "params": {
+            "bbox_mm": [
+              1000,
+              500,
+              26000,
+              9500
+            ],
+            "style": "cafe"
+          }
+        },
+        {
+          "tool": "create_collab_zone",
+          "params": {
+            "bbox_mm": [
+              26500,
+              500,
+              46500,
+              9500
+            ],
+            "style": "townhall"
+          }
+        },
+        {
+          "tool": "create_collab_zone",
+          "params": {
+            "bbox_mm": [
+              47000,
+              500,
+              59000,
+              9500
+            ],
+            "style": "lounge"
+          }
+        },
+        {
+          "tool": "create_collab_zone",
+          "params": {
+            "bbox_mm": [
+              19500,
+              24000,
+              23500,
+              31000
+            ],
+            "style": "huddle_cluster"
+          }
+        },
+        {
+          "tool": "create_collab_zone",
+          "params": {
+            "bbox_mm": [
+              37500,
+              24000,
+              41500,
+              31000
+            ],
+            "style": "huddle_cluster"
+          }
+        },
+        {
+          "tool": "apply_biophilic_zone",
+          "params": {
+            "bbox_mm": [
+              26500,
+              16500,
+              36000,
+              23500
+            ]
+          }
+        },
+        {
+          "tool": "apply_biophilic_zone",
+          "params": {
+            "bbox_mm": [
+              10000,
+              6000,
+              15000,
+              9000
+            ]
+          }
+        },
+        {
+          "tool": "apply_biophilic_zone",
+          "params": {
+            "bbox_mm": [
+              47500,
+              5500,
+              52500,
+              9000
+            ]
+          }
+        },
+        {
+          "tool": "create_partition_wall",
+          "params": {
+            "start_mm": [
+              1000,
+              17000
+            ],
+            "end_mm": [
+              12500,
+              17000
+            ],
+            "kind": "acoustic"
+          }
+        },
+        {
+          "tool": "create_partition_wall",
+          "params": {
+            "start_mm": [
+              12500,
+              17000
+            ],
+            "end_mm": [
+              12500,
+              31000
+            ],
+            "kind": "semi_glazed"
+          }
+        },
+        {
+          "tool": "create_partition_wall",
+          "params": {
+            "start_mm": [
+              48000,
+              17000
+            ],
+            "end_mm": [
+              48000,
+              31000
+            ],
+            "kind": "semi_glazed"
+          }
+        },
+        {
+          "tool": "create_partition_wall",
+          "params": {
+            "start_mm": [
+              0,
+              31000
+            ],
+            "end_mm": [
+              60000,
+              31000
+            ],
+            "kind": "glazed"
+          }
+        },
+        {
+          "tool": "create_partition_wall",
+          "params": {
+            "start_mm": [
+              0,
+              10500
+            ],
+            "end_mm": [
+              17500,
+              10500
+            ],
+            "kind": "acoustic"
+          }
+        },
+        {
+          "tool": "create_partition_wall",
+          "params": {
+            "start_mm": [
+              42500,
+              10500
+            ],
+            "end_mm": [
+              60000,
+              10500
+            ],
+            "kind": "acoustic"
+          }
+        },
+        {
+          "tool": "screenshot",
+          "params": {
+            "view_name": "iso"
+          }
+        }
+      ],
+      "screenshot_paths": [],
+      "adjacency_audit": {
+        "score": 82,
+        "summary": "Strong acoustic zoning overall, but the boardrooms share walls with desks and the focus library sits too close to the café.",
+        "violations": [
+          {
+            "rule_id": "acoustic.open_desks_next_to_boardroom",
+            "severity": "major",
+            "zones": [
+              "workstation_cluster_west_mid (y=25200)",
+              "Boardroom Nord-Ouest"
+            ],
+            "description": "The 22-desk cluster at y=25200 shares its south edge with the 12-pax Boardroom Nord-Ouest without a buffer partition or corridor.",
+            "suggestion": "Insert a 1.8 m circulation or storage wall between the boardroom strip and the desk cluster, or upgrade to an Rw≥45 dB full-height wall.",
+            "source": "WELL v2 Feature S02"
+          },
+          {
+            "rule_id": "acoustic.quiet_room_min_distance_from_hospitality",
+            "severity": "major",
+            "zones": [
+              "Focus F1-F6 library",
+              "collab_zone_cafe"
+            ],
+            "description": "The six focus rooms along the west spine sit roughly 7 m from the café footprint, below the 8 m quiet-to-hospitality buffer.",
+            "suggestion": "Push the focus library one bay north or insert a second acoustic partition between the café and the focus strip.",
+            "source": "Hongisto 2005; WELL Feature S03"
+          },
+          {
+            "rule_id": "acoustic.phone_booths_cluster_must_buffer_open_desks",
+            "severity": "minor",
+            "zones": [
+              "phone_booth_stack_west (x=9500)",
+              "workstation_cluster_west_mid (y=25200)"
+            ],
+            "description": "The three stacked Framery booths at x=9500 open within ~1 m of the west desk cluster aisle, below the 2.5 m buffer.",
+            "suggestion": "Rotate the booth stack against the core wall or add a 1.2 m acoustic screen facing the desk aisle.",
+            "source": "Steelcase WorkSpace Futures 2014"
+          },
+          {
+            "rule_id": "daylight.deep_focus_desks_not_glare_zone",
+            "severity": "minor",
+            "zones": [
+              "workstation_cluster_north (y=32200)"
+            ],
+            "description": "The six north-façade bench clusters start at 700 mm from the glazing, well inside the 4 m no-glare band for screen work.",
+            "suggestion": "Specify automated north-façade shading or shift the first bench row 3 m inboard to protect screens from low-angle glare.",
+            "source": "BREEAM Hea 01"
+          },
+          {
+            "rule_id": "zoning.calm_energy_gradient",
+            "severity": "minor",
+            "zones": [
+              "Focus F1-F6 library",
+              "collab_zone_cafe"
+            ],
+            "description": "Focus library on the south-west corner sits on the same half of the plate as the 380 m² Forum, weakening the calm-to-energy gradient.",
+            "suggestion": "Relocate the focus library to the north-west band behind the workstation clusters to align it with the quiet edge.",
+            "source": "Steelcase Engagement 2016"
+          },
+          {
+            "rule_id": "micro.huddle_door_not_onto_desk_aisle",
+            "severity": "minor",
+            "zones": [
+              "Huddle H1-H8",
+              "workstation_cluster_north"
+            ],
+            "description": "Huddle rooms H1–H8 at y=23500–31000 open directly onto the desk aisles feeding the north workstation clusters without a 1.2 m offset.",
+            "suggestion": "Offset huddle doors onto the central east-west spine or add a 1.2 m alcove before the door swings into the desk aisle.",
+            "source": "Gensler 2022"
+          }
+        ],
+        "recommendations": [
+          "Swap the west focus library and the Boardroom Nord-Ouest pair so deep focus sits against the quiet north edge, not the Forum.",
+          "Add a continuous storage wall along y≈17000 between the boardrooms and the mid-plate desks to secure Rw≥45 dB separation.",
+          "Reorient huddle clusters so their doors face the central spine, freeing the desk aisles from spillover conversations."
+        ]
+      }
+    }
+  ],
+  "verdicts": [
+    {
+      "style": "villageois",
+      "pmr_ok": true,
+      "erp_ok": true,
+      "programme_coverage_ok": true,
+      "issues": [
+        "Workstation cluster 'origin_mm=[32000, 4500], count=17' with row_spacing 1600 at orientation 180° extends eastward and likely overlaps the east core/boardroom zone; spot-check alignment with columns at x=38500/45500/52500 to confirm no bench sits on a column (same concern for the 17-seat cluster at [32000, 35500]).",
+        "No explicit back-of-house zones (MDF/IDF, storage, print, lockers, sanitary block) are declared in the zones list — only collab/biophilic/workstations/meeting/phone/acoustic/glazed. Support program is referenced in the narrative but not materialised; add at minimum one BOH zone near a core before client presentation.",
+        "Continuous collab/café/town hall footprint >500 m² on the central band triggers ERP désenfumage and potential compartmentation (>300 m² open-plan red flag, noted by the variant itself); confirm that the north-south 'rues' at x=14000 and x=48000 act as partitions to subdivide the island, otherwise this becomes a hard ERP issue.",
+        "Phone booths at y=10000 and y=29500 on the x=28500 / x=33500 axis sit very close to the stair/core band (stair 28000–32000, 17500–22500); verify the 1.40 m bypass around the stair is preserved on the north and south approaches."
+      ],
+      "verdict": "approved_with_notes"
+    },
+    {
+      "style": "atelier",
+      "pmr_ok": true,
+      "erp_ok": false,
+      "programme_coverage_ok": true,
+      "issues": [
+        "Workstation cluster at origin (33000, 29500) count=26 with row_spacing 1600 spans x=33000 to ~53800; it crosses columns at x=38500, 45500, 52500 (y=31500) — risk of collision with multiple columns, needs to be split or reseated between gridlines.",
+        "Workstation cluster at (4500, 34500) count=26 spans x=4500 to ~25300 and crosses columns at x=10500, 17500, 24500 on y=38500 row — same collision risk; same applies to the (4500, 29500) and (33000, 34500) clusters. Neighbourhoods need to be broken into sub-rows aligned between column lines.",
+        "Cluster at (47000, 24000) count=26 spans ~20.8 m, overlapping the east elevator core (x 36000–42000, y 17000–23000) and columns at x=52500/59500 on y=24500. Cluster placement is inconsistent with the column grid and core footprint.",
+        "Combined café + townhall + lounge collab band (y=500 to 9500, x=2000 to 59000) forms a continuous ~520 m² open zone exceeding the 300 m² désenfumage threshold — partition strategy or SHEV must be explicit (the variant itself flags this as 'to confirm').",
+        "No back-of-house/support is programmed: MDF/IDF, storage, print, lockers, adapted WC block are absent from the zone list — ERP/PMR programming incomplete.",
+        "Only one internal stair is shown on the floor plate and no second distinct exit is represented in the variant layout; evacuation with ≥ 2 independent paths not demonstrated."
+      ],
+      "verdict": "rejected"
+    },
+    {
+      "style": "hybride_flex",
+      "pmr_ok": true,
+      "erp_ok": false,
+      "programme_coverage_ok": true,
+      "issues": [
+        "Workstation clusters at origin x=1500 with 7000mm bay length likely collide with the column line at x=3500 (columns at y=31500, 38500 fall inside the cluster footprint starting y=32200). Verify clusters on west bay avoid the x=3500 column line.",
+        "Forum along south façade (café + town hall + lounge at y=500→9500, spanning x=1000→59000) is a continuous ~500 m² programmatic island without partitions — exceeds the 300 m² désenfumage threshold per design://erp-safety §6. Plan flags this but no partition/smoke-curtain zone is drawn between café/townhall/lounge; mechanical extraction or compartment break is required.",
+        "Only one stair (x=28000-32000) visible on the floor plan; variant does not demonstrate a second independent evacuation path. With a ~2000 m² plate at ERP W occupancy, two distinct exits are mandatory (CO 35–39). Confirm a second stair/exit is available off-plate.",
+        "No explicit back-of-house (MDF/IDF, storage, print, lockers, sanitary) zones are programmed; plan narrative mentions amenity surface 310 m² but no zone entries are dedicated to technical rooms or sanitary blocks.",
+        "Huddle cluster collab_zone at bbox [19500, 24000, 23500, 31000] overlaps the elevator core at x=18000-24000, y=17000-23000 boundary — verify clearance; the 1.40m PMR bypass around the NW core edge needs checking."
+      ],
+      "verdict": "approved_with_notes"
+    }
+  ],
+  "tokens": {
+    "input": 240422,
+    "output": 25611
+  }
+}
