@@ -32,6 +32,12 @@ from app.surfaces.justify import (
     pdf_path_for,
 )
 from app.surfaces.justify_pptx import pptx_path_for
+from app.surfaces.moodboard import (
+    MoodBoardRequest,
+    MoodBoardResponse,
+    compile_default_surface as compile_moodboard_surface,
+    pdf_path_for as moodboard_pdf_path_for,
+)
 from app.surfaces.testfit import (
     IterateRequest,
     IterateResponse,
@@ -292,6 +298,34 @@ def justify_pptx(pptx_id: str) -> FileResponse:
         path,
         media_type="application/vnd.openxmlformats-officedocument.presentationml.presentation",
         filename=f"design-office-{pptx_id}.pptx",
+    )
+
+
+# ---------------------------------------------------------------------------
+# Surface 3 bis — Mood Board
+# ---------------------------------------------------------------------------
+
+
+@app.post("/api/moodboard/generate", response_model=MoodBoardResponse)
+def moodboard_generate(payload: MoodBoardRequest) -> MoodBoardResponse:
+    if not settings.anthropic_api_key:
+        raise HTTPException(status_code=503, detail="ANTHROPIC_API_KEY is not loaded.")
+    surface = compile_moodboard_surface()
+    try:
+        return surface.run(payload)
+    except ValueError as exc:
+        raise HTTPException(status_code=502, detail=str(exc))
+
+
+@app.get("/api/moodboard/pdf/{pdf_id}")
+def moodboard_pdf(pdf_id: str) -> FileResponse:
+    path = moodboard_pdf_path_for(pdf_id)
+    if path is None:
+        raise HTTPException(status_code=404, detail=f"Mood board PDF {pdf_id} not found.")
+    return FileResponse(
+        path,
+        media_type="application/pdf",
+        filename=f"design-office-moodboard-{pdf_id}.pdf",
     )
 
 

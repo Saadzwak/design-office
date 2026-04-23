@@ -163,6 +163,46 @@ export async function fetchTestFitSample(signal?: AbortSignal): Promise<TestFitR
   return r.json();
 }
 
+// ---------------------------------------------------------------------------
+// Mood board
+// ---------------------------------------------------------------------------
+
+export type MoodBoardClient = {
+  name: string;
+  industry: string;
+  logo_data_url?: string | null;
+  tagline?: string | null;
+};
+
+export type MoodBoardRequest = {
+  client: MoodBoardClient;
+  brief: string;
+  programme_markdown: string;
+  variant: VariantOutput;
+  project_reference?: string;
+};
+
+export type MoodBoardResponse = {
+  pdf_id: string;
+  selection: Record<string, unknown>;
+  tokens: { input: number; output: number };
+  duration_ms: number;
+};
+
+export async function generateMoodBoard(req: MoodBoardRequest): Promise<MoodBoardResponse> {
+  const r = await fetch("/api/moodboard/generate", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(req),
+  });
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+
+export function moodBoardPdfUrl(pdfId: string): string {
+  return `/api/moodboard/pdf/${pdfId}`;
+}
+
 export async function uploadPlanPdf(file: File, useVision: boolean): Promise<FloorPlan> {
   const form = new FormData();
   form.append("file", file);

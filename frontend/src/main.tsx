@@ -8,6 +8,7 @@ import Chat from "./routes/Chat";
 import Export from "./routes/Export";
 import Justify from "./routes/Justify";
 import Landing from "./routes/Landing";
+import MoodBoard from "./routes/MoodBoard";
 import TestFit from "./routes/TestFit";
 import "./styles/globals.css";
 
@@ -18,6 +19,7 @@ const router = createBrowserRouter([
       { path: "/", element: <Landing /> },
       { path: "/brief", element: <Brief /> },
       { path: "/testfit", element: <TestFit /> },
+      { path: "/moodboard", element: <MoodBoard /> },
       { path: "/justify", element: <Justify /> },
       { path: "/export", element: <Export /> },
       { path: "/chat", element: <Chat /> },

@@ -2,15 +2,27 @@ import { NavLink, Outlet } from "react-router-dom";
 
 import ChatDrawer from "./components/chat/ChatDrawer";
 import IntegrationBadge from "./components/ui/IntegrationBadge";
+import ViewModeToggle from "./components/ui/ViewModeToggle";
+import { useProjectState } from "./hooks/useProjectState";
 
-const NAV = [
+const NAV_ENGINEERING = [
   { to: "/brief", label: "Brief" },
   { to: "/testfit", label: "Test Fit" },
+  { to: "/moodboard", label: "Mood Board" },
   { to: "/justify", label: "Justify" },
   { to: "/export", label: "Export" },
 ];
 
+const NAV_CLIENT = [
+  { to: "/brief", label: "Brief" },
+  { to: "/moodboard", label: "Mood Board" },
+  { to: "/testfit", label: "Concept" },
+  { to: "/justify", label: "Story" },
+];
+
 export default function App() {
+  const project = useProjectState();
+  const nav = project.view_mode === "client" ? NAV_CLIENT : NAV_ENGINEERING;
   return (
     <div className="min-h-screen bg-canvas text-ink">
       <header className="sticky top-0 z-20 border-b border-hairline/60 bg-canvas/85 backdrop-blur">
@@ -23,9 +35,9 @@ export default function App() {
             <span className="inline-block h-[7px] w-[7px] translate-y-[-3px] rounded-full bg-forest transition-transform duration-300 ease-out-gentle group-hover:scale-125" />
             <span>Design&nbsp;Office</span>
           </NavLink>
-          <div className="flex items-center gap-10">
-            <nav className="flex items-center gap-6">
-              {NAV.map((item) => (
+          <div className="flex items-center gap-8">
+            <nav className="flex items-center gap-5">
+              {nav.map((item) => (
                 <NavLink
                   key={item.to}
                   to={item.to}
@@ -47,6 +59,7 @@ export default function App() {
                 </NavLink>
               ))}
             </nav>
+            <ViewModeToggle />
             <IntegrationBadge />
           </div>
         </div>
@@ -62,7 +75,8 @@ export default function App() {
             Built with Opus 4.7 · MIT License · Hackathon 2026
           </p>
           <p className="font-mono text-[10px] uppercase tracking-label text-ink-muted">
-            Lumen · 170 FTE · 2 400 m²
+            {project.client.name || "Untitled"} ·{" "}
+            {project.programme.growth_target ?? "—"} FTE horizon
           </p>
         </div>
       </footer>
