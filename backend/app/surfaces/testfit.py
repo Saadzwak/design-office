@@ -14,14 +14,21 @@ from app.agents.orchestrator import Orchestration, SubAgent, SubAgentOutput
 from app.claude_client import ClaudeClient
 from app.mcp.sketchup_client import SketchUpFacade, get_backend
 from app.models import (
+    AcousticTarget,
     AdjacencyAudit,
     AdjacencyViolation,
     FloorPlan,
     ReviewerVerdict,
+    StructuredAdjacencyCheck,
+    StructuredFurniturePiece,
+    StructuredMaterial,
+    StructuredMicroZoningResponse,
+    StructuredZone,
     TestFitResponse,
     VariantMetrics,
     VariantOutput,
     VariantStyle,
+    ZONE_ICON_ALIASES,
 )
 
 BACKEND_ROOT = Path(__file__).resolve().parent.parent
@@ -805,6 +812,232 @@ def run_micro_zoning(
         tokens={"input": sub.input_tokens, "output": sub.output_tokens},
         duration_ms=sub.duration_ms,
     )
+
+
+# ---------------------------------------------------------------------------
+# Structured micro-zoning — iter-18i (frontend drill-down consumes typed JSON)
+# ---------------------------------------------------------------------------
+
+
+def run_micro_zoning_structured(
+    request: MicroZoningRequest,
+    orchestration: Orchestration | None = None,
+) -> StructuredMicroZoningResponse:
+    """Emit the micro-zoning as typed `{zones[]}` instead of markdown.
+
+    Kept as a sibling of `run_micro_zoning` so iter-17 consumers
+    (`selectLatestMicroZoningFor` in the frontend) keep working on the
+    markdown path. The structured endpoint powers the iter-18i
+    frontend drill-down (zone drawer, numbered plan, etc.).
+    """
+
+    orch = orchestration or Orchestration(client=ClaudeClient())
+    catalog_json = (FURNITURE_DIR / "catalog.json").read_text(encoding="utf-8")
+    resources = _load_resources(MICRO_ZONING_RESOURCES + ["adjacency-rules.md"])
+
+    agent = SubAgent(
+        name="MicroZoningStructured",
+        system_prompt=_read(PROMPTS_DIR / "testfit_micro_zoning_structured.md"),
+        user_template=_MICRO_ZONING_USER,
+        # Typed output with 12-14 zones + furniture + materials + acoustic
+        # runs ~12-18 k output tokens. Keep headroom.
+        max_tokens=16000,
+    )
+    context = {
+        "client_name": request.client_name,
+        "client_industry": request.client_industry,
+        "variant_json": request.variant.model_dump_json(),
+        "programme_markdown": request.programme_markdown,
+        "floor_plan_json": request.floor_plan.model_dump_json(),
+        "resources": resources,
+        "catalog_json": catalog_json,
+    }
+    sub = orch.run_subagent(agent, context, tag="testfit.micro_zoning_structured")
+
+    try:
+        payload = json.loads(_strip_json(sub.text))
+        if not isinstance(payload, dict):
+            raise ValueError("payload is not an object")
+    except Exception as exc:  # noqa: BLE001
+        return StructuredMicroZoningResponse(
+            variant_style=request.variant.style,
+            zones=[],
+            markdown=f"Structured micro-zoning parse error : {exc}\nRaw output head :\n{sub.text[:800]}",
+            tokens={"input": sub.input_tokens, "output": sub.output_tokens},
+            duration_ms=sub.duration_ms,
+        )
+
+    zones = _coerce_structured_zones(payload.get("zones"))
+    return StructuredMicroZoningResponse(
+        variant_style=request.variant.style,
+        zones=zones,
+        markdown=str(payload.get("markdown", "")).strip(),
+        tokens={"input": sub.input_tokens, "output": sub.output_tokens},
+        duration_ms=sub.duration_ms,
+    )
+
+
+def _coerce_structured_zones(raw: object) -> list[StructuredZone]:
+    """Defensive parser : clean the LLM's JSON before Pydantic strictness
+    bites. Handles missing fields, junk icon names, out-of-range statuses,
+    stringy surface_m2, and caps the zone count at 14.
+    """
+
+    if not isinstance(raw, list):
+        return []
+    zones: list[StructuredZone] = []
+    seen_n: set[int] = set()
+    for idx, item in enumerate(raw[:14], start=1):
+        if not isinstance(item, dict):
+            continue
+        try:
+            n_raw = item.get("n", idx)
+            try:
+                n = int(n_raw)
+            except (TypeError, ValueError):
+                n = idx
+            if n in seen_n or n < 1:
+                n = idx
+            seen_n.add(n)
+
+            surface_raw = item.get("surface_m2", 0)
+            try:
+                surface = max(0, int(float(surface_raw)))
+            except (TypeError, ValueError):
+                surface = 0
+
+            icon = str(item.get("icon", "file-text")).strip().lower()
+            if icon not in ZONE_ICON_ALIASES:
+                icon = "file-text"
+
+            status_raw = str(item.get("status", "ok")).strip().lower()
+            status = status_raw if status_raw in {"ok", "warn", "error"} else "ok"
+
+            furniture = _coerce_furniture(item.get("furniture"))
+            materials = _coerce_materials(item.get("materials"))
+            acoustic = _coerce_acoustic(item.get("acoustic"))
+            adjacency = _coerce_structured_adjacency(item.get("adjacency"))
+
+            zones.append(
+                StructuredZone(
+                    n=n,
+                    name=str(item.get("name", f"Zone {n}")).strip() or f"Zone {n}",
+                    surface_m2=surface,
+                    icon=icon,
+                    status=status,  # type: ignore[arg-type]
+                    furniture=furniture,
+                    materials=materials,
+                    acoustic=acoustic,
+                    adjacency=adjacency,
+                    narrative=str(item.get("narrative", "")).strip(),
+                )
+            )
+        except Exception:  # noqa: BLE001
+            continue
+
+    # Re-number contiguously 1..len in case the agent skipped numbers.
+    for i, z in enumerate(zones, start=1):
+        if z.n != i:
+            zones[i - 1] = z.model_copy(update={"n": i})
+    return zones
+
+
+def _coerce_furniture(raw: object) -> list[StructuredFurniturePiece]:
+    if not isinstance(raw, list):
+        return []
+    out: list[StructuredFurniturePiece] = []
+    for item in raw[:8]:
+        if not isinstance(item, dict):
+            continue
+        try:
+            qty = int(item.get("quantity", 1) or 1)
+        except (TypeError, ValueError):
+            qty = 1
+        name = str(item.get("name", "")).strip()
+        if not name:
+            continue
+        cat_raw = item.get("catalog_id")
+        catalog_id = (
+            str(cat_raw).strip() if isinstance(cat_raw, str) and cat_raw.strip() else None
+        )
+        out.append(
+            StructuredFurniturePiece(
+                brand=str(item.get("brand", "")).strip(),
+                name=name,
+                quantity=max(1, qty),
+                dimensions_mm=str(item.get("dimensions_mm", "")).strip(),
+                catalog_id=catalog_id,
+            )
+        )
+    return out
+
+
+def _coerce_materials(raw: object) -> list[StructuredMaterial]:
+    if not isinstance(raw, list):
+        return []
+    valid_surfaces = {"floor", "walls", "ceiling", "joinery", "textile", "other"}
+    out: list[StructuredMaterial] = []
+    for item in raw[:6]:
+        if not isinstance(item, dict):
+            continue
+        name = str(item.get("name", "")).strip()
+        if not name:
+            continue
+        surface = str(item.get("surface", "other")).strip().lower()
+        if surface not in valid_surfaces:
+            surface = "other"
+        out.append(
+            StructuredMaterial(
+                surface=surface,  # type: ignore[arg-type]
+                brand=str(item.get("brand", "")).strip(),
+                name=name,
+                note=str(item.get("note", "")).strip(),
+            )
+        )
+    return out
+
+
+def _coerce_acoustic(raw: object) -> AcousticTarget | None:
+    if not isinstance(raw, dict):
+        return None
+
+    def _to_int(v: object) -> int | None:
+        try:
+            return int(float(v))  # type: ignore[arg-type]
+        except (TypeError, ValueError):
+            return None
+
+    def _to_float(v: object) -> float | None:
+        try:
+            return float(v)  # type: ignore[arg-type]
+        except (TypeError, ValueError):
+            return None
+
+    rw = _to_int(raw.get("rw_target_db"))
+    dnt = _to_int(raw.get("dnt_a_target_db") or raw.get("dnt_target_db"))
+    tr60 = _to_float(raw.get("tr60_target_s"))
+    if rw is None and dnt is None and tr60 is None:
+        return None
+    return AcousticTarget(
+        rw_target_db=rw,
+        dnt_a_target_db=dnt,
+        tr60_target_s=tr60,
+        source=str(raw.get("source", "")).strip(),
+    )
+
+
+def _coerce_structured_adjacency(raw: object) -> StructuredAdjacencyCheck:
+    if not isinstance(raw, dict):
+        return StructuredAdjacencyCheck()
+    ok = bool(raw.get("ok", True))
+    note = str(raw.get("note", "")).strip()
+    rule_ids_raw = raw.get("rule_ids") or []
+    rule_ids = (
+        [str(r).strip() for r in rule_ids_raw if isinstance(r, str) and r.strip()]
+        if isinstance(rule_ids_raw, list)
+        else []
+    )
+    return StructuredAdjacencyCheck(ok=ok, note=note, rule_ids=rule_ids[:3])
 
 
 def catalog_preview() -> dict:

@@ -59,6 +59,7 @@ from app.surfaces.testfit import (
     catalog_preview,
     iterate_variant,
     run_micro_zoning,
+    run_micro_zoning_structured,
     sketchup_shot_path_for,
 )
 from app.surfaces.testfit import compile_default_surface as compile_testfit_surface
@@ -346,6 +347,27 @@ def testfit_microzoning(payload: MicroZoningRequest) -> MicroZoningResponse:
             detail="ANTHROPIC_API_KEY is not loaded.",
         )
     return run_micro_zoning(payload)
+
+
+@app.post(
+    "/api/testfit/microzoning/structured",
+    response_model=None,  # typed via Pydantic return, not route-level
+)
+def testfit_microzoning_structured(payload: MicroZoningRequest):
+    """Iter-18i : structured micro-zoning for the frontend drill-down.
+
+    Returns `{ variant_style, zones[], markdown, tokens, duration_ms }`
+    where every zone carries `{ n, name, surface_m2, icon, status,
+    furniture[], materials[], acoustic, adjacency }`. Consumed by the
+    MicroView drawer in /testfit?tab=micro.
+    """
+
+    if not settings.anthropic_api_key:
+        raise HTTPException(
+            status_code=503,
+            detail="ANTHROPIC_API_KEY is not loaded.",
+        )
+    return run_micro_zoning_structured(payload)
 
 
 # ---------------------------------------------------------------------------

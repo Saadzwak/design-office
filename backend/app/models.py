@@ -172,6 +172,111 @@ class VariantOutput(BaseModel):
     adjacency_audit: AdjacencyAudit | None = None
 
 
+# ──────────────────────────── Structured micro-zoning ──────────────────────
+# iter-18i : the Claude Design frontend drill-down consumes a typed
+# { zones: [{ n, name, surface_m2, icon, status, furniture[],
+# materials[], acoustic, adjacency }] } payload. Adding a structured
+# output alongside the existing markdown-based micro-zoning keeps the
+# current consumers (Brief + regenerations history) working unchanged.
+
+
+class StructuredFurniturePiece(BaseModel):
+    """A furniture entry for a structured micro-zoning zone."""
+
+    brand: str = ""
+    name: str
+    quantity: int = 1
+    dimensions_mm: str = ""  # e.g. "160 × 80 cm" (free-form, rendered as-is)
+    # Optional catalog link — when the agent cites a SKU from our furniture
+    # catalog JSON it emits the id here so the UI can deep-link later.
+    catalog_id: str | None = None
+
+
+class StructuredMaterial(BaseModel):
+    """A finish / material callout for a zone (floor / wall / ceiling etc.)."""
+
+    surface: Literal["floor", "walls", "ceiling", "joinery", "textile", "other"] = "other"
+    brand: str = ""
+    name: str
+    note: str = ""
+
+
+class AcousticTarget(BaseModel):
+    """Acoustic performance target for a zone."""
+
+    rw_target_db: int | None = Field(
+        default=None,
+        description="Between-room airborne sound insulation index (dB).",
+    )
+    dnt_a_target_db: int | None = Field(
+        default=None,
+        description="Standardised level difference target (dB).",
+    )
+    tr60_target_s: float | None = Field(
+        default=None,
+        description="Reverberation time target in seconds (0.4 typical open-plan).",
+    )
+    source: str = ""  # e.g. "NF S 31-080 · performant"
+
+
+class StructuredAdjacencyCheck(BaseModel):
+    """Per-zone adjacency verdict for the micro-zoning drill-down."""
+
+    ok: bool = True
+    note: str = ""
+    # Optional rule_id(s) from design://adjacency-rules that support the note.
+    rule_ids: list[str] = Field(default_factory=list)
+
+
+ZONE_ICON_ALIASES = {
+    "presentation",  # boardroom, training room
+    "layout-grid",   # open work
+    "phone",         # phone booths
+    "users",         # project room / collab
+    "stairs",        # social stair
+    "coffee",        # café, kitchenette
+    "armchair",      # client lounge, informal
+    "heart",         # wellness, mothers' room
+    "leaf",          # biophilic
+    "archive",       # lockers & post
+    "sun",           # terrace
+    "file-text",     # library / reading
+    "mic",           # recording / studio
+    "compass",       # reception
+    "feather",       # creative / editorial
+}
+
+
+class StructuredZone(BaseModel):
+    """A single drill-down zone used by the Micro view in the frontend."""
+
+    n: int = Field(..., ge=1, description="1-indexed zone number; matches the 2D plan.")
+    name: str  # e.g. "Boardroom", "Entry café"
+    surface_m2: int = Field(..., ge=0)
+    icon: str = Field(
+        "file-text",
+        description="Lucide/icon alias — frontend maps to a lucide-react symbol.",
+    )
+    status: Literal["ok", "warn", "error"] = "ok"
+    furniture: list[StructuredFurniturePiece] = Field(default_factory=list)
+    materials: list[StructuredMaterial] = Field(default_factory=list)
+    acoustic: AcousticTarget | None = None
+    adjacency: StructuredAdjacencyCheck = Field(
+        default_factory=StructuredAdjacencyCheck
+    )
+    narrative: str = ""  # one-paragraph description for the drawer
+
+
+class StructuredMicroZoningResponse(BaseModel):
+    """Typed response of POST /api/testfit/microzoning/structured."""
+
+    variant_style: VariantStyle
+    zones: list[StructuredZone] = Field(default_factory=list)
+    markdown: str = ""  # human-readable narrative, reuses iter-17 micro markdown
+    tokens: dict[str, int] = Field(default_factory=dict)
+    duration_ms: int = 0
+
+
 class ReviewerVerdict(BaseModel):
     style: VariantStyle
     pmr_ok: bool
