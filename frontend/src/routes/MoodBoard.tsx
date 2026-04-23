@@ -54,10 +54,33 @@ type Selection = {
     quantity_hint?: string;
     dimensions?: string;
   }>;
-  planting?: Array<{ common_name?: string; latin?: string; strategy?: string }> | string[];
+  // `planting` may ship as `{strategy, species[]}` (live Lumen fixture)
+  // or as a flat array of objects / strings (older fixtures). Handle both.
+  planting?:
+    | {
+        strategy?: string;
+        species?: Array<
+          | string
+          | {
+              name?: string;
+              common_name?: string;
+              latin?: string;
+              light?: string;
+              care?: string;
+              strategy?: string;
+            }
+        >;
+      }
+    | Array<string | { common_name?: string; latin?: string; strategy?: string }>
+    | string[];
   light?: {
+    /** Free-form strategy paragraph (live Lumen uses this). */
+    strategy?: string;
+    /** "3000 K" — may be embedded in strategy instead. */
     temperature_kelvin?: string;
-    fixtures?: Array<{ brand?: string; name?: string; usage?: string }> | string[];
+    fixtures?:
+      | Array<{ brand?: string; name?: string; usage?: string }>
+      | string[];
   };
   sources?: Array<string | { label?: string }>;
 };
@@ -414,15 +437,64 @@ function summariseTopic(k: DrillKey, s: Selection | null): string {
       return `${n} pieces · ${[...brands].slice(0, 3).join(" · ") || "signature"}`;
     }
     case "planting": {
-      const list = s.planting ?? [];
-      return `${list.length} species · biophilic strategy`;
+      const count = countPlantings(s.planting);
+      if (count === 0) return "biophilic strategy";
+      return `${count} species · biophilic strategy`;
     }
     case "light": {
-      return `${s.light?.temperature_kelvin ?? "—"} · fixtures & strategy`;
+      const light = s.light ?? {};
+      const kelvin =
+        light.temperature_kelvin ||
+        (light.strategy?.match(/(\d{3,4}\s?K)/)?.[1] ?? "");
+      const fixtureCount = Array.isArray(light.fixtures) ? light.fixtures.length : 0;
+      if (kelvin && fixtureCount > 0) return `${kelvin} · ${fixtureCount} fixtures`;
+      if (kelvin) return `${kelvin} · colour temperature strategy`;
+      if (fixtureCount) return `${fixtureCount} fixtures · kelvin strategy`;
+      return "colour temperature & fixture strategy";
     }
     case "sources":
       return `${s.sources?.length ?? 0} citations · MCP + adjacency rules`;
   }
+}
+
+function countPlantings(p: Selection["planting"]): number {
+  if (!p) return 0;
+  if (Array.isArray(p)) return p.length;
+  if (typeof p === "object" && Array.isArray(p.species)) return p.species.length;
+  return 0;
+}
+
+function plantingEntries(
+  p: Selection["planting"],
+): Array<{ label: string; strategy?: string }> {
+  if (!p) return [];
+  if (Array.isArray(p)) {
+    return p.map((item) =>
+      typeof item === "string"
+        ? { label: item }
+        : {
+            label:
+              (item.common_name ?? "") +
+              (item.latin ? ` — ${item.latin}` : "") ||
+              item.common_name ||
+              "—",
+            strategy: item.strategy,
+          },
+    );
+  }
+  const list = Array.isArray(p.species) ? p.species : [];
+  return list.map((item) =>
+    typeof item === "string"
+      ? { label: item }
+      : {
+          label:
+            (item.common_name ?? item.name ?? "") +
+              ((item as { latin?: string }).latin
+                ? ` — ${(item as { latin?: string }).latin}`
+                : "") || "—",
+          strategy: (item as { strategy?: string }).strategy,
+        },
+  );
 }
 
 function isLightColour(hex: string): boolean {
@@ -554,17 +626,30 @@ function FurniturePanel({ selection }: { selection: Selection | null }) {
 }
 
 function PlantingPanel({ selection }: { selection: Selection | null }) {
-  const items = selection?.planting ?? [];
+  const items = plantingEntries(selection?.planting);
+  const strategy =
+    selection?.planting && !Array.isArray(selection.planting)
+      ? selection.planting.strategy
+      : undefined;
   return (
-    <div className="flex flex-col gap-2.5">
-      {items.map((p, i) => {
-        const label =
-          typeof p === "string"
-            ? p
-            : `${p.common_name ?? ""}${p.latin ? ` — ${p.latin}` : ""}`;
-        return (
+    <div className="flex flex-col gap-3">
+      {strategy && (
+        <p
+          className="m-0 font-display"
+          style={{
+            fontSize: 16,
+            color: "var(--mist-700)",
+            lineHeight: 1.5,
+            fontVariationSettings: '"opsz" 72, "wght" 380, "SOFT" 100',
+          }}
+        >
+          {strategy}
+        </p>
+      )}
+      <div className="flex flex-col gap-2.5">
+        {items.map((p, i) => (
           <div
-            key={i}
+            key={`${p.label}-${i}`}
             className="rounded p-3.5 font-display italic"
             style={{
               background: "rgba(107, 143, 127, 0.12)",
@@ -573,10 +658,15 @@ function PlantingPanel({ selection }: { selection: Selection | null }) {
               fontVariationSettings: '"opsz" 72, "wght" 380, "SOFT" 100',
             }}
           >
-            {label}
+            <div>{p.label || "—"}</div>
+            {p.strategy && (
+              <div className="mt-1 text-[12px] font-sans not-italic text-mist-600">
+                {p.strategy}
+              </div>
+            )}
           </div>
-        );
-      })}
+        ))}
+      </div>
     </div>
   );
 }
@@ -584,6 +674,10 @@ function PlantingPanel({ selection }: { selection: Selection | null }) {
 function LightPanel({ selection }: { selection: Selection | null }) {
   const light = selection?.light ?? {};
   const fixtures = Array.isArray(light.fixtures) ? light.fixtures : [];
+  const kelvin =
+    light.temperature_kelvin ||
+    light.strategy?.match(/(\d{3,4}\s?K)/)?.[1] ||
+    "—";
   return (
     <div>
       <div className="mono mb-1.5 text-mist-500">COLOUR TEMPERATURE</div>
@@ -594,18 +688,35 @@ function LightPanel({ selection }: { selection: Selection | null }) {
           fontVariationSettings: '"opsz" 144, "wght" 480, "SOFT" 100',
         }}
       >
-        {light.temperature_kelvin ?? "—"}
+        {kelvin}
       </div>
-      <Eyebrow style={{ marginBottom: 10, marginTop: 24 }}>FIXTURES</Eyebrow>
-      <ul className="pl-4 leading-loose">
-        {fixtures.map((f, i) => (
-          <li key={i} className="text-[14px]">
-            {typeof f === "string"
-              ? f
-              : `${f.name ?? ""}${f.brand ? ` (${f.brand})` : ""}${f.usage ? ` — ${f.usage}` : ""}`}
-          </li>
-        ))}
-      </ul>
+      {light.strategy && (
+        <p
+          className="mt-3 font-display"
+          style={{
+            fontSize: 16,
+            color: "var(--mist-700)",
+            lineHeight: 1.55,
+            fontVariationSettings: '"opsz" 72, "wght" 380, "SOFT" 100',
+          }}
+        >
+          {light.strategy}
+        </p>
+      )}
+      {fixtures.length > 0 && (
+        <>
+          <Eyebrow style={{ marginBottom: 10, marginTop: 24 }}>FIXTURES</Eyebrow>
+          <ul className="pl-4 leading-loose">
+            {fixtures.map((f, i) => (
+              <li key={i} className="text-[14px]">
+                {typeof f === "string"
+                  ? f
+                  : `${f.name ?? ""}${f.brand ? ` (${f.brand})` : ""}${f.usage ? ` — ${f.usage}` : ""}`}
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
     </div>
   );
 }

@@ -1,3 +1,4 @@
+import * as React from "react";
 import { useEffect, useMemo, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { useNavigate } from "react-router-dom";
@@ -19,14 +20,22 @@ import { useProjectState } from "../hooks/useProjectState";
 import {
   fetchBriefManifest,
   synthesizeBrief,
+  uploadPlanPdf,
   type BriefManifest,
   type BriefResponse,
 } from "../lib/api";
-import { INDUSTRY_LABEL, setBrief, setClient, setProgramme } from "../lib/projectState";
+import {
+  INDUSTRY_LABEL,
+  setBrief,
+  setClient,
+  setFloorPlan,
+  setProgramme,
+} from "../lib/projectState";
 import {
   parseProgrammeSections,
   type ProgrammeSection,
 } from "../lib/adapters/programmeSections";
+import { toast } from "../components/ui/Toast";
 
 /**
  * Brief — Claude Design bundle parity (iter-18g).
@@ -336,18 +345,8 @@ export default function Brief() {
         <aside>
           <Eyebrow style={{ marginBottom: 14 }}>ASSETS</Eyebrow>
           <div className="flex flex-col gap-3.5">
-            <DropPlaceholder
-              icon="upload"
-              title="DROP CLIENT LOGO"
-              hint="OPTIONAL"
-              height={120}
-            />
-            <DropPlaceholder
-              icon="file-text"
-              title="DROP FLOOR PLAN PDF"
-              hint="GIVES AGENTS BETTER SPATIAL CONSTRAINTS"
-              height={160}
-            />
+            <AssetLogoDrop />
+            <AssetPlanDrop />
             <div
               className="rounded-lg border border-mist-200 p-4"
               style={{ background: "var(--canvas-alt)" }}
@@ -387,38 +386,205 @@ export default function Brief() {
   );
 }
 
-function DropPlaceholder({
-  icon,
-  title,
-  hint,
-  height,
-}: {
-  icon: string;
-  title: string;
-  hint: string;
-  height: number;
-}) {
-  return (
-    <div
-      className="placeholder-img"
-      style={{
-        height,
-        border: "1px dashed var(--mist-300)",
-        background: "transparent",
-        color: "var(--mist-500)",
-      }}
-    >
-      <div className="text-center">
-        <Icon name={icon} size={16} style={{ marginBottom: 6 }} />
-        <div>{title}</div>
-        <div
-          className="mt-0.5 text-[9px] text-mist-400"
-          style={{ maxWidth: 180 }}
+function AssetLogoDrop() {
+  const project = useProjectState();
+  const fileRef = React.useRef<HTMLInputElement | null>(null);
+  const logo = project.client.logo_data_url;
+
+  const onPick = () => fileRef.current?.click();
+  const onFile = (f: File) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        setClient({ logo_data_url: reader.result });
+        toast("Client logo attached");
+      }
+    };
+    reader.readAsDataURL(f);
+  };
+
+  if (logo) {
+    return (
+      <div
+        className="flex items-center gap-3.5 rounded-lg border border-mist-200 p-3.5"
+        style={{ background: "var(--canvas-alt)" }}
+      >
+        <img
+          src={logo}
+          alt="Client logo"
+          className="h-14 w-14 rounded-md border border-mist-200 bg-raised object-contain p-1.5"
+        />
+        <div className="flex-1 text-[13px] text-ink">
+          <div className="font-medium">{project.client.name || "Client"}</div>
+          <div className="mono text-[10px] uppercase tracking-label text-mist-500">
+            LOGO ATTACHED
+          </div>
+        </div>
+        <button
+          className="btn-minimal"
+          onClick={() => {
+            setClient({ logo_data_url: null });
+            toast("Logo removed", "info");
+          }}
         >
-          {hint}
+          <Icon name="x" size={12} /> Remove
+        </button>
+      </div>
+    );
+  }
+  return (
+    <>
+      <button
+        type="button"
+        onClick={onPick}
+        className="placeholder-img w-full text-center transition-colors hover:border-forest"
+        style={{
+          height: 120,
+          border: "1px dashed var(--mist-300)",
+          background: "transparent",
+          color: "var(--mist-500)",
+          cursor: "pointer",
+        }}
+      >
+        <div className="text-center">
+          <Icon name="upload" size={16} style={{ marginBottom: 6 }} />
+          <div>DROP CLIENT LOGO</div>
+          <div className="mt-0.5 text-[9px] text-mist-400">OPTIONAL</div>
+        </div>
+      </button>
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/png,image/jpeg,image/svg+xml"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) onFile(f);
+          e.target.value = "";
+        }}
+      />
+    </>
+  );
+}
+
+function AssetPlanDrop() {
+  const project = useProjectState();
+  const fileRef = React.useRef<HTMLInputElement | null>(null);
+  const [parsing, setParsing] = React.useState<null | { name: string }>(null);
+  const [errorMsg, setErrorMsg] = React.useState("");
+  const plan = project.floor_plan;
+
+  const onPick = () => fileRef.current?.click();
+  const onFile = async (f: File) => {
+    setParsing({ name: f.name });
+    setErrorMsg("");
+    try {
+      const parsed = await uploadPlanPdf(f, false);
+      setFloorPlan(parsed);
+      toast("Floor plan parsed");
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : String(err));
+      toast("Plan parsing failed", "error");
+    } finally {
+      setParsing(null);
+    }
+  };
+
+  if (parsing) {
+    return (
+      <div
+        className="flex items-center gap-3 rounded-lg border border-dashed border-mist-300 p-4"
+        style={{ background: "var(--canvas-alt)" }}
+      >
+        <span
+          className="inline-block h-2 w-2 animate-[dot-pulse_1.1s_var(--ease)_infinite] rounded-full"
+          style={{ background: "var(--forest)" }}
+        />
+        <div className="text-[13px] text-mist-700">
+          Parsing <span className="mono text-mist-500">{parsing.name}</span>…
         </div>
       </div>
-    </div>
+    );
+  }
+
+  if (plan) {
+    const cols = plan.columns.length;
+    const cores = plan.cores.length;
+    return (
+      <div
+        className="flex items-start gap-3.5 rounded-lg border border-mist-200 p-3.5"
+        style={{ background: "var(--canvas-alt)" }}
+      >
+        <div
+          className="flex h-10 w-10 items-center justify-center rounded-md"
+          style={{
+            background: "rgba(107, 143, 127, 0.16)",
+            color: "var(--mint)",
+          }}
+        >
+          <Icon name="shield-check" size={16} />
+        </div>
+        <div className="flex-1 text-[13px] text-ink">
+          <div className="font-medium">
+            {plan.name ?? "Floor plan"}
+          </div>
+          <div className="text-mist-600">
+            {plan.envelope.points.length} pts · {cols} columns · {cores} cores
+          </div>
+        </div>
+        <button
+          className="btn-minimal"
+          onClick={() => {
+            setFloorPlan(null);
+            toast("Floor plan cleared", "info");
+          }}
+        >
+          <Icon name="x" size={12} /> Clear
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={onPick}
+        className="placeholder-img w-full text-center transition-colors hover:border-forest"
+        style={{
+          height: 160,
+          border: "1px dashed var(--mist-300)",
+          background: "transparent",
+          color: "var(--mist-500)",
+          cursor: "pointer",
+        }}
+      >
+        <div className="text-center">
+          <Icon name="file-text" size={16} style={{ marginBottom: 6 }} />
+          <div>DROP FLOOR PLAN PDF</div>
+          <div
+            className="mt-0.5 text-[9px] text-mist-400"
+            style={{ maxWidth: 180, margin: "2px auto 0" }}
+          >
+            GIVES AGENTS BETTER SPATIAL CONSTRAINTS
+          </div>
+          {errorMsg && (
+            <div className="mt-2 text-[10px] text-clay">{errorMsg}</div>
+          )}
+        </div>
+      </button>
+      <input
+        ref={fileRef}
+        type="file"
+        accept="application/pdf"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) onFile(f);
+          e.target.value = "";
+        }}
+      />
+    </>
   );
 }
 
