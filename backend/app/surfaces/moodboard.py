@@ -300,28 +300,43 @@ def _render_moodboard_pdf(
     palette_list = selection.get("atmosphere", {}).get("palette", [])
     if palette_list:
         hero_hex = palette_list[0].get("hex", "#2F4A3F")
-        c.setFillColor(HexColor(hero_hex))
     else:
-        c.setFillColor(FOREST)
+        hero_hex = "#2F4A3F"
+    c.setFillColor(HexColor(hero_hex))
     c.rect(atm_left, atm_bottom, col_w, row1_h, fill=1, stroke=0)
-    # Overlay ivory text
-    c.setFillColor(CANVAS_BG)
+    # Pick the overlay text colour so it reads on the hero fill. Use
+    # relative luminance (WCAG) — a dark hero (Chambers green, Atelier ink)
+    # takes ivory text; a light hero (Linen canvas, Parchment) takes ink
+    # text. Without this the Lumen mood board had invisible ivory-on-ivory
+    # text in the ATMOSPHERE block.
+    overlay_text_color = _contrast_overlay(hero_hex, on_dark=CANVAS_BG, on_light=INK)
+    overlay_muted_color = _contrast_overlay(hero_hex, on_dark=HAIRLINE, on_light=INK_SOFT)
+    c.setFillColor(overlay_text_color)
     c.setFont("Helvetica-Bold", 14)
     c.drawString(atm_left + 8 * mm, atm_top - 12 * mm, "ATMOSPHERE")
-    # Put the hero image theme as a decorative caption
+    # Put the hero image theme as a wrapped decorative caption (was a
+    # 60-char hard-truncation that cut mid-word).
     hero_theme = selection.get("atmosphere", {}).get("hero_image_theme", "")
     if hero_theme:
         c.setFont("Helvetica-Oblique", 10)
-        c.drawString(atm_left + 8 * mm, atm_top - 22 * mm, str(hero_theme)[:60])
-    # Industry note bottom-left
+        _wrap_text(
+            c,
+            str(hero_theme),
+            atm_left + 8 * mm,
+            atm_top - 22 * mm,
+            col_w - 16 * mm,
+            leading=13,
+        )
+    # Industry note, anchored to the bottom of the hero block.
     industry_note = selection.get("header", {}).get("industry_note", "")
     if industry_note:
+        c.setFillColor(overlay_muted_color)
         c.setFont("Helvetica", 8)
         _wrap_text(
             c,
-            str(industry_note)[:300],
+            str(industry_note)[:320],
             atm_left + 8 * mm,
-            atm_bottom + 12 * mm,
+            atm_bottom + 18 * mm,
             col_w - 16 * mm,
             leading=10,
         )
@@ -458,6 +473,32 @@ def _draw_section_title(
     c.drawString(x, y + 2, title)
     c.setLineWidth(0.4)
     c.line(x, y - 2, x + w, y - 2)
+
+
+def _contrast_overlay(hex_color: str, *, on_dark: Any, on_light: Any) -> Any:
+    """Pick an overlay colour that reads on top of `hex_color`.
+
+    Uses WCAG relative luminance — the same formula every contrast checker
+    uses. Returns `on_dark` (a light ivory) for dark backgrounds and
+    `on_light` (a dark ink) for light backgrounds. Threshold 0.5 matches
+    the conventional "dark mode" / "light mode" split.
+    """
+
+    s = hex_color.lstrip("#")
+    if len(s) != 6:
+        return on_dark
+    try:
+        r = int(s[0:2], 16) / 255.0
+        g = int(s[2:4], 16) / 255.0
+        b = int(s[4:6], 16) / 255.0
+    except ValueError:
+        return on_dark
+
+    def _linear(ch: float) -> float:
+        return ch / 12.92 if ch <= 0.03928 else ((ch + 0.055) / 1.055) ** 2.4
+
+    luminance = 0.2126 * _linear(r) + 0.7152 * _linear(g) + 0.0722 * _linear(b)
+    return on_dark if luminance < 0.5 else on_light
 
 
 def _wrap_text(

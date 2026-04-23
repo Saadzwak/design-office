@@ -1,0 +1,240 @@
+{
+  "header": {
+    "tagline": "A discreet enfilade of chambers — where light is filtered, conversations stay, and every material earns its patina.",
+    "industry_note": "Law-firm profile — closed-office ratio high (partners private, associates 2-to-a-room), dark green + leather + brass palette, heavy acoustic separation DnT,A ≥ 40 dB, client-facing enfilade isolated from work zones."
+  },
+  "atmosphere": {
+    "hero_image_theme": "City-of-London law firm interior — dark panelled library, deep green walls, brass reading lamps, Chesterfield-adjacent but contemporary, Douglas fir floor, heavy curtains filtering Gracechurch daylight",
+    "palette": [
+      {
+        "name": "Chambers green",
+        "hex": "#2F4A3F",
+        "role": "hero"
+      },
+      {
+        "name": "Walnut leather",
+        "hex": "#6B4A2E",
+        "role": "hero"
+      },
+      {
+        "name": "Parchment",
+        "hex": "#EDE6D6",
+        "role": "secondary"
+      },
+      {
+        "name": "Ink graphite",
+        "hex": "#2A2926",
+        "role": "secondary"
+      },
+      {
+        "name": "Aged brass",
+        "hex": "#B08D57",
+        "role": "accent"
+      }
+    ]
+  },
+  "materials": [
+    {
+      "category": "floor",
+      "name": "Dinesen Douglas plank, natural oiled",
+      "brand": "Dinesen",
+      "product_ref": "Douglas plank, solid, up to 15 m",
+      "application": "Reception hall, partner corridor, library",
+      "sustainability": "FSC, natural oil finish, low VOC",
+      "swatch_hex": "#C9A678"
+    },
+    {
+      "category": "floor",
+      "name": "Interface Composure — Deep Sky",
+      "brand": "Interface",
+      "product_ref": "Composure 500×500 carpet tile",
+      "application": "Associate offices, paralegal neighbourhoods, boardroom floors",
+      "sustainability": "Carbon-neutral manufacture, 100% recyclable",
+      "swatch_hex": "#3E4A53"
+    },
+    {
+      "category": "wall — library / partner offices",
+      "name": "Farrow & Ball — Card Room Green, eggshell",
+      "brand": "Farrow & Ball",
+      "product_ref": "Card Room Green No.79",
+      "application": "Library, named-partner offices, client lounges",
+      "sustainability": "Low-VOC water-based eggshell",
+      "swatch_hex": "#6B7A5E"
+    },
+    {
+      "category": "wall — reception stone",
+      "name": "Mutina Margarita terrazzo",
+      "brand": "Mutina",
+      "product_ref": "Margarita porcelain 1200×600",
+      "application": "Reception desk front and client-lift lobby",
+      "sustainability": "Porcelain, EPD available",
+      "swatch_hex": "#D6CBB3"
+    },
+    {
+      "category": "wall — millwork",
+      "name": "Gustafs micro-perforated walnut panels",
+      "brand": "Gustafs",
+      "product_ref": "Gustafs Panel System, walnut, acoustic",
+      "application": "Library bookwalls, boardroom panelling, deposition rooms",
+      "sustainability": "FSC walnut veneer, NRC ≈ 0.85",
+      "swatch_hex": "#4A2E1F"
+    },
+    {
+      "category": "glazing",
+      "name": "Lindner Life 80 double-glazed acoustic partition",
+      "brand": "Lindner",
+      "product_ref": "Life 80, double-glazed 45 dB Rw",
+      "application": "Associate 2-person offices and meeting rooms — confidentiality",
+      "sustainability": "Demountable, reusable frame",
+      "swatch_hex": "#B8BEC2"
+    },
+    {
+      "category": "upholstery",
+      "name": "Maharam Mode",
+      "brand": "Maharam",
+      "product_ref": "Mode wool — Colour 006 Concrete / 026 Tobacco",
+      "application": "Client-lounge armchairs, boardroom seating",
+      "sustainability": "Wool, Woolmark certified",
+      "swatch_hex": "#8A6B4E"
+    },
+    {
+      "category": "curtains",
+      "name": "Création Baumann Hush acoustic curtain",
+      "brand": "Création Baumann",
+      "product_ref": "Hush, heavyweight",
+      "application": "Boardroom and deposition room — acoustic + visual seclusion on Gracechurch façade",
+      "sustainability": "NRC ≈ 0.70, Oeko-Tex",
+      "swatch_hex": "#3A4138"
+    }
+  ],
+  "furniture": [
+    {
+      "category": "partner task chair",
+      "product_id": "millerknoll_embody",
+      "brand": "Herman Miller",
+      "model": "Embody",
+      "application": "Named-partner offices — deep-reading 3–6 h blocks",
+      "dimensions_mm": {
+        "w": 740,
+        "d": 730,
+        "h": 520
+      }
+    },
+    {
+      "category": "associate task chair",
+      "product_id": "millerknoll_aeron_b",
+      "brand": "Herman Miller",
+      "model": "Aeron size B",
+      "application": "Shared associate offices and paralegal desks",
+      "dimensions_mm": {
+        "w": 686,
+        "d": 660,
+        "h": 520
+      }
+    },
+    {
+      "category": "boardroom table",
+      "product_id": "vitra_eames_segmented_4000",
+      "brand": "Vitra",
+      "model": "Eames Segmented 4000",
+      "application": "Formal boardroom (12–14 pax) and deposition room",
+      "dimensions_mm": {
+        "w": 4000,
+        "d": 1400,
+        "h": 740
+      }
+    },
+    {
+      "category": "client-lounge sofa",
+      "product_id": "vitra_alcove_2264",
+      "brand": "Vitra",
+      "model": "Alcove High Back 2264",
+      "application": "Informal client lounges — discreet enclave off partner corridor",
+      "dimensions_mm": {
+        "w": 2264,
+        "d": 840,
+        "h": 1280
+      }
+    },
+    {
+      "category": "confidential call booth",
+      "product_id": "framery_one",
+      "brand": "Framery",
+      "model": "One",
+      "application": "Confidential client calls — distributed on paralegal floor",
+      "dimensions_mm": {
+        "w": 1220,
+        "d": 1000,
+        "h": 2255
+      }
+    },
+    {
+      "category": "client armchair",
+      "product_id": "pedrali_babila_lounge",
+      "brand": "Pedrali",
+      "model": "Babila Lounge",
+      "application": "Reception seating and tasting-kitchen antechamber",
+      "dimensions_mm": {
+        "w": 690,
+        "d": 660,
+        "h": 730
+      }
+    }
+  ],
+  "planting": {
+    "strategy": "Discrete to moderate tier (2–3% of NIA) — no messy vines in client-facing enfilade. South courtyard façade gets a single hero Kentia per partner corridor; north Gracechurch side uses low-light anchors (ZZ, Aspidistra). One statement planted wall in the reception hall only.",
+    "species": [
+      {
+        "name": "Howea forsteriana (Kentia palm)",
+        "light": "medium indirect",
+        "care": "easy"
+      },
+      {
+        "name": "Aspidistra elatior (Cast-iron plant)",
+        "light": "low",
+        "care": "very easy"
+      },
+      {
+        "name": "Zamioculcas zamiifolia (ZZ plant)",
+        "light": "low",
+        "care": "easy"
+      },
+      {
+        "name": "Ficus lyrata (Fiddle-leaf fig)",
+        "light": "bright indirect",
+        "care": "medium — reception hero only"
+      }
+    ]
+  },
+  "light": {
+    "strategy": "3000 K throughout partner offices, library and client lounges (warm, leather-flattering); 3000 K with dimming in boardrooms; 3500 K in corridors and paralegal neighbourhoods. Brass task lamps at every partner desk; statement Murano pendant over the main boardroom table.",
+    "fixtures": [
+      {
+        "category": "task — partner desk",
+        "brand": "Artemide",
+        "model": "Tolomeo LED (classic)",
+        "application": "Every partner desk, library reading tables"
+      },
+      {
+        "category": "feature — boardroom pendant",
+        "brand": "Foscarini",
+        "model": "Lumiere (Murano)",
+        "application": "Over boardroom and deposition room tables — signature client-facing gesture"
+      },
+      {
+        "category": "reception — sculptural",
+        "brand": "Bocci",
+        "model": "28 Series cascade",
+        "application": "Reception hall stair void — first impression from Gracechurch Street"
+      }
+    ]
+  },
+  "notes": [
+    "Industry bias applied: law_firm → wood + leather + dark green + brass. Avoided open-plan tropes, bright primary accents, and exposed ceilings (would read as creative agency).",
+    "Flex 0.95 + confidentiality brief → every meeting room glazing spec'd at Lindner Life 80 45 dB Rw, not standard single-glazed.",
+    "Hero image to be shot in B&W per mood-board-method for professional-services tier; palette swatches remain in colour.",
+    "[TO VERIFY] Farrow & Ball Card Room Green against Altamont & Rees brand deck — tagline 'Where discretion meets light' could also justify Pigeon (softer) if partners prefer a lighter register.",
+    "[TO VERIFY] Mutina Margarita exact colourway for reception desk — sample board required before Cat B sign-off.",
+    "Wine cellar / tasting kitchen not covered in this board — treat as a sub-atmosphere (oak cask, Dinesen floor, dimmable 2700 K) in a follow-up spread."
+  ]
+}

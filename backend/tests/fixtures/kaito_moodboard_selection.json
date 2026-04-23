@@ -1,0 +1,238 @@
+{
+  "header": {
+    "tagline": "A loud, plaster-white gallery where every wall is a weekly exhibition.",
+    "industry_note": "Creative agency profile — plaster ivory + terracotta + acid yellow; gallery spine, raw plywood, felt, mixed 3000/4000 K lighting; explicitly non-corporate."
+  },
+  "atmosphere": {
+    "hero_image_theme": "plaster-walled creative studio with pin-up gallery spine, raw plywood joinery, terracotta accents, terrazzo café island, exposed concrete ceiling at 5 m",
+    "palette": [
+      {
+        "name": "Plaster ivory",
+        "hex": "#EFE7DA",
+        "role": "hero"
+      },
+      {
+        "name": "Kiln terracotta",
+        "hex": "#B8553A",
+        "role": "hero"
+      },
+      {
+        "name": "Raw plywood",
+        "hex": "#D6B079",
+        "role": "secondary"
+      },
+      {
+        "name": "Concrete brut",
+        "hex": "#6E6B64",
+        "role": "secondary"
+      },
+      {
+        "name": "Acid yellow",
+        "hex": "#E8D43A",
+        "role": "accent"
+      }
+    ]
+  },
+  "materials": [
+    {
+      "category": "floor",
+      "name": "Polished existing concrete slab",
+      "brand": "Lithurin",
+      "product_ref": "Lithurin seal + diamond polish",
+      "application": "Gallery spine, tasting-kitchen, photo studio, café floor",
+      "sustainability": "No new substrate, low embodied carbon",
+      "swatch_hex": "#8A8680"
+    },
+    {
+      "category": "floor",
+      "name": "Bolon Artisan — Nature",
+      "brand": "Bolon",
+      "product_ref": "Artisan Nature woven vinyl 2.5 mm",
+      "application": "Warm lounges + project/crit rooms",
+      "sustainability": "50 % recycled content, washable",
+      "swatch_hex": "#C2A987"
+    },
+    {
+      "category": "wall",
+      "name": "Clayworks natural clay plaster — warm ivory",
+      "brand": "Clayworks",
+      "product_ref": "Lime + clay hand-applied plaster",
+      "application": "60 m gallery-wall spine and pitch-room walls (matte, gallery-grade)",
+      "sustainability": "Zero VOC, humidity-regulating",
+      "swatch_hex": "#EFE7DA"
+    },
+    {
+      "category": "wall",
+      "name": "BAUX Acoustic Pulp tiles — terracotta + ochre mix",
+      "brand": "BAUX",
+      "product_ref": "Acoustic Pulp geometric tiles",
+      "application": "Pin-up/crit rooms and DJ nook — acoustic + signature",
+      "sustainability": "Bio-based, Class A fire, NRC ≈ 0.85",
+      "swatch_hex": "#B8553A"
+    },
+    {
+      "category": "wall",
+      "name": "Woven Image EchoPanel — acid yellow",
+      "brand": "Woven Image",
+      "product_ref": "EchoPanel 12 mm, 60 % recycled PET",
+      "application": "Magnetic pin-up fields above plywood rail, neighbourhood spines",
+      "sustainability": "60 % recycled PET felt",
+      "swatch_hex": "#E8D43A"
+    },
+    {
+      "category": "ceiling",
+      "name": "Ecophon Solo baffles — off-white + terracotta",
+      "brand": "Ecophon",
+      "product_ref": "Solo freestanding islands",
+      "application": "Suspended islands under 5 m exposed-concrete ceiling, tasting-kitchen + town hall",
+      "sustainability": "Recyclable glass-wool core, NRC 0.95",
+      "swatch_hex": "#E4DED3"
+    },
+    {
+      "category": "counter",
+      "name": "Mutina Margarita terrazzo — large format",
+      "brand": "Mutina",
+      "product_ref": "Margarita 1200×600 porcelain",
+      "application": "Tasting-kitchen island top + splash, café counter",
+      "sustainability": "Porcelain, durable, repairable",
+      "swatch_hex": "#CFC4B2"
+    },
+    {
+      "category": "textile",
+      "name": "Kvadrat Remix 3 — terracotta + ochre palette",
+      "brand": "Kvadrat",
+      "product_ref": "Remix 3 wool blend",
+      "application": "Warm lounge sofas + banquettes + curtains between crit rooms",
+      "sustainability": "EU Ecolabel, wool-rich",
+      "swatch_hex": "#C26B4A"
+    }
+  ],
+  "furniture": [
+    {
+      "category": "bench desk",
+      "product_id": "vitra_joyn_bench_3200",
+      "brand": "Vitra",
+      "model": "Joyn Bench 3200",
+      "application": "Creative desks in paired clusters across neighbourhoods",
+      "dimensions_mm": {
+        "w": 3200,
+        "d": 1640,
+        "h": 720
+      }
+    },
+    {
+      "category": "task chair",
+      "product_id": "vitra_id_chair_mesh",
+      "brand": "Vitra",
+      "model": "ID Chair Mesh",
+      "application": "All creative workstations (pair desks, photo studio)",
+      "dimensions_mm": {
+        "w": 680,
+        "d": 680,
+        "h": 540
+      }
+    },
+    {
+      "category": "lounge sofa",
+      "product_id": "hay_mags_soft_3s",
+      "brand": "Hay",
+      "model": "Mags Soft 3-seater",
+      "application": "Warm lounges for long creative sessions, DJ corner perimeter",
+      "dimensions_mm": {
+        "w": 2280,
+        "d": 955,
+        "h": 760
+      }
+    },
+    {
+      "category": "huddle table",
+      "product_id": "hm_everywhere_round_1200",
+      "brand": "Herman Miller",
+      "model": "Everywhere Round 1200",
+      "application": "Pin-up/crit huddle rooms, kitchen island overflow tables",
+      "dimensions_mm": {
+        "diameter": 1200,
+        "h": 740
+      }
+    },
+    {
+      "category": "stackable chair",
+      "product_id": "vitra_tip_ton",
+      "brand": "Vitra",
+      "model": "Tip Ton",
+      "application": "Client pitch rooms + happenings in the tasting-kitchen",
+      "dimensions_mm": {
+        "w": 470,
+        "d": 555,
+        "h": 800
+      }
+    },
+    {
+      "category": "phone booth",
+      "product_id": "framery_one_compact",
+      "brand": "Framery",
+      "model": "One Compact",
+      "application": "Distributed 1:1 calls near crit rooms and neighbourhoods",
+      "dimensions_mm": {
+        "w": 1030,
+        "d": 1000,
+        "h": 2250
+      }
+    }
+  ],
+  "planting": {
+    "strategy": "West canal façade = direct-sun statement canopy (Ficus elastica, Strelitzia); east courtyard façade = bright-indirect (Monstera, Fiddle-leaf); gallery spine punctuated by Kentia palms; DJ nook and deep lounges get low-light Pothos + ZZ. Overhead trailing Pothos above the tasting-kitchen island.",
+    "species": [
+      {
+        "name": "Strelitzia nicolai",
+        "light": "direct sun (west canal)",
+        "care": "medium"
+      },
+      {
+        "name": "Monstera deliciosa",
+        "light": "bright indirect (east courtyard)",
+        "care": "medium"
+      },
+      {
+        "name": "Howea forsteriana (Kentia palm)",
+        "light": "medium indirect (gallery spine)",
+        "care": "easy"
+      },
+      {
+        "name": "Epipremnum aureum (Pothos)",
+        "light": "low, trailing overhead",
+        "care": "easy"
+      }
+    ]
+  },
+  "light": {
+    "strategy": "Gallery-grade 3500 K, CRI ≥ 95 track on the 60 m pin-up spine and in pitch rooms; 3000 K warm pendants in tasting-kitchen, lounges and DJ nook; 4000 K task lamps on creative desks; theatrical accent pendants over the kitchen island as a 'happening' signal.",
+    "fixtures": [
+      {
+        "category": "track",
+        "brand": "Muuto",
+        "model": "Ambit Rail",
+        "application": "60 m gallery spine + crit rooms — gallery-grade wall-wash"
+      },
+      {
+        "category": "feature pendant",
+        "brand": "Vibia",
+        "model": "Wireflow",
+        "application": "Tasting-kitchen island cluster — sculptural happening marker"
+      },
+      {
+        "category": "task",
+        "brand": "Artemide",
+        "model": "Tolomeo LED",
+        "application": "Creative desk pairs + photo studio nook"
+      }
+    ]
+  },
+  "notes": [
+    "Creative agency bias applied: plaster ivory + terracotta + acid yellow per design://client-profiles §5; exposed concrete + polished slab honours the 5 m ceilings and 'zero corporate sterility' ask.",
+    "Acoustic strategy under 5 m exposed concrete relies on Ecophon Solo islands + BAUX pulp + Remix 3 curtains rather than a full Class A ceiling — preserves the warehouse volume.",
+    "Gallery spine lighting target CRI ≥ 95 to legitimately host weekly pin-ups and client-facing exhibitions.",
+    "[TO VERIFY] exact BAUX + EchoPanel colour codes against Kaito Miró brand deck before ordering.",
+    "Retained variant text is in French ('villageois') but written for a different client — mood board here is recalibrated to Kaito Miró's creative-agency brief as instructed."
+  ]
+}
