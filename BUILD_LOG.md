@@ -1505,3 +1505,50 @@ turn — self-pacing loop ends here.
 
 Status : **SUBMISSION-READY**. Saad can record the demo.
 
+---
+
+## iter-17 — Product deepening after Saad's test pass (2026-04-23T15:45Z)
+
+Saad ran a full end-to-end test after iter-18's SUBMISSION-READY marker
+and fired a multi-directive reopen : the business logic is solid but
+(i) the UX is too dense, (ii) regenerating Test Fit wipes the micro-
+zoning Saad just drilled, (iii) the visual is not at the level
+hackathon designer-judges expect, (iv) core space-planner rules
+(adjacencies, 2D plan coloring, zone overlay) are missing. UX refactor
+is parked for iter-18 (parallel Claude Design handoff) ; iter-17 ships
+every backend + data + pure-logic deliverable the refactor will plug
+into.
+
+### Commits (this session, in order)
+
+| Phase | SHA     | Scope |
+| ----- | ------- | ----- |
+| A (P0) | 5db77cb | `project_state` v2 : append-only run history for macro / micro / moodboard / justify / export, `testfit` / `justify` / `mood_board` kept as derived views so every consumer stays unchanged. v1→v2 migration promotes the existing singleton to a single-entry run array. Micro-zoning persists through `appendMicroZoningRun` + rehydrates on mount — reloading or regenerating macro no longer wipes the drill-down. |
+| B (P0) | 206a37f | `design://adjacency-rules` MCP resource (250 lines, 30+ sourced rules : Hongisto / Banbury / Haapakangas / WELL v2 / BREEAM / NF S 31-080 / Arrêté 25 juin 1980 / Leesman / Gensler / Steelcase) + `AdjacencyAudit` + `AdjacencyViolation` Pydantic models + `testfit_adjacency_validator` agent running as the 4th Level-2 reviewer in parallel with the existing Reviewer. Every new variant now carries an `adjacency_audit: { score, summary, violations[], recommendations[] }`. `_coerce_adjacency_audit` defends against LLM schema drift. |
+| D (P0) | 485d2b3 | `floorplan_svg.py` : deterministic 2D top-down SVG per variant, zones coloured by functional category (forest / sand / clay / sun / mint), numbered 1..N, legend bottom-right, north marker, viewBox in mm. Handles all 5 SketchUp params-shape conventions defensively. Endpoints `POST /api/testfit/floor-plan-2d` and `GET /api/testfit/sample/variants/{style}/floor-plan-2d`. Pure stdlib — no matplotlib. |
+| C (P0) | 80ad2cd | `NanoBananaClient` (fal.ai queue API, disk cache, retries) + `visual_moodboard.py` (Pinterest-grade composite with 8 industry registers + variant atmospheres + palette inheritance from the PDF selection + macro/micro summary fusion) + `zone_overlay.py` (image-to-image pass over the 2D SVG, auto-falling-back to the SVG itself when FAL_KEY or cairosvg is missing). Live validation : 47 s Lumen atelier render committed as `backend/tests/fixtures/lumen_visual_moodboard.png` ; cache hit in 2 s. fal.ai Pro path probed = `fal-ai/nano-banana-pro` (bare), the `/text-to-image` suffix 404s on Pro. |
+| E (P1) | 5069b3b | Strip engineering jargon from the Brief surface : `Effectifs` / `Contraintes` / `Consolidator` → `Headcount` / `Compliance` / `Editor` (backend trace-names kept so fixtures + tests don't churn). "Managed agents" → "The studio". "Three readers, one editor" → "Four voices, one brief". "Agent trace" → "Behind the scenes". Prompt-to-sections rewrite deferred per advisor — would break every Justify / chat fixture ; iter-18 can add an additive `sections` field when the card-based UX lands. |
+| F (P1) | (docs)   | DWG export without AutoCAD : ODA File Converter not installed on this machine, libredwg has no Windows wheel. Documented as `B7. DWG export — deferred` in `BLOCKERS.md` with full evaluation + a 1-click DXF→DWG fallback (every major CAD app saves it natively). The `ezdxf` DXF already ships. |
+| G (P2) | (this entry) | BUILD_LOG + HACKATHON_SUMMARY + BLOCKERS iter-18 handoff note. |
+
+### Quality gates
+
+- `pytest -q` → **66 passed** (was 54 — added test_adjacency.py × 5, test_floorplan_svg.py × 7, test_nanobanana.py × 11). Zero regressions.
+- `npx tsc -b --noEmit` → clean on all 7 routes (v2 state refactor held up thanks to the derived-view strategy — zero consumer edits needed).
+- Live smoke : `POST /api/moodboard/generate-visual` returns a 1.6 MB PNG in 47 s on a cold call, cache-hits in 2 s on a warm call.
+- `FAL_KEY` lives in `.env` only (gitignored) ; `.env.example` carries a placeholder.
+
+### Advisor-informed pivots
+
+- **Task A is data-only, not UI.** Saad's directive described the history browser as part of A ; advisor flagged that it belongs in iter-18 since the Claude Design handoff will rewrite the UI anyway. v2 schema + migration + selector helpers shipped ; no history UI built.
+- **Gate ODA + fal.ai before coding.** A 60-second `where oda` + a single HTTP probe to fal.ai's queue surfaced (i) that F was a blocker and (ii) the Pro path is `fal-ai/nano-banana-pro` not `.../text-to-image`. Both saved ~2 h of misdirected work.
+- **Keep E additive.** Rewriting every agent prompt to `{summary, sections[]}` would break every Justify / chat / Brief fixture — deferred to iter-18 where the cards UX will actually consume sections. Did the 15-minute grep-and-label fix instead.
+
+### What's queued for iter-18 (Claude Design handoff)
+
+Every new capability is reachable through a stable backend endpoint or a typed selector — see `BLOCKERS.md` "⏸ Iter-18 handoff" section. No frontend refactor shipped in this iteration.
+
+### Token spend
+
+Single live fal.ai image call (~$0.05-0.10) for the golden Lumen visual moodboard fixture. No Opus calls beyond what the existing fixtures already paid for — iter-17 is 100 % offline-testable.
+

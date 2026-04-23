@@ -103,20 +103,38 @@ to persist them — no round-trip needed.
    even when PyMuPDF has clean data, because it adds the cardinal
    direction of facades, the door swings, and the room-name text that
    vector PDFs don't carry programmatically.
-2. **Three-level managed-agent orchestration**. Each level has a real
-   planning intent (not cosmetic parallelism) : Level 1 programme
-   synthesis (3 sub-agents × specialty), Level 2 variant generation (3
-   variants × design doctrine + reviewers), Level 3 research & cite (4
-   researchers × discipline). ThreadPoolExecutor fan-out, a single
-   reusable `run_with_consolidator` primitive, exponential retries with
-   structured JSONL audit logs. Every call is tagged (`brief.synthesize
-   :Effectifs`, `justify.consolidate:Consolidator`, `pdf.vision`,
-   `testfit.variant:atelier`) so a demo log reads like a transcript.
-3. **MCP Resources consulted at planning time**. 10 Markdown files, 2
-   700 lines, every number traceable to a URL or flagged `[À VÉRIFIER]`.
+2. **Three-level managed-agent orchestration, 4 agents per level at
+   Test Fit**. Each level has a real planning intent (not cosmetic
+   parallelism) : Level 1 programme synthesis (3 sub-agents × specialty
+   + consolidator), Level 2 variant generation (3 variants × design
+   doctrine + **Reviewer + Adjacency Validator running in parallel**),
+   Level 3 research & cite (4 researchers × discipline). The Adjacency
+   Validator (iter-17) audits every variant against 30+ space-planning
+   rules from `design://adjacency-rules` and attaches an
+   `adjacency_audit: { score, violations[], recommendations[] }` back
+   onto the variant — the output is ready for the iter-18 card UI to
+   render a score pill + violation list next to each variant.
+3. **14 MCP Resources consulted at planning time**. Markdown files, 3
+   000+ lines, every number traceable to a URL or flagged `[À VÉRIFIER]`.
    Agents are prompted to cite `design://<name>` or
    `ratios_json.<path>` inline — the consolidated outputs have real
-   footnotes, not vaporous "studies show" filler.
+   footnotes, not vaporous "studies show" filler. Iter-17 added
+   `design://adjacency-rules` with rules sourced from Hongisto,
+   Banbury, Haapakangas, WELL v2, BREEAM, Leesman, Gensler and the
+   French ERP type W arrêté.
+5. **NanoBanana Pro (Gemini 3 Pro Image on fal.ai) as a second visual
+   brain** (iter-17). Two new surfaces : (a) Pinterest-style
+   composite mood board — one magazine-grade image distilling the
+   client industry, retained variant atmosphere, MoodBoard selection
+   palette and macro + micro zoning summaries into a single
+   cinematic frame (eight industry registers tuned against real
+   design-world references — Farrow & Ball, Dinesen, Vitra, Mutina,
+   Hay, Muuto — so the model never drifts to generic stock) ; (b)
+   zone-overlay image-to-image pass over the deterministic 2D floor
+   plan, preserving architectural line work and painting zones in
+   the adjacency-rules palette. Every render is cached on disk by
+   sha256(prompt + model + aspect + base image) — regenerating a
+   seen prompt is free.
 4. **Double MCP CAD orchestration**. SketchUp via the forked
    `mhyrr/sketchup-mcp` server + our Design Office Ruby module (8
    high-level ops). AutoCAD via the forked `puran-water/autocad-mcp`

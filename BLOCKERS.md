@@ -2,7 +2,26 @@
 
 Items that require Saad's physical intervention. Work continues around these as much as possible.
 
-**Legend** : 🔴 critical · 🟠 pending · 🟢 resolved · 🟡 technical
+**Legend** : 🔴 critical · 🟠 pending · 🟢 resolved · 🟡 technical · ⏸ on-hold for handoff
+
+---
+
+## ⏸ Iter-18 handoff — parked, not blocking iter-17
+
+### Claude Design UX refactor
+
+Saad is running a parallel pass in Claude Design that will ship the full frontend refactor (cards-based drill-down for every surface, a macro-zoning history browser, the 2D/3D toggle on Test Fit, and a unified Mood Board visual + PDF layout).
+
+Iter-17 is **data + backend only** so the two streams don't collide. Every new capability is behind a stable backend endpoint or a typed selector :
+
+- `macro_zoning_runs[] / micro_zoning_runs[] / moodboard_runs[]` on `ProjectState` v2 (`frontend/src/lib/projectState.ts`) — append-only history, the history browser consumes this directly.
+- `POST /api/testfit/floor-plan-2d` + `GET /api/testfit/sample/variants/{style}/floor-plan-2d` — ready for the 2D/3D toggle.
+- `POST /api/moodboard/generate-visual` + `GET /api/moodboard/visual/{id}` — ready for the Pinterest-style hero on the Mood Board page.
+- `POST /api/testfit/variants/zone-overlay` — ready for the coloured floor-plan hero on Test Fit.
+- `adjacency_audit` on every `VariantOutput` — ready for the score pill + violation list that the iter-18 cards will render.
+- Backend agent trace names mapped to studio vocabulary on the UI side (`Effectifs → Headcount`, etc.) so the Claude Design frontend inherits the clean labels.
+
+No handoff artefact is required on this side. When the Claude Design handoff lands, the iter-18 loop will merge it on top of iter-17 without backend churn.
 
 ---
 
@@ -72,4 +91,26 @@ Saad can still do a final eye-pass but there's no known aesthetic regression.
 
 ## 🟡 Technical blockers discovered during build
 
-_Nothing open. Iter-12 fixed the SketchUp plugin double-nested layout ; iter-13 fixed the viewer overflow (P0), HMR persistence, fixture Vision default, and stale post-iterate screenshot (P1)._
+### B7. DWG export without AutoCAD — deferred to iter-18+ (iter-17)
+
+Saad's iter-17 directive asked for DXF + **DWG** export without requiring AutoCAD to be installed. Two toolchain options were evaluated on 2026-04-23 :
+
+- **ODA File Converter** (free, silent-CLI `.dxf → .dwg` batch tool, widely used in CI). Checked both `C:\Program Files\ODA\` and `C:\Program Files (x86)\ODA\` : **not installed** on this machine, and the installer is gated behind the ODA developer-account signup flow (email activation, ~5 min of manual work). No automated install possible from the loop.
+- **libredwg** (open-source C library with Python bindings `python-libredwg`). `pip install libredwg` returns no matching distribution on Windows ; the library only ships Linux wheels today. Cross-compiling it inside this loop is out of scope.
+
+**What shipped anyway** : the existing `ezdxf` backend emits a real DWG-compatible DXF that AutoCAD / BricsCAD / Adobe Illustrator / Rhino / LibreCAD all open natively and can re-save as DWG in one click. The export page already serves that file ; no regression vs iter-16.
+
+**Action for Saad** (optional, anytime) :
+1. Install the ODA File Converter from https://www.opendesign.com/guestfiles/oda_file_converter once you create an ODA account.
+2. Re-run the loop or flip a feature flag — the backend will auto-pick up `oda-file-converter` on `PATH` and add a `/api/export/dwg` endpoint.
+3. Until then, DXF → DWG is a 1-click save in any CAD app the target audience already has.
+
+---
+
+### B8. `cairosvg` / `libcairo` for the 2D zone-overlay NanoBanana pass (iter-17)
+
+The `zone_overlay` surface renders a deterministic 2D SVG first, then asks NanoBanana Pro to image-to-image over a rasterised PNG of that SVG. SVG rasterisation needs `cairosvg`, which on Windows drags the native `libcairo` DLL chain in.
+
+**What shipped anyway** : the surface auto-detects a missing rasteriser and falls back to serving the deterministic SVG directly. The SVG renders natively in the browser with identical visual quality — the NanoBanana pass is a stylisation step, not a correctness requirement. No demo path breaks.
+
+**Action for Saad** (optional) : `pip install cairosvg` + install the GTK+ runtime bundle that ships `libcairo-2.dll`. Then `/api/testfit/variants/zone-overlay` will switch from fallback SVG to full NanoBanana-painted PNG automatically.
