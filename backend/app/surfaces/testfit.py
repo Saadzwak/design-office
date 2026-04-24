@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
@@ -375,8 +376,13 @@ class TestFitSurface:
             name="AdjacencyValidator",
             system_prompt=_read(PROMPTS_DIR / "testfit_adjacency_validator.md"),
             user_template=_ADJACENCY_USER,
-            # Adjacency audit caps at 10 violations + 3 recos ; 2 k is plenty.
-            max_tokens=2000,
+            # iter-21c — bumped from 2000 to 4000. The Phase A floor
+            # plan carries up to 42 rooms + 31 walls, so the validator
+            # surface-area grew ; its output is sometimes 6-8 violations
+            # with long descriptions. 2000 was cutting off structured
+            # JSON mid-stream and triggering parse errors across all 3
+            # variants on the Lovable plan.
+            max_tokens=4000,
         )
 
     def generate(
@@ -719,17 +725,40 @@ def _replay_zones(facade: SketchUpFacade, zones: list[dict]) -> None:
             facade.apply_biophilic_zone(bbox_mm=tuple(z.get("bbox_mm", [0, 0, 0, 0])))
 
 
+_TRAILING_COMMA_RE = re.compile(r",(\s*[\]}])")
+_LINE_COMMENT_RE = re.compile(r"//[^\n]*")
+_BLOCK_COMMENT_RE = re.compile(r"/\*.*?\*/", re.DOTALL)
+
+
 def _strip_json(text: str) -> str:
+    """Extract a parseable JSON object from Opus's raw output.
+
+    iter-21c (Saad, 2026-04-24) : made tolerant to the three LLM
+    mistakes that kept breaking the adjacency validator on the
+    Lovable plan — trailing commas before `]` / `}`, inline `// ...`
+    comments, block `/* ... */` comments. The original version just
+    stripped a markdown fence and outer braces ; if Opus emitted a
+    comma before a closing brace the whole audit came back as
+    `score: 0, summary: parse error`.
+    """
+
     stripped = text.strip()
     if stripped.startswith("```"):
         stripped = stripped.split("```", 2)[1]
         if stripped.startswith("json"):
             stripped = stripped[len("json") :]
-    # Take the outermost balanced braces
+    # Take the outermost balanced braces.
     start = stripped.find("{")
     end = stripped.rfind("}")
     if start != -1 and end != -1 and end > start:
-        return stripped[start : end + 1]
+        stripped = stripped[start : end + 1]
+    # Clean common LLM JSON slip-ups before handing to json.loads.
+    # Strip `// comment` and `/* comment */` — not legal JSON but
+    # Opus sometimes emits them inside violations[].
+    stripped = _BLOCK_COMMENT_RE.sub("", stripped)
+    stripped = _LINE_COMMENT_RE.sub("", stripped)
+    # Strip trailing commas before `]` or `}`.
+    stripped = _TRAILING_COMMA_RE.sub(r"\1", stripped)
     return stripped
 
 

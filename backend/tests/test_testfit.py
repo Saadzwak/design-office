@@ -154,3 +154,48 @@ def test_parti_pris_proposer_prompt_exists_and_mentions_brief() -> None:
     assert "brief" in content.lower()
     assert "three" in content.lower() or "3" in content
     assert "project-specific" in content.lower() or "tailored" in content.lower()
+
+
+# iter-21c — Harden _strip_json against LLM JSON slip-ups
+
+
+def test_strip_json_tolerates_trailing_commas() -> None:
+    """Opus sometimes emits `[…, ]` or `{…, }`. The adjacency audit
+    was going to score=0 whenever that happened on the Lovable plan."""
+
+    import json as _json
+
+    from app.surfaces.testfit import _strip_json
+
+    raw = """```json
+{
+  "score": 70,
+  "violations": [
+    {"rule_id": "a"},
+    {"rule_id": "b"},
+  ],
+  "recommendations": ["foo", "bar",],
+}
+```"""
+    cleaned = _strip_json(raw)
+    parsed = _json.loads(cleaned)
+    assert parsed["score"] == 70
+    assert len(parsed["violations"]) == 2
+    assert len(parsed["recommendations"]) == 2
+
+
+def test_strip_json_tolerates_inline_comments() -> None:
+    import json as _json
+
+    from app.surfaces.testfit import _strip_json
+
+    raw = """{
+      "score": 85,  // overall score
+      /* summary commented on purpose */
+      "summary": "ok",
+      "violations": [],
+      "recommendations": []
+    }"""
+    parsed = _json.loads(_strip_json(raw))
+    assert parsed["score"] == 85
+    assert parsed["summary"] == "ok"

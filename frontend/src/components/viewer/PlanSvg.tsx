@@ -54,6 +54,32 @@ export default function PlanSvg({
 
   const accent = highlightedVariant ? PALETTE[highlightedVariant] : PALETTE.villageois;
 
+  // iter-21c — Derive stroke widths and font sizes from the viewport
+  // dimensions so lines stay legible whether the envelope is 25 m
+  // (Lovable residential) or 250 m (a big tertiary plate). Without
+  // this every SVG stroke was using absolute millimetre values
+  // calibrated for the Lumen fixture ; on a bigger envelope the
+  // strokes became sub-pixel thin and invisible.
+  const envDiag = Math.hypot(
+    Math.max(...xs) - Math.min(...xs),
+    Math.max(...ys) - Math.min(...ys),
+  );
+  // Reference diagonal ≈ 72 000 mm (Lumen 60×40 m plate). Everything
+  // else is scaled proportionally so visual weight stays constant.
+  const scale = Math.max(envDiag / 72000, 0.1);
+  const stroke = {
+    envelope: 120 * scale,
+    column: 50 * scale,
+    core: 60 * scale,
+    window: 200 * scale,
+    zone: 70 * scale,
+    room: 30 * scale,
+    roomStrokeDash: `${80 * scale} ${40 * scale}`,
+    wall: 80 * scale,
+    stair: 60 * scale,
+  };
+  const labelFontSize = 480 * scale;
+
   return (
     <svg
       viewBox={`${minX} ${-maxY} ${w} ${h}`}
@@ -67,7 +93,7 @@ export default function PlanSvg({
           points={env.map((p) => `${p.x},${p.y}`).join(" ")}
           fill="none"
           stroke={INK}
-          strokeWidth={120}
+          strokeWidth={stroke.envelope}
         />
 
         {/* columns — warm sand, lighter than the envelope */}
@@ -76,10 +102,10 @@ export default function PlanSvg({
             key={`col-${i}`}
             cx={c.center.x}
             cy={c.center.y}
-            r={Math.max(c.radius_mm, 150)}
+            r={Math.max(c.radius_mm, 150 * scale)}
             fill={SAND}
             stroke={INK_SOFT}
-            strokeWidth={50}
+            strokeWidth={stroke.column}
           />
         ))}
 
@@ -90,7 +116,7 @@ export default function PlanSvg({
             points={core.outline.points.map((p) => `${p.x},${p.y}`).join(" ")}
             fill={INK}
             stroke={INK}
-            strokeWidth={60}
+            strokeWidth={stroke.core}
           />
         ))}
 
@@ -105,7 +131,7 @@ export default function PlanSvg({
                 points={pts.map((p) => `${p.x},${p.y}`).join(" ")}
                 fill={INK_SOFT}
                 stroke={INK}
-                strokeWidth={60}
+                strokeWidth={stroke.stair}
               />
               <line
                 x1={p0.x}
@@ -113,7 +139,7 @@ export default function PlanSvg({
                 x2={p2.x}
                 y2={p2.y}
                 stroke={SAND_SOFT}
-                strokeWidth={60}
+                strokeWidth={stroke.stair}
               />
             </g>
           );
@@ -128,7 +154,7 @@ export default function PlanSvg({
             x2={w.end.x}
             y2={w.end.y}
             stroke={accent}
-            strokeWidth={200}
+            strokeWidth={stroke.window}
             strokeLinecap="round"
           />
         ))}
@@ -148,8 +174,8 @@ export default function PlanSvg({
                 fill={SAND_SOFT}
                 fillOpacity={0.3}
                 stroke={INK_SOFT}
-                strokeWidth={30}
-                strokeDasharray="80 40"
+                strokeWidth={stroke.room}
+                strokeDasharray={stroke.roomStrokeDash}
               />
             );
           })}
@@ -166,7 +192,7 @@ export default function PlanSvg({
               x2={wall.end.x}
               y2={wall.end.y}
               stroke={INK}
-              strokeWidth={Math.max(wall.thickness_mm, 80)}
+              strokeWidth={Math.max(wall.thickness_mm, stroke.wall)}
               strokeLinecap="butt"
               opacity={0.55}
             />
@@ -181,10 +207,10 @@ export default function PlanSvg({
               key={`open-${i}`}
               cx={op.center.x}
               cy={op.center.y}
-              r={Math.max(op.width_mm / 2, 300)}
+              r={Math.max(op.width_mm / 2, 300 * scale)}
               fill={SAND_SOFT}
               stroke={SAND}
-              strokeWidth={40}
+              strokeWidth={40 * scale}
             />
           ))}
 
@@ -202,7 +228,7 @@ export default function PlanSvg({
                 fill={accent}
                 fillOpacity={0.1}
                 stroke={accent}
-                strokeWidth={70}
+                strokeWidth={stroke.zone}
               />
             );
           }
@@ -219,7 +245,7 @@ export default function PlanSvg({
                 fill={accent}
                 fillOpacity={0.14}
                 stroke={accent}
-                strokeWidth={70}
+                strokeWidth={stroke.zone}
               />
             );
           }
@@ -230,11 +256,11 @@ export default function PlanSvg({
                 key={`zone-${i}`}
                 cx={px}
                 cy={py}
-                r={650}
+                r={650 * scale}
                 fill={accent}
                 fillOpacity={0.35}
                 stroke={accent}
-                strokeWidth={40}
+                strokeWidth={40 * scale}
               />
             );
           }
@@ -245,12 +271,12 @@ export default function PlanSvg({
                 key={`zone-${i}`}
                 x={px}
                 y={py}
-                width={3200}
-                height={1600}
+                width={3200 * scale}
+                height={1600 * scale}
                 fill={accent}
                 fillOpacity={0.22}
                 stroke={accent}
-                strokeWidth={40}
+                strokeWidth={40 * scale}
               />
             );
           }
@@ -281,7 +307,7 @@ export default function PlanSvg({
                   textAnchor="middle"
                   dominantBaseline="middle"
                   fontFamily="Inter, sans-serif"
-                  fontSize={480}
+                  fontSize={labelFontSize}
                   fontWeight={500}
                   fill={INK}
                   opacity={0.75}

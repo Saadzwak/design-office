@@ -165,6 +165,12 @@ _VISION_USER = """Extract the floor plan. Return JSON only (no prose) matching:
 
 {
   "scale_label": "...",                 // raw text of any scale annotation (e.g. "1:200", "échelle 1:100")
+  "envelope_real_dimensions_m": {       // MANDATORY — real-world dimensions of the plate
+    "width_m": 24.5,                    // envelope bounding box width in METRES
+    "height_m": 36.0,                   // envelope bounding box height in METRES
+    "source": "scale_label|inferred|unknown",  // how you derived this
+    "confidence": 0.0                   // 0..1
+  },
   "orientation_arrow": {"label": "N", "from_px": [x,y], "to_px": [x,y]}, // or null
   "envelope_points_px": [[x, y], ...],  // outer polygon in image pixel space (required)
   "columns_px": [{"cx": x, "cy": y, "r": radius_px}, ...],
@@ -223,6 +229,19 @@ _VISION_USER = """Extract the floor plan. Return JSON only (no prose) matching:
 
 Rules:
 - Use the image pixel coordinate system (origin at top-left of the rendered image).
+- **`envelope_real_dimensions_m` is MANDATORY and calibrates the whole pipeline.**
+  Derivation priority:
+  1. If a scale bar or scale label ("1:100", "échelle 1:200") + a dimension
+     annotation is visible, derive width_m and height_m from them (source =
+     "scale_label", confidence 0.9–1.0).
+  2. Else if cotations are visible on the envelope, sum them up (source =
+     "scale_label", confidence 0.8).
+  3. Else infer from room sizes : a haussmannian residential floor is
+     typically 15–25 m wide × 20–35 m deep ; a tertiary office plate
+     typically 18–40 m wide × 25–80 m deep. Use the plan's architectural
+     type + rough aspect ratio (source = "inferred", confidence 0.4–0.6).
+  4. Last resort : source = "unknown", confidence 0. Still emit your best
+     guess — the consumer applies a sanity clamp.
 - Only include a column if you are at least 75% confident.
 - Classify facades by position against the envelope bounding box if no
   orientation arrow: top=north, bottom=south, left=west, right=east.
@@ -551,14 +570,41 @@ def fuse(
     x0_pt, y0_pt, x1_pt, y1_pt = bbox
     page_h_pt = vectors["page_height_pt"]
 
+    # iter-21c — Calibrate the mm-per-pt scale from Vision's real-world
+    # envelope dimensions. The fixture uses MM_PER_PT=500 (a synthetic
+    # scale baked into the generator), but real PDFs come in with
+    # arbitrary printing scales. Without this, a 25 m × 36 m residential
+    # plate like the "Lovable" sample gets rendered as 392 m × 577 m,
+    # room areas are 100× too big, and the 2D PlanSvg strokes disappear
+    # because they're calibrated for the fixture scale.
+    mm_per_pt = MM_PER_PT
+    pymupdf_w_mm = (x1_pt - x0_pt) * MM_PER_PT
+    pymupdf_h_mm = (y1_pt - y0_pt) * MM_PER_PT
+    if vision and isinstance(vision.get("envelope_real_dimensions_m"), dict):
+        real = vision["envelope_real_dimensions_m"]
+        try:
+            real_w_mm = float(real.get("width_m", 0)) * 1000.0
+            real_h_mm = float(real.get("height_m", 0)) * 1000.0
+        except (TypeError, ValueError):
+            real_w_mm = real_h_mm = 0.0
+        # Sanity clamp : typical office/residential plate is between
+        # 150 m² and 8 000 m². Anything outside is rejected and we
+        # fall back to MM_PER_PT.
+        real_area_m2 = (real_w_mm * real_h_mm) / 1_000_000.0
+        if 150.0 <= real_area_m2 <= 8000.0:
+            # Use width-based ratio (height-based would be equivalent
+            # within rounding because PyMuPDF aspect ratio is preserved).
+            if pymupdf_w_mm > 0:
+                mm_per_pt = MM_PER_PT * (real_w_mm / pymupdf_w_mm)
+
     # Flip Y so that plan origin is bottom-left, plate-relative.
     def to_plan_mm(x_pt: float, y_pt: float) -> tuple[float, float]:
-        x_mm = (x_pt - x0_pt) * MM_PER_PT
-        y_mm = ((page_h_pt - y_pt) - (page_h_pt - y1_pt)) * MM_PER_PT
+        x_mm = (x_pt - x0_pt) * mm_per_pt
+        y_mm = ((page_h_pt - y_pt) - (page_h_pt - y1_pt)) * mm_per_pt
         return x_mm, y_mm
 
-    plate_w_mm = (x1_pt - x0_pt) * MM_PER_PT
-    plate_h_mm = (y1_pt - y0_pt) * MM_PER_PT
+    plate_w_mm = (x1_pt - x0_pt) * mm_per_pt
+    plate_h_mm = (y1_pt - y0_pt) * mm_per_pt
 
     envelope = Polygon2D(
         points=[
@@ -573,7 +619,7 @@ def fuse(
     columns_out: list[Column] = []
     for c in vectors["circles"]:
         cx_mm, cy_mm = to_plan_mm(c["cx"], c["cy"])
-        r_mm = c["r"] * MM_PER_PT
+        r_mm = c["r"] * mm_per_pt
         if 0 <= cx_mm <= plate_w_mm and 0 <= cy_mm <= plate_h_mm and 50 < r_mm < 1_200:
             columns_out.append(
                 Column(center=Point2D(x=cx_mm, y=cy_mm), radius_mm=r_mm)
@@ -583,8 +629,8 @@ def fuse(
     cores_out: list[TechnicalCore] = []
     stairs_out: list[Stair] = []
     for r in vectors["rects"]:
-        w_mm = r["w"] * MM_PER_PT
-        h_mm = r["h"] * MM_PER_PT
+        w_mm = r["w"] * mm_per_pt
+        h_mm = r["h"] * mm_per_pt
         x0_mm, _y_top = to_plan_mm(r["x"], r["y"])
         _x_left, y0_mm = to_plan_mm(r["x"], r["y"] + r["h"])
         # Skip anything coinciding with the envelope itself.
