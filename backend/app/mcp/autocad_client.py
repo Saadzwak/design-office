@@ -157,51 +157,125 @@ class EzdxfHeadlessBackend:
 class FileIpcBackend:
     """Talks to the in-AutoCAD LISP dispatcher via a shared watch folder.
 
-    Protocol (matches puran-water/autocad-mcp lisp-code/mcp_dispatch.lsp) :
-    write a JSON command file to `watch_dir/in/<uuid>.json`, poll
-    `watch_dir/out/<uuid>.json` for the response.
-    """
+    iter-22 (Saad, 2026-04-24) — rewritten to match the actual protocol
+    of `puran-water/autocad-mcp`'s `mcp_dispatch.lsp` :
+
+    - Command files live FLAT in `watch_dir/` with prefix
+      `autocad_mcp_cmd_<request_id>.json`
+    - Result files come back as `autocad_mcp_result_<request_id>.json`
+    - JSON shape in : `{"request_id": "...", "command": "...", ...params}`
+    - JSON shape out : `{"request_id": "...", "ok": bool, "payload": ...,
+      "error": "..." | null}`
+
+    AutoCAD's LISP dispatcher is one-shot (`c:mcp-dispatch` scans the
+    folder once and returns). To run fully un-attended we try to use
+    `SendCommand("MCP-DISPATCH\\n")` via pywin32 COM after each drop.
+    `cold_mode=True` disables the COM trigger and falls back to Saad
+    manually typing `MCP-DISPATCH` in AutoCAD — useful for ping tests
+    / paranoid debug sessions."""
 
     watch_dir: Path
-    timeout_s: float = 15.0
+    timeout_s: float = 30.0
     poll_interval_s: float = 0.25
     _calls: list[dict[str, Any]] = field(default_factory=list)
+    # Lazy-import pywin32 only when the backend actually runs. Tests
+    # on non-Windows (CI) or machines without pywin32 stay green.
+    _com_app: Any | None = None
+    _com_probed: bool = False
 
-    @property
-    def in_dir(self) -> Path:
-        return self.watch_dir / "in"
+    def _probe_com(self) -> Any | None:
+        """Return a cached ACAD application COM object, or None if
+        pywin32 is unavailable / AutoCAD isn't running."""
+        if self._com_probed:
+            return self._com_app
+        self._com_probed = True
+        try:
+            import win32com.client  # type: ignore[import-not-found]
 
-    @property
-    def out_dir(self) -> Path:
-        return self.watch_dir / "out"
+            # AutoCAD LT 2026 also responds to the generic ProgID.
+            # Fall through the list — the first one that answers wins.
+            progids = ["AutoCAD.Application", "AutoCAD.Application.LT.26"]
+            for pid in progids:
+                try:
+                    self._com_app = win32com.client.GetActiveObject(pid)
+                    return self._com_app
+                except Exception:  # noqa: BLE001
+                    continue
+        except Exception:  # noqa: BLE001
+            # pywin32 missing / no matching AutoCAD process
+            pass
+        return None
+
+    def _trigger_dispatch(self) -> bool:
+        """Fire MCP-DISPATCH in the running AutoCAD via COM.
+
+        Returns True when the call was dispatched, False otherwise.
+        A False result isn't fatal — the caller will still poll for the
+        result file. If Saad types MCP-DISPATCH manually, the loop
+        completes anyway (just slower).
+        """
+        app = self._probe_com()
+        if app is None:
+            return False
+        try:
+            doc = app.ActiveDocument
+            # SendCommand is async ; the command runs in AutoCAD's
+            # foreground queue. Trailing "\n" = Enter.
+            doc.SendCommand("MCP-DISPATCH\n")
+            return True
+        except Exception:  # noqa: BLE001
+            # Modal dialog open, no active document, etc.
+            return False
 
     def call(self, command: str, **params: Any) -> dict[str, Any]:
-        self.in_dir.mkdir(parents=True, exist_ok=True)
-        self.out_dir.mkdir(parents=True, exist_ok=True)
-        request_id = uuid.uuid4().hex
-        entry = {"command": command, "params": params, "id": request_id}
-        self._calls.append(entry)
-        in_file = self.in_dir / f"{request_id}.json"
-        out_file = self.out_dir / f"{request_id}.json"
-        in_file.write_text(json.dumps(entry), encoding="utf-8")
+        self.watch_dir.mkdir(parents=True, exist_ok=True)
+        request_id = uuid.uuid4().hex[:16]
+        payload = {"request_id": request_id, "command": command, **params}
+        self._calls.append({"command": command, "params": params, "id": request_id})
+        cmd_file = self.watch_dir / f"autocad_mcp_cmd_{request_id}.json"
+        result_file = self.watch_dir / f"autocad_mcp_result_{request_id}.json"
+        cmd_file.write_text(json.dumps(payload), encoding="utf-8")
+
+        # Try the COM auto-dispatch. Best-effort — log for debug but
+        # do not raise : Saad's manual MCP-DISPATCH still works.
+        triggered_via_com = self._trigger_dispatch()
 
         t0 = time.time()
         while time.time() - t0 < self.timeout_s:
-            if out_file.exists():
+            if result_file.exists():
                 try:
-                    payload = json.loads(out_file.read_text(encoding="utf-8"))
+                    body = result_file.read_text(encoding="utf-8")
+                    # LISP writer is atomic per-file-write but we still
+                    # guard a split-read race : if json parse fails,
+                    # sleep and retry once.
+                    resp = json.loads(body)
                 except json.JSONDecodeError:
                     time.sleep(self.poll_interval_s)
                     continue
                 try:
-                    out_file.unlink()
+                    result_file.unlink()
                 except OSError:
                     pass
-                return payload
+                # Clean up the command file too when we've got the
+                # response (LISP tries to delete it but sometimes
+                # AutoCAD holds a read handle open a beat).
+                try:
+                    cmd_file.unlink()
+                except OSError:
+                    pass
+                return resp
             time.sleep(self.poll_interval_s)
+        hint = (
+            "COM auto-trigger succeeded — AutoCAD should have processed it. "
+            "Check AutoCAD for a modal dialog blocking MCP-DISPATCH."
+            if triggered_via_com
+            else "COM auto-trigger unavailable (pywin32 missing or AutoCAD "
+            "not responding). Type `MCP-DISPATCH` in the AutoCAD command "
+            "line to process pending files manually."
+        )
         raise TimeoutError(
-            f"AutoCAD File-IPC timeout after {self.timeout_s:.0f}s for command '{command}'. "
-            f"Is AutoCAD running with mcp_dispatch.lsp loaded?"
+            f"AutoCAD File-IPC timeout after {self.timeout_s:.0f}s for "
+            f"command '{command}'. {hint}"
         )
 
     def trace(self) -> list[dict[str, Any]]:
@@ -227,15 +301,34 @@ def get_backend(
     settings = get_settings()
     repo_root = Path(__file__).resolve().parent.parent.parent.parent
     watch_dir_env = os.getenv("AUTOCAD_MCP_WATCH_DIR") or settings.__dict__.get("autocad_mcp_watch_dir")
-    watch_dir = Path(watch_dir_env) if watch_dir_env else repo_root / "autocad_watch"
+    # iter-22 — default watch dir is now `C:/temp` to match the
+    # puran-water LISP's `*mcp-ipc-dir*` default. The old
+    # `autocad_watch/` path is still honoured via env override so
+    # existing deploys don't break.
+    if watch_dir_env:
+        watch_dir = Path(watch_dir_env)
+    elif os.name == "nt":
+        watch_dir = Path("C:/temp")
+    else:
+        watch_dir = repo_root / "autocad_watch"
 
     if force == "file_ipc":
         return FileIpcBackend(watch_dir=watch_dir)
     if force == "ezdxf":
         return EzdxfHeadlessBackend(out_path=default_out or repo_root / "out" / "design_office.dxf")
 
+    # iter-22 — ezdxf always wins when AutoCAD isn't answering COM,
+    # so a file-IPC backend can't hang on a dead queue. The auto-flow :
+    #   1. If AutoCAD COM is reachable → FileIpcBackend (live).
+    #   2. Else if the folder exists AND the user explicitly forced it
+    #      via AUTOCAD_MCP_WATCH_DIR → FileIpcBackend (manual dispatch).
+    #   3. Else fall back to ezdxf (headless).
     if watch_dir.exists() and os.access(watch_dir, os.W_OK):
-        return FileIpcBackend(watch_dir=watch_dir)
+        candidate = FileIpcBackend(watch_dir=watch_dir)
+        if candidate._probe_com() is not None:
+            return candidate
+        if watch_dir_env:
+            return candidate
     return EzdxfHeadlessBackend(
         out_path=default_out or repo_root / "out" / "design_office.dxf"
     )
