@@ -19,6 +19,7 @@ import {
   type Zone,
 } from "../components/ui";
 import { useProjectState } from "../hooks/useProjectState";
+import { useLiveScreenshots } from "../hooks/useLiveScreenshots";
 import {
   fetchLumenFixture,
   fetchTestFitSample,
@@ -382,6 +383,29 @@ function MacroView({
             { roman: "IV", name: "Reviewer", status: "pending" },
           ];
 
+  // iter-24 P2 (Saad, 2026-04-24) : resolve the SketchUp iso URL for
+  // each variant card via a priority chain :
+  //   1. live_screenshots[id]  — set by /iterate, always freshest
+  //   2. v.raw.sketchup_shot_url — backend-served macro render from
+  //      the current /generate run, populated since iter-24 P1.
+  //   3. /sketchup/sketchup_variant_{id}.png — static Lumen fixture,
+  //      ONLY when the active plan is the Lumen fixture (otherwise
+  //      serving Lumen renders on a Nordlight-style project is the
+  //      desync bug Saad reported in iter-24).
+  //   4. null — VariantCard renders a "capturing…" skeleton instead
+  //      of the broken hatched placeholder.
+  const liveShots = useLiveScreenshots();
+  const planName = state.kind === "done" ? state.plan?.name ?? "" : "";
+  const isLumenPlan = planName === "Lumen plateau (fixture)";
+  const resolveShotUrl = (v: DesignVariant): string | null => {
+    const live = liveShots[v.id];
+    if (live) return live;
+    const backend = v.raw.sketchup_shot_url;
+    if (backend) return backend;
+    if (isLumenPlan) return `/sketchup/sketchup_variant_${v.id}.png`;
+    return null;
+  };
+
   return (
     <>
       {/* Variants grid */}
@@ -391,6 +415,7 @@ function MacroView({
             <VariantCard
               key={v.id}
               v={v}
+              imgUrl={resolveShotUrl(v)}
               isActive={v.id === active}
               onPick={() => onPickVariant(v.id)}
               onDrill={onDrill}
@@ -571,11 +596,16 @@ function ContinueChain({ onDrill }: { onDrill: () => void }) {
 
 function VariantCard({
   v,
+  imgUrl,
   isActive,
   onPick,
   onDrill,
 }: {
   v: DesignVariant;
+  /** iter-24 P2 : resolved by the parent via live_screenshots → backend
+   *  URL → Lumen fixture (IF plan is Lumen) → null. When null the card
+   *  renders a "capturing…" skeleton instead of a broken placeholder. */
+  imgUrl: string | null;
   isActive: boolean;
   onPick: () => void;
   onDrill: () => void;
@@ -590,12 +620,6 @@ function VariantCard({
           : v.pigment === "sun"
             ? "var(--sun)"
             : "var(--clay)";
-
-  // iter-22b (Saad, 2026-04-24) : 2D React SVG dropped from variant
-  // cards — the normalized-zone preview was noisy on real plans.
-  // Locked to 3D SketchUp iso renders only ; 2D will come back via
-  // AutoCAD XREF rendering once the full AutoCAD is wired.
-  const sketchupUrl = `/sketchup/sketchup_variant_${v.id}.png`;
 
   return (
     <div
@@ -647,7 +671,11 @@ function VariantCard({
         {v.pitch}
       </p>
 
-      {/* Preview — 3D SketchUp iso only. */}
+      {/* Preview — 3D SketchUp iso only.
+          iter-24 P2 : imgUrl is resolved by the parent. When null (new
+          project, SketchUp down, macro still running) we render a
+          subtle "capturing SketchUp…" skeleton instead of a broken
+          hatched placeholder. */}
       <div
         className="overflow-hidden rounded-lg border border-mist-100"
         style={{ background: "var(--canvas-alt)", padding: 0 }}
@@ -656,24 +684,30 @@ function VariantCard({
           className="relative flex aspect-[400/260] w-full items-center justify-center"
           style={{ background: "var(--canvas-alt)" }}
         >
-          <img
-            src={sketchupUrl}
-            alt={`${v.name} SketchUp iso render`}
-            className="h-full w-full object-contain"
-            onError={(e) => {
-              // If the fixture PNG is missing, fall back to a
-              // placeholder so the card doesn't break.
-              (e.currentTarget as HTMLImageElement).style.display = "none";
-              (e.currentTarget.nextElementSibling as HTMLElement | null)?.removeAttribute(
-                "hidden",
-              );
-            }}
-          />
+          {imgUrl ? (
+            <img
+              src={imgUrl}
+              alt={`${v.name} SketchUp iso render`}
+              className="h-full w-full object-contain"
+              onError={(e) => {
+                // The resolver already does priority chain ; if the
+                // resolved URL 404s (e.g. mid-generate, or the file
+                // was cleaned), swap to a "capturing…" skeleton so the
+                // card never shows a broken image icon.
+                (e.currentTarget as HTMLImageElement).style.display = "none";
+                (e.currentTarget.nextElementSibling as HTMLElement | null)?.removeAttribute(
+                  "hidden",
+                );
+              }}
+            />
+          ) : null}
           <div
-            hidden
+            hidden={!!imgUrl}
             className="placeholder-img absolute inset-0 flex items-center justify-center"
           >
-            <span>SKETCHUP ISO · {v.name.toUpperCase()}</span>
+            <span className="mono text-[11px] tracking-[0.14em] text-mist-500">
+              Capturing SketchUp…
+            </span>
           </div>
         </div>
       </div>
