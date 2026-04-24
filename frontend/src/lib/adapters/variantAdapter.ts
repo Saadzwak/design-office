@@ -72,6 +72,17 @@ export type DesignVariant = {
   };
   warnings: Array<{ text: string; kind: "adjacency" | "reviewer" }>;
   zones: Array<NormalisedZone & { label: string; kind: ZoneKind }>;
+  /** iter-21e — existing rooms + interior walls, normalised into 88×62.
+   *  Empty when Vision saw no interior partitioning. */
+  rooms: Array<NormalisedZone & { label: string | null; kind: string }>;
+  walls: Array<{
+    x1: number;
+    y1: number;
+    x2: number;
+    y2: number;
+    thicknessMm: number;
+    isLoadBearing: boolean | null;
+  }>;
   /** Pass-through for when a card wants to drill back to the raw output. */
   raw: VariantOutput;
 };
@@ -220,6 +231,63 @@ export function variantToDesign(
     ? agentTitle
     : (STYLE_NAME[variant.style] ?? variant.title ?? variant.style);
 
+  // iter-21e — normalise the existing rooms + interior walls into
+  // 88×62 so FloorPlan2D can render them underneath the variant
+  // zones. When Vision returned nothing, both arrays stay empty and
+  // the card renders exactly as before.
+  const roomsNorm: DesignVariant["rooms"] = [];
+  for (const r of plan.rooms ?? []) {
+    const pts = r.polygon.points;
+    if (!pts || pts.length < 3) continue;
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+    for (const p of pts) {
+      if (p.x < minX) minX = p.x;
+      if (p.y < minY) minY = p.y;
+      if (p.x > maxX) maxX = p.x;
+      if (p.y > maxY) maxY = p.y;
+    }
+    const bboxN = mmZoneToNormalised(
+      { x_mm: minX, y_mm: minY, w_mm: maxX - minX, h_mm: maxY - minY },
+      planSize,
+    );
+    if (bboxN.w <= 0 || bboxN.h <= 0) continue;
+    roomsNorm.push({
+      x: bboxN.x,
+      y: bboxN.y,
+      w: bboxN.w,
+      h: bboxN.h,
+      label: r.label ?? null,
+      kind: r.kind,
+    });
+  }
+  // Sort biggest-first so small rooms render on top of bigger ones
+  // (same trick as zones). Labels on small rooms stay visible.
+  roomsNorm.sort((a, b) => b.w * b.h - a.w * a.h);
+
+  const wallsNorm: DesignVariant["walls"] = (plan.interior_walls ?? []).map(
+    (seg) => {
+      const a = {
+        x: (seg.start.x / planSize.widthMm) * 88,
+        y: (seg.start.y / planSize.heightMm) * 62,
+      };
+      const b = {
+        x: (seg.end.x / planSize.widthMm) * 88,
+        y: (seg.end.y / planSize.heightMm) * 62,
+      };
+      return {
+        x1: a.x,
+        y1: a.y,
+        x2: b.x,
+        y2: b.y,
+        thicknessMm: seg.thickness_mm,
+        isLoadBearing: seg.is_load_bearing ?? null,
+      };
+    },
+  );
+
   return {
     id: variant.style,
     name: displayName,
@@ -233,6 +301,8 @@ export function variantToDesign(
     },
     warnings,
     zones,
+    rooms: roomsNorm,
+    walls: wallsNorm,
     raw: variant,
   };
 }

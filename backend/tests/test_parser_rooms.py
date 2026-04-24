@@ -6,6 +6,8 @@ JSON shape drift, coordinate-flip bugs, empty-list fallbacks)."""
 
 from __future__ import annotations
 
+import pytest
+
 from app.models import (
     FloorPlan,
     InteriorWall,
@@ -234,3 +236,79 @@ def _make_plan_with_rooms(rooms: list[Room]) -> FloorPlan:
         ),
         rooms=rooms,
     )
+
+
+# iter-21c — Scale calibration regression
+
+
+def test_fuse_uses_vision_real_dimensions_for_scale() -> None:
+    """iter-21c fix for "Lot 2 area = 3241 m²" bug : when Vision
+    returns `envelope_real_dimensions_m`, the fusion step must use
+    them to override the hardcoded MM_PER_PT=500. Without this, every
+    real PDF came out with 100× inflated surfaces."""
+
+    from app.pdf.parser import fuse
+
+    # Pretend the PDF has a primitive bounding box from 0 to 100 pt wide.
+    # At MM_PER_PT=500 (legacy) this would yield a 50 000 mm envelope.
+    # Vision says the real envelope is 25 m × 36 m → we expect
+    # 25 000 × 36 000 mm in the output.
+    vectors = {
+        "lines": [],
+        "rects": [{"x": 0, "y": 0, "w": 100, "h": 144}],
+        "circles": [],
+        "page_height_pt": 200,
+    }
+    vision = {
+        "envelope_real_dimensions_m": {
+            "width_m": 25.0,
+            "height_m": 36.0,
+            "source": "scale_label",
+            "confidence": 0.95,
+        },
+        "rooms_px": [],
+        "interior_walls_px": [],
+        "openings_px": [],
+        "windows_px": [],
+    }
+    plan = fuse(vectors, vision, image_size=(2576, 2576))
+    xs = [p.x for p in plan.envelope.points]
+    ys = [p.y for p in plan.envelope.points]
+    # Tolerance 100 mm — the aspect-ratio-based calibration yields a
+    # uniform scale, so height may round differently from width.
+    assert abs(max(xs) - 25_000) < 100
+    assert abs(max(ys) - 36_000) < 200
+    assert plan.real_width_m is not None and abs(plan.real_width_m - 25.0) < 0.2
+    assert plan.real_height_m is not None and abs(plan.real_height_m - 36.0) < 0.3
+
+
+def test_fuse_rejects_absurd_vision_dimensions() -> None:
+    """Out-of-range dims (< 150 m² or > 8000 m²) must be ignored and
+    fall back to the legacy MM_PER_PT — prevents a hallucinating
+    Vision run from breaking the whole pipeline."""
+
+    from app.pdf.parser import MM_PER_PT, fuse
+
+    vectors = {
+        "lines": [],
+        "rects": [{"x": 0, "y": 0, "w": 100, "h": 100}],
+        "circles": [],
+        "page_height_pt": 200,
+    }
+    # Vision claims 500 m × 500 m = 250 000 m² — absurd.
+    vision = {
+        "envelope_real_dimensions_m": {
+            "width_m": 500.0,
+            "height_m": 500.0,
+            "source": "inferred",
+            "confidence": 0.3,
+        },
+        "rooms_px": [],
+        "interior_walls_px": [],
+        "openings_px": [],
+        "windows_px": [],
+    }
+    plan = fuse(vectors, vision, image_size=(2576, 2576))
+    # Must have fallen back to MM_PER_PT (=500) → 100 pt × 500 = 50 000 mm.
+    xs = [p.x for p in plan.envelope.points]
+    assert max(xs) == pytest.approx(100 * MM_PER_PT, rel=0.01)

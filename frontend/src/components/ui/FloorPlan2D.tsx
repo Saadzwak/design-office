@@ -54,6 +54,32 @@ export const ZONE_COLORS: Record<
   },
 };
 
+/**
+ * iter-21e — existing interior partitioning, all in 88 × 62 space.
+ * Rendered underneath the variant zones as a filigree so the client
+ * sees BOTH the as-built rooms AND how the generator places zones on
+ * them. Populated by the variantAdapter when the FloorPlan carries
+ * Vision-extracted rooms + walls ; empty arrays otherwise.
+ */
+export type RoomOverlay = {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  label: string | null;
+  kind: string;
+};
+
+export type WallOverlay = {
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+  /** Rough thickness hint — rendered as stroke width scaled to SVG space. */
+  thicknessMm: number;
+  isLoadBearing: boolean | null;
+};
+
 type Props = {
   zones: Zone[];
   /** Render a numbered circle at each zone's centre instead of a corner label. */
@@ -68,6 +94,10 @@ type Props = {
   /** Extra elements to render on top of the plan (arrows, annotations). */
   children?: ReactNode;
   ariaLabel?: string;
+  /** iter-21e — existing rooms (as-built) drawn in filigree under zones. */
+  rooms?: RoomOverlay[];
+  /** iter-21e — interior wall segments, drawn above rooms, below zones. */
+  walls?: WallOverlay[];
 };
 
 /**
@@ -108,11 +138,38 @@ export default function FloorPlan2D({
   style,
   children,
   ariaLabel,
+  rooms = [],
+  walls = [],
 }: Props) {
   const { w, h } = size;
   const INSET = 8;
   const INNER_W = w - INSET * 2;
   const INNER_H = h - INSET * 2;
+
+  // iter-21e — normalised 88 × 62 → SVG-pixel mapping for overlay
+  // primitives. Rooms as dashed sand polygons, walls as ink strokes.
+  const mapX = (nx: number) => INSET + INNER_W * (nx / NORM_W);
+  const mapY = (ny: number) => INSET + INNER_H * (ny / NORM_H);
+  const shapedRooms = rooms.map((r, i) => ({
+    i,
+    label: r.label,
+    px: mapX(r.x),
+    py: mapY(r.y),
+    pw: INNER_W * (r.w / NORM_W),
+    ph: INNER_H * (r.h / NORM_H),
+  }));
+  const shapedWalls = walls.map((seg, i) => ({
+    i,
+    x1: mapX(seg.x1),
+    y1: mapY(seg.y1),
+    x2: mapX(seg.x2),
+    y2: mapY(seg.y2),
+    // 150 mm wall in a 25 000 mm-wide envelope → 0.6 % of the width.
+    // At w=400 px that's 2.4 px, readable at the card scale. Scale by
+    // thickness proportionally, clamp for legibility.
+    strokeWidth: Math.min(3, Math.max(0.8, (seg.thicknessMm / 150) * 1.2)),
+    isLoadBearing: seg.isLoadBearing,
+  }));
 
   const colFor = (kind: string) =>
     (kind in ZONE_COLORS ? ZONE_COLORS[kind as ZoneKind] : ZONE_COLORS.work);
@@ -225,6 +282,67 @@ export default function FloorPlan2D({
           />
         ))}
       </g>
+
+      {/* iter-21e — existing rooms (as-built), drawn in filigree so
+          architects see how the generator placed zones on the real
+          plan. Dashed sand polygons, semi-transparent fill, ink
+          strokes. Hidden when `rooms` is empty. */}
+      {shapedRooms.length > 0 && (
+        <g pointerEvents="none">
+          {shapedRooms.map((r) => (
+            <g key={`room-${r.i}`}>
+              <rect
+                x={r.px}
+                y={r.py}
+                width={r.pw}
+                height={r.ph}
+                fill="rgba(201, 183, 156, 0.20)"
+                stroke="rgba(28, 31, 26, 0.55)"
+                strokeWidth={0.6}
+                strokeDasharray="4 2"
+                rx={1}
+              />
+              {r.label && r.pw >= 22 && r.ph >= 12 && (
+                <text
+                  x={r.px + r.pw / 2}
+                  y={r.py + r.ph / 2 + 3}
+                  textAnchor="middle"
+                  fontFamily="Inter, sans-serif"
+                  fontSize={8}
+                  fontWeight={500}
+                  fill="rgba(28, 31, 26, 0.8)"
+                  paintOrder="stroke fill"
+                  stroke="var(--canvas-alt, #F3EEE5)"
+                  strokeWidth={1.5}
+                  strokeLinejoin="round"
+                >
+                  {truncate(r.label, Math.max(4, Math.floor(r.pw / 5)))}
+                </text>
+              )}
+            </g>
+          ))}
+        </g>
+      )}
+
+      {/* iter-21e — interior wall segments. Load-bearing walls
+          drawn thicker + darker ; regular cloisons thinner. Drawn
+          on top of rooms, underneath zones. */}
+      {shapedWalls.length > 0 && (
+        <g pointerEvents="none">
+          {shapedWalls.map((seg) => (
+            <line
+              key={`wall-${seg.i}`}
+              x1={seg.x1}
+              y1={seg.y1}
+              x2={seg.x2}
+              y2={seg.y2}
+              stroke={seg.isLoadBearing ? "rgba(28, 31, 26, 0.75)" : "rgba(28, 31, 26, 0.55)"}
+              strokeWidth={seg.strokeWidth * (seg.isLoadBearing ? 1.4 : 1)}
+              strokeLinecap="butt"
+            />
+          ))}
+        </g>
+      )}
 
       {/* Zones — render biggest-first (caller's sort order) so
           smaller zones stack ON TOP and stay visible. */}

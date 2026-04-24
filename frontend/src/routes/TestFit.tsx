@@ -663,6 +663,8 @@ function VariantCard({
         {view === "2d" ? (
           <FloorPlan2D
             zones={v.zones as Zone[]}
+            rooms={v.rooms}
+            walls={v.walls}
             size={{ w: 400, h: 260 }}
             ariaLabel={`${v.name} macro-zoning`}
           />
@@ -920,6 +922,8 @@ function MicroView({
           >
             <FloorPlan2D
               zones={activeVariant.zones as Zone[]}
+              rooms={activeVariant.rooms}
+              walls={activeVariant.walls}
               numbered
               size={{ w: 720, h: 460 }}
               ariaLabel={`${activeVariant.name} micro-zoning`}
