@@ -49,6 +49,7 @@ import {
   type DesignVariant,
 } from "../lib/adapters/variantAdapter";
 import PseudoThreeDViewer from "../components/viewer/PseudoThreeDViewer";
+import VariantZoomModal from "../components/viewer/VariantZoomModal";
 import { planSizeFromEnvelope } from "../lib/adapters/coordinates";
 
 type Tab = "macro" | "micro";
@@ -87,6 +88,12 @@ export default function TestFit() {
   );
   const [instruction, setInstruction] = useState("");
   const [iterating, setIterating] = useState(false);
+
+  // iter-25 (Saad, 2026-04-25) — zoom modal state. `zoomedStyle` holds
+  // the variant style currently being zoomed on ; null means the
+  // modal is closed. We key by style rather than the DesignVariant
+  // object so re-renders of the list don't invalidate the reference.
+  const [zoomedStyle, setZoomedStyle] = useState<VariantStyle | null>(null);
 
   // Hydrate on mount. Iter-20 critical fix (Saad #6, #8, #12) :
   //
@@ -301,6 +308,8 @@ export default function TestFit() {
           state={state}
           variants={designVariants}
           active={active}
+          zoomedStyle={zoomedStyle}
+          setZoomedStyle={setZoomedStyle}
           onPickVariant={onRetain}
           onGenerate={onGenerate}
           onDrill={() => onPickTab("micro")}
@@ -328,6 +337,8 @@ function MacroView({
   state,
   variants,
   active,
+  zoomedStyle,
+  setZoomedStyle,
   onPickVariant,
   onGenerate,
   onDrill,
@@ -339,6 +350,9 @@ function MacroView({
   state: State;
   variants: DesignVariant[];
   active: VariantStyle;
+  /** iter-25 — variant style currently zoomed in the modal, or null. */
+  zoomedStyle: VariantStyle | null;
+  setZoomedStyle: (s: VariantStyle | null) => void;
   onPickVariant: (s: VariantStyle) => void;
   onGenerate: () => void;
   onDrill: () => void;
@@ -420,6 +434,7 @@ function MacroView({
               isActive={v.id === active}
               onPick={() => onPickVariant(v.id)}
               onDrill={onDrill}
+              onZoom={() => setZoomedStyle(v.id)}
             />
           ))}
         </div>
@@ -559,6 +574,27 @@ function MacroView({
           {state.message}
         </div>
       )}
+
+      {/* iter-25 — zoom modal. Mounted at the MacroView level so the
+          AnimatePresence fade/scale transition runs cleanly when the
+          parent grid re-renders. `zoomedStyle` is null when closed. */}
+      <VariantZoomModal
+        variant={
+          zoomedStyle
+            ? variants.find((v) => v.id === zoomedStyle) ?? null
+            : null
+        }
+        imgUrl={
+          zoomedStyle
+            ? (() => {
+                const v = variants.find((vv) => vv.id === zoomedStyle);
+                return v ? resolveShotUrl(v) : null;
+              })()
+            : null
+        }
+        isActive={zoomedStyle === active}
+        onClose={() => setZoomedStyle(null)}
+      />
     </>
   );
 }
@@ -601,6 +637,7 @@ function VariantCard({
   isActive,
   onPick,
   onDrill,
+  onZoom,
 }: {
   v: DesignVariant;
   /** iter-24 P2 : resolved by the parent via live_screenshots → backend
@@ -610,6 +647,10 @@ function VariantCard({
   isActive: boolean;
   onPick: () => void;
   onDrill: () => void;
+  /** iter-25 — open the zoom modal on the variant's render. Fires on
+   *  click of the image / inline viewer ; stops propagation so the
+   *  card-level onPick (selection) doesn't also fire. */
+  onZoom: () => void;
 }) {
   const pigmentBackground =
     v.pigment === "forest"
@@ -682,9 +723,27 @@ function VariantCard({
           iso for a PseudoThreeDViewer with orbit + thumbnails dock
           + cursor parallax. Non-active cards stay on single iso to
           keep the grid light. */}
+      {/* iter-25 — clicking the render zone opens the zoom modal.
+          stopPropagation prevents the card-level onPick from also
+          firing : zoom is a separate gesture from "make this the
+          active variant" (the rest of the card area still picks). */}
       <div
         className="overflow-hidden rounded-lg border border-mist-100"
-        style={{ background: "var(--canvas-alt)", padding: 0 }}
+        style={{ background: "var(--canvas-alt)", padding: 0, cursor: "zoom-in" }}
+        onClick={(e) => {
+          e.stopPropagation();
+          onZoom();
+        }}
+        role="button"
+        aria-label={`Zoom ${v.name} render`}
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            e.stopPropagation();
+            onZoom();
+          }
+        }}
       >
         {isActive && v.raw.sketchup_shot_urls && Object.keys(v.raw.sketchup_shot_urls).length >= 2 ? (
           <div className="aspect-[400/260] w-full">
