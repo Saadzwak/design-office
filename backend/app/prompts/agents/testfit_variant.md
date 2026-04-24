@@ -88,6 +88,21 @@ cluster origin + 300 mm (= someone working), a plant in the middle
 of the collab zone (z=0, trunk rises automatically), a phone booth
 hero where the cluster of Framery pods lives in real life.
 
+## JSON hygiene (iter-22c, Saad 2026-04-24)
+
+Your response will be parsed by `json.loads()`. Three rules that have
+caused rejections on the Lovable plan and must not be broken :
+
+1. **Narrative is 3–5 paragraphs MAX, ≈ 800–1200 words total.** Write
+   tight, no novels. Long narratives push the variant JSON past the
+   token cap and the string ends up unterminated — you are REJECTED.
+2. **Every `"` inside a string value must be escaped as `\\"`** or
+   replaced with `«  »` French guillemets / `' '` simple quotes. A
+   raw `"` inside `narrative` ends the string early and breaks the
+   parser.
+3. **Close every string with `"` before moving to the next field.**
+   Never let a field trail into the next one.
+
 ## Hard rules
 
 - Every zone you place must respect :

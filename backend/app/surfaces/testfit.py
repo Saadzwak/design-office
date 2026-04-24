@@ -275,9 +275,12 @@ class TestFitSurface:
                 name=style.value,
                 system_prompt=system,
                 user_template=_VARIANT_USER,
-                # Variant JSON with narrative + 30-60 zones + metrics runs 7-10 k
-                # tokens. Keep comfortable headroom; Opus 4.7 supports 32 k output.
-                max_tokens=16000,
+                # iter-22c (Saad, 2026-04-24) : bumped to 32 k (Opus 4.7
+                # ceiling). On the real Lovable plan with 40+ rooms +
+                # hero entities + long narrative, 16 k was hitting the
+                # cap mid-string and emitting unterminated JSON. 32k
+                # gives Opus room to close every string cleanly.
+                max_tokens=32000,
             )
             for style in VariantStyle
         ]
@@ -409,7 +412,9 @@ class TestFitSurface:
                     name=style.value,
                     system_prompt=system,
                     user_template=_VARIANT_USER,
-                    max_tokens=16000,
+                    # iter-22c — 32 k to avoid mid-string truncation
+                    # on big Lovable-scale variants (40+ rooms + heroes).
+                    max_tokens=32000,
                 ),
             )
             for style in styles
@@ -838,6 +843,59 @@ def _truncate_to_last_balanced(text: str) -> str:
     return text
 
 
+def _close_unterminated_json(text: str) -> str:
+    """iter-22c : last-resort repair for outputs truncated mid-string
+    (Opus hit max_tokens before closing the narrative). Walks the text
+    with the same bracket + string stack as `_truncate_to_last_balanced`
+    and, if the scan ends mid-string or mid-object, appends the
+    minimum characters needed to close everything cleanly :
+
+      - `"` if still inside a string
+      - `]` / `}` for each unclosed opening, in the right order
+
+    The recovered output has empty zones / placeholder values past the
+    truncation point, but at least the caller gets a valid JSON object
+    with whatever fields Opus DID manage to finish (style, title, at
+    least a partial narrative). Much better than score=0 parse_error."""
+
+    depth_stack: list[str] = []  # tracks '{' / '['
+    in_string = False
+    escape = False
+    for ch in text:
+        if in_string:
+            if escape:
+                escape = False
+            elif ch == "\\":
+                escape = True
+            elif ch == '"':
+                in_string = False
+            continue
+        if ch == '"':
+            in_string = True
+        elif ch == "{":
+            depth_stack.append("{")
+        elif ch == "[":
+            depth_stack.append("[")
+        elif ch == "}" and depth_stack and depth_stack[-1] == "{":
+            depth_stack.pop()
+        elif ch == "]" and depth_stack and depth_stack[-1] == "[":
+            depth_stack.pop()
+
+    if not in_string and not depth_stack:
+        return text  # already balanced, no-op
+
+    suffix = ""
+    # If stuck in a string, close it (content past truncation is lost).
+    if in_string:
+        suffix += '"'
+    # Close every opening in reverse order. The last thing we were
+    # inside is at the top of the stack, so pop from the top.
+    while depth_stack:
+        opener = depth_stack.pop()
+        suffix += "}" if opener == "{" else "]"
+    return text + suffix
+
+
 def _strip_json(text: str) -> str:
     """Extract a parseable JSON object from Opus's raw output.
 
@@ -870,8 +928,14 @@ def _strip_json(text: str) -> str:
     # Strip trailing commas before `]` or `}`.
     stripped = _TRAILING_COMMA_RE.sub(r"\1", stripped)
     # iter-21f — last line of defence : cut at the last balanced close.
-    stripped = _truncate_to_last_balanced(stripped)
-    return stripped
+    # iter-22c — BUT if the scan says we never closed (truncated
+    # mid-string, ran out of tokens), fall back to
+    # `_close_unterminated_json` which appends whatever closers are
+    # missing so at least the fields that DID finish are recoverable.
+    balanced = _truncate_to_last_balanced(stripped)
+    if balanced and balanced.endswith("}"):
+        return balanced
+    return _close_unterminated_json(stripped)
 
 
 def _summarise_existing_rooms(plan: FloorPlan) -> str:
