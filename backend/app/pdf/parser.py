@@ -8,11 +8,18 @@ Fusion step : reconcile the two into a single FloorPlan.
 from __future__ import annotations
 
 import base64
+import hashlib
 import io
 import json
 import math
 from pathlib import Path
 from typing import Any
+
+# iter-21d (Phase B) — persist parsed source PDFs so the variant
+# generator can drop them into SketchUp as a reference layer underneath
+# the zones. Indexed by content hash to dedupe re-uploads.
+BACKEND_ROOT = Path(__file__).resolve().parent.parent
+PLANS_DIR = BACKEND_ROOT / "out" / "plans"
 
 import fitz
 from PIL import Image
@@ -757,6 +764,12 @@ def fuse(
 
     confidence = 0.9 if vision else 0.7
     notes = "Vision HD + PyMuPDF fusion" if vision else "PyMuPDF only (Vision skipped)"
+    # iter-21d — surface the real-world dimensions on the FloorPlan so
+    # downstream (SketchUp import, PPT export, dashboards) can label
+    # the plate in m² without having to recompute. plate_w/h_mm are
+    # already post-scale-calibration above.
+    real_width_m = round(plate_w_mm / 1000.0, 3) if plate_w_mm > 0 else None
+    real_height_m = round(plate_h_mm / 1000.0, 3) if plate_h_mm > 0 else None
     return FloorPlan(
         level=0,
         name="Lumen plateau (fixture)",
@@ -770,7 +783,37 @@ def fuse(
         openings=openings_out,
         source_confidence=confidence,
         source_notes=notes,
+        real_width_m=real_width_m,
+        real_height_m=real_height_m,
     )
+
+
+def save_source_pdf(raw_bytes: bytes) -> str:
+    """Persist an uploaded PDF under `out/plans/{sha256}.pdf` and
+    return its content-hash id. Dedupes automatically on re-uploads
+    of the same file — the id is deterministic. Returns the id, not
+    the path ; callers use `resolve_source_pdf(id)` to get the path."""
+
+    PLANS_DIR.mkdir(parents=True, exist_ok=True)
+    digest = hashlib.sha256(raw_bytes).hexdigest()[:32]
+    target = PLANS_DIR / f"{digest}.pdf"
+    if not target.exists():
+        target.write_bytes(raw_bytes)
+    return digest
+
+
+def resolve_source_pdf(plan_source_id: str | None) -> Path | None:
+    """Look up the on-disk PDF path for a content-hash id. Returns None
+    if the id is unsafe (not 32 hex chars) or the file has been purged."""
+
+    if not plan_source_id:
+        return None
+    if len(plan_source_id) != 32 or any(
+        c not in "0123456789abcdef" for c in plan_source_id
+    ):
+        return None
+    candidate = PLANS_DIR / f"{plan_source_id}.pdf"
+    return candidate if candidate.exists() else None
 
 
 def parse_pdf(pdf_path: Path, use_vision: bool | None = None) -> FloorPlan:

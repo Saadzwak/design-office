@@ -144,6 +144,16 @@ class FloorPlan(BaseModel):
     text_labels: list[str] = Field(default_factory=list)
     source_confidence: float = Field(default=1.0, ge=0.0, le=1.0)
     source_notes: str | None = None
+    # iter-21d (Phase B) — content-hash id of the source PDF, so the
+    # testfit generator can locate the file on disk and drop it into
+    # SketchUp as a reference layer underneath each variant. None when
+    # the plan was synthesised (fixture) or came from a legacy path.
+    plan_source_id: str | None = None
+    # iter-21d — real-world envelope dimensions Vision derived at parse
+    # time. Kept on the FloorPlan so downstream (MCP import_plan_pdf,
+    # the Justify PPT export, etc.) doesn't have to re-compute.
+    real_width_m: float | None = None
+    real_height_m: float | None = None
 
     @field_validator("envelope")
     @classmethod

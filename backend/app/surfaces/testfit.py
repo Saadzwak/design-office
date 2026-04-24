@@ -495,6 +495,11 @@ class TestFitSurface:
 
             facade = SketchUpFacade(backend=get_backend())
             facade.new_scene(name=f"{client_name} — {style.value}")
+            # iter-21d (Phase B) — drop the source PDF as a reference
+            # layer underneath the variant geometry, so architects see
+            # the real plan and the generated zones as a single scene.
+            # No-op on the mock backend (returns ok=True, mock=True).
+            _import_reference_plan_if_available(facade, floor_plan)
             _replay_floor_plan(facade, floor_plan)
             _replay_zones(facade, variant_obj.get("zones", []))
             shot = facade.screenshot(view_name="iso")
@@ -674,6 +679,39 @@ def _zones_from_trace(trace: list[dict]) -> list[dict]:
         elif tool == "apply_biophilic_zone":
             zones.append({"kind": "biophilic_zone", **params})
     return zones
+
+
+def _import_reference_plan_if_available(
+    facade: SketchUpFacade, plan: FloorPlan
+) -> None:
+    """Best-effort SketchUp reference-plan import.
+
+    iter-21d (Phase B) : if the FloorPlan carries a `plan_source_id`
+    AND Vision inferred real envelope dimensions, we ask the MCP facade
+    to drop the source PDF as a reference image underneath the variant
+    scene. Any failure (PDF expired from disk, SketchUp not live,
+    mock backend) returns silently — the variant still renders, just
+    without the underlay. Never raises.
+    """
+
+    from app.pdf.parser import resolve_source_pdf
+
+    pdf_path = resolve_source_pdf(plan.plan_source_id)
+    if pdf_path is None:
+        return
+    width_m = plan.real_width_m
+    height_m = plan.real_height_m
+    if not width_m or not height_m or width_m <= 0 or height_m <= 0:
+        return
+    try:
+        facade.import_plan_pdf(
+            pdf_path=str(pdf_path),
+            width_m=float(width_m),
+            height_m=float(height_m),
+        )
+    except Exception:  # noqa: BLE001
+        # Never crash a variant because the reference layer failed.
+        return
 
 
 def _replay_floor_plan(facade: SketchUpFacade, plan: FloorPlan) -> None:
@@ -979,6 +1017,16 @@ _ITERATE_USER = """Client : {client_name}
 {floor_plan_json}
 </floor_plan>
 
+Live SketchUp scene snapshot — what the model currently contains,
+read directly from the MCP (empty on mock backends). When non-empty,
+this is the authoritative geometry : the `variant_json` above may be
+stale after prior iterations. Prefer snapshot coordinates when the
+two disagree.
+
+<live_scene_state>
+{live_scene_state}
+</live_scene_state>
+
 <programme>
 {programme_markdown}
 </programme>
@@ -1016,6 +1064,18 @@ def iterate_variant(
         user_template=_ITERATE_USER,
         max_tokens=16000,
     )
+    # iter-21d (Phase B) — before prompting, read the live SketchUp
+    # state via MCP. On the mock backend this returns a stubbed empty
+    # payload — the prompt handles that gracefully. When SketchUp is
+    # live, the LLM sees what's actually in the model (post-iteration
+    # drift is eliminated).
+    read_facade = SketchUpFacade(backend=get_backend())
+    try:
+        live_state_dict = read_facade.read_scene_state()
+    except Exception:  # noqa: BLE001
+        live_state_dict = {"ok": False, "zones": [], "zone_count": 0}
+    live_scene_state = json.dumps(live_state_dict, ensure_ascii=False)
+
     context = {
         "client_name": request.client_name,
         "instruction": request.instruction,
@@ -1030,6 +1090,7 @@ def iterate_variant(
             ensure_ascii=False,
         ),
         "floor_plan_json": request.floor_plan.model_dump_json(),
+        "live_scene_state": live_scene_state,
         "programme_markdown": request.programme_markdown,
         "catalog_json": catalog_json,
         "ratios_json": ratios_json,
@@ -1057,6 +1118,9 @@ def iterate_variant(
 
     facade = SketchUpFacade(backend=get_backend())
     facade.new_scene(name=f"{request.client_name} — {new_variant.style.value} (iter)")
+    # iter-21d — re-import the reference PDF on iterate scenes too so
+    # the architect's view stays consistent across edits.
+    _import_reference_plan_if_available(facade, request.floor_plan)
     _replay_floor_plan(facade, request.floor_plan)
     _replay_zones(facade, payload.get("zones", []))
 

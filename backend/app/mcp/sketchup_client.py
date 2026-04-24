@@ -41,6 +41,25 @@ class RecordingMockBackend:
             return {"workstation": 0.0, "meeting": 0.0, "collab": 0.0, "support": 0.0}
         if tool == "screenshot":
             return {"path": f"sketchup-mock/{len(self.calls):03d}.png"}
+        # iter-21d — Phase B additions. Both return mock defaults so
+        # the rest of the pipeline doesn't branch on "SketchUp live or
+        # not" : upstream code sees the same shape either way.
+        if tool == "import_plan_pdf":
+            return {
+                "ok": True,
+                "mock": True,
+                "width_m": params.get("width_m"),
+                "height_m": params.get("height_m"),
+                "layer": "DO · Reference plan",
+            }
+        if tool == "read_scene_state":
+            return {
+                "ok": True,
+                "mock": True,
+                "envelope_bbox_mm": {"x0_mm": 0, "y0_mm": 0, "x1_mm": 0, "y1_mm": 0},
+                "zone_count": 0,
+                "zones": [],
+            }
         return {"ok": True}
 
     def trace(self) -> list[dict[str, Any]]:
@@ -309,6 +328,33 @@ class SketchUpFacade:
 
     def compute_surfaces_by_type(self) -> dict:
         return self.backend.call("compute_surfaces_by_type")
+
+    # iter-21d (Phase B) — reference-plan import + scene state readout.
+
+    def import_plan_pdf(
+        self, *, pdf_path: str, width_m: float, height_m: float
+    ) -> dict[str, Any]:
+        """Drop the client's PDF as a reference image underneath the
+        generated variant. The Ruby side places it at z=-10 mm on the
+        "DO · Reference plan" layer so variants render on top. Real
+        SketchUp required : on the mock backend this records the intent
+        and returns a mock payload, without crashing the flow.
+        """
+        return self.backend.call(
+            "import_plan_pdf",
+            pdf_path=pdf_path,
+            width_m=width_m,
+            height_m=height_m,
+        )
+
+    def read_scene_state(self) -> dict[str, Any]:
+        """Read the current SketchUp model and return the envelope bbox
+        plus the list of variant-layer groups (with name, layer, and mm
+        bbox). The iterate endpoint prepends this to its prompt so
+        "enlarge the boardroom" reasons on actual geometry, not the
+        Python-side FloorPlan mirror (which can drift after a few
+        iterations)."""
+        return self.backend.call("read_scene_state")
 
     def screenshot(self, view_name: str = "iso", out_path: str | None = None) -> str:
         """Capture an iso screenshot. When `out_path` is provided and the real

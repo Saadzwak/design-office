@@ -199,3 +199,120 @@ def test_strip_json_tolerates_inline_comments() -> None:
     parsed = _json.loads(_strip_json(raw))
     assert parsed["score"] == 85
     assert parsed["summary"] == "ok"
+
+
+# iter-21d — Phase B : SketchUp MCP reference-plan + read-scene-state
+
+
+def test_save_and_resolve_source_pdf_round_trip(tmp_path) -> None:
+    """Persistence of the uploaded PDF so the variant generator can
+    drop it into SketchUp. Same content → same id (dedupe); unsafe
+    ids (non-hex) resolve to None."""
+
+    from app.pdf.parser import resolve_source_pdf, save_source_pdf
+
+    raw = b"%PDF-1.4\n\n(fake content for test)\n%%EOF"
+    pdf_id = save_source_pdf(raw)
+    assert len(pdf_id) == 32
+    # Same bytes → same id.
+    assert save_source_pdf(raw) == pdf_id
+    # File exists on disk.
+    path = resolve_source_pdf(pdf_id)
+    assert path is not None and path.exists()
+    assert path.read_bytes() == raw
+    # Unsafe ids get None.
+    assert resolve_source_pdf(None) is None
+    assert resolve_source_pdf("../../../etc/passwd") is None
+    assert resolve_source_pdf("g" * 32) is None  # not hex
+
+
+def test_sketchup_facade_import_plan_pdf_on_mock() -> None:
+    """Mock backend must absorb import_plan_pdf without raising and
+    return a recognisable payload so the caller can still log."""
+
+    from app.mcp.sketchup_client import RecordingMockBackend, SketchUpFacade
+
+    backend = RecordingMockBackend()
+    facade = SketchUpFacade(backend=backend)
+    result = facade.import_plan_pdf(
+        pdf_path="/tmp/fake.pdf", width_m=25.5, height_m=36.2
+    )
+    assert result["ok"] is True
+    assert result.get("mock") is True
+    assert result["width_m"] == 25.5
+    assert result["height_m"] == 36.2
+    # The call was recorded in the trace.
+    trace = facade.trace()
+    assert any(c["tool"] == "import_plan_pdf" for c in trace)
+
+
+def test_sketchup_facade_read_scene_state_on_mock() -> None:
+    """Mock returns the canonical empty-scene payload so iterate's
+    prompt template handles the shape without crashing."""
+
+    from app.mcp.sketchup_client import RecordingMockBackend, SketchUpFacade
+
+    facade = SketchUpFacade(backend=RecordingMockBackend())
+    state = facade.read_scene_state()
+    assert state["ok"] is True
+    assert state["zone_count"] == 0
+    assert state["zones"] == []
+    assert "envelope_bbox_mm" in state
+
+
+def test_import_reference_plan_if_available_no_crash_without_pdf() -> None:
+    """The helper must silently no-op when plan_source_id is missing
+    or when the PDF has been purged — a variant must never crash on
+    a missing reference layer."""
+
+    from app.mcp.sketchup_client import RecordingMockBackend, SketchUpFacade
+    from app.models import FloorPlan, Point2D, Polygon2D
+    from app.surfaces.testfit import _import_reference_plan_if_available
+
+    plan = FloorPlan(
+        envelope=Polygon2D(
+            points=[
+                Point2D(x=0, y=0),
+                Point2D(x=10_000, y=0),
+                Point2D(x=10_000, y=10_000),
+                Point2D(x=0, y=10_000),
+            ]
+        ),
+        # No plan_source_id → helper should skip.
+    )
+    facade = SketchUpFacade(backend=RecordingMockBackend())
+    _import_reference_plan_if_available(facade, plan)
+    assert not any(c["tool"] == "import_plan_pdf" for c in facade.trace())
+
+
+def test_import_reference_plan_if_available_fires_with_pdf() -> None:
+    """With a valid plan_source_id + real dims, the helper must fire
+    the import_plan_pdf MCP call."""
+
+    from app.mcp.sketchup_client import RecordingMockBackend, SketchUpFacade
+    from app.models import FloorPlan, Point2D, Polygon2D
+    from app.pdf.parser import save_source_pdf
+    from app.surfaces.testfit import _import_reference_plan_if_available
+
+    pdf_id = save_source_pdf(b"%PDF-1.4\n(iter-21d test)\n%%EOF")
+    plan = FloorPlan(
+        envelope=Polygon2D(
+            points=[
+                Point2D(x=0, y=0),
+                Point2D(x=25_000, y=0),
+                Point2D(x=25_000, y=36_000),
+                Point2D(x=0, y=36_000),
+            ]
+        ),
+        plan_source_id=pdf_id,
+        real_width_m=25.0,
+        real_height_m=36.0,
+    )
+    facade = SketchUpFacade(backend=RecordingMockBackend())
+    _import_reference_plan_if_available(facade, plan)
+    import_calls = [c for c in facade.trace() if c["tool"] == "import_plan_pdf"]
+    assert len(import_calls) == 1
+    params = import_calls[0]["params"]
+    assert params["width_m"] == 25.0
+    assert params["height_m"] == 36.0
+    assert params["pdf_path"].endswith(".pdf")

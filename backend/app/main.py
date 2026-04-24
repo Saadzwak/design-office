@@ -277,6 +277,13 @@ async def testfit_parse(
     raw = await file.read()
     if not raw:
         raise HTTPException(status_code=400, detail="Empty file.")
+    # iter-21d (Phase B) — persist the PDF before parsing so the variant
+    # generator can drop it into SketchUp as a reference layer. The
+    # parsing itself still runs on a temp copy to keep PyMuPDF happy
+    # with its mutex-y file handles.
+    from app.pdf.parser import save_source_pdf
+
+    plan_source_id = save_source_pdf(raw)
     with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as fh:
         fh.write(raw)
         tmp = Path(fh.name)
@@ -284,7 +291,7 @@ async def testfit_parse(
         plan = parse_pdf(tmp, use_vision=use_vision)
     finally:
         tmp.unlink(missing_ok=True)
-    return plan
+    return plan.model_copy(update={"plan_source_id": plan_source_id})
 
 
 class TestFitGenerateRequest(BaseModel):

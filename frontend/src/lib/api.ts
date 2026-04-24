@@ -136,6 +136,12 @@ export type FloorPlan = {
   text_labels: string[];
   source_confidence: number;
   source_notes?: string | null;
+  // iter-21d (Phase B) — content-hash id of the source PDF so the
+  // SketchUp reference-layer import can find it, plus the real
+  // envelope dimensions Vision extracted at parse time.
+  plan_source_id?: string | null;
+  real_width_m?: number | null;
+  real_height_m?: number | null;
 };
 
 export type VariantMetrics = {

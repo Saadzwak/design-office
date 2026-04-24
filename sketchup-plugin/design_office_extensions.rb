@@ -500,5 +500,108 @@ module DesignOffice
   end
 end
 
+# ---------------------------------------------------------------------------
+# iter-21d (Phase B, 2026-04-24) — reference-plan import + scene introspection
+# ---------------------------------------------------------------------------
+#
+# Two capabilities the backend calls so the LLM can reason on the REAL plan
+# live in SketchUp, not on a synthesised FloorPlan :
+#
+#   - `import_plan_pdf` drops the client's PDF as an Image entity on a
+#     dedicated "DO · Reference plan" layer, sized to match the real-world
+#     envelope dimensions. Architects see the source drawing underneath the
+#     generated zones ; they can toggle the layer off to check the pure
+#     variant, toggle it on to verify the generator respected the
+#     Haussmannian partitions.
+#   - `read_scene_state` walks the model on the "DO · Variant" tags and
+#     returns compact JSON describing what's currently there (envelope,
+#     rooms, walls, zones with bboxes). The iterate endpoint prepends this
+#     to the LLM prompt so "enlarge the boardroom" reasons on the current
+#     geometry, not a stale Python model.
+#
+# Both are defensive : any Sketchup API error returns ok=false so the
+# surrounding variant pipeline doesn't blow up.
+
+module DesignOffice
+  REFERENCE_LAYER_NAME = 'DO · Reference plan'.freeze
+  VARIANT_LAYER_PREFIX = 'DO · Variant'.freeze
+
+  class << self
+    # iter-21d — Import a PDF page as an Image entity, scaled to the
+    # real-world envelope dimensions provided by Vision HD. On Windows
+    # SketchUp natively reads PDF via Sketchup.active_model.import. On
+    # Mac this requires a PDF→PNG pre-render — we fall back to PNG if
+    # `pdf_path` ends in `.png`.
+    def import_plan_pdf(pdf_path:, width_m:, height_m:)
+      return { ok: false, error: "No PDF path given" } if pdf_path.nil? || pdf_path.empty?
+      return { ok: false, error: "PDF not found: #{pdf_path}" } unless File.exist?(pdf_path)
+
+      with_operation('DO · Import reference plan') do
+        m = model
+        layer = m.layers[REFERENCE_LAYER_NAME] || m.layers.add(REFERENCE_LAYER_NAME)
+        # Remove any previous reference image — we only keep one calque.
+        m.entities.grep(Sketchup::Image).each do |img|
+          img.erase! if img.layer == layer
+        end
+        # Anchor the image at the origin, on Z = -10 mm so variant
+        # geometry (built at Z = 0) reads on top.
+        origin = Geom::Point3d.new(0, 0, mm(-10))
+        img = m.entities.add_image(pdf_path, origin, mm(width_m * 1000.0))
+        img.layer = layer
+        # Force the Y size to match our real dimensions (add_image uses
+        # the PDF's own aspect ratio by default).
+        img.height = mm(height_m * 1000.0)
+        { ok: true, width_m: width_m, height_m: height_m, layer: REFERENCE_LAYER_NAME }
+      end
+    end
+
+    # iter-21d — Walk the model entities and emit a compact JSON
+    # snapshot the LLM can chew on. Scales everything back to mm and
+    # keeps only what's semantically useful : envelope bbox, groups
+    # tagged as workstation_cluster / meeting_room / phone_booth /
+    # collab_zone, and raw face-edge lists for unlabelled walls.
+    def read_scene_state
+      with_operation('DO · Read scene state') do
+        m = model
+        entities = m.entities
+        bbox = entities.bounds
+        min_pt = bbox.min
+        max_pt = bbox.max
+        envelope = {
+          x0_mm: (min_pt.x / MM_TO_IN).round(0),
+          y0_mm: (min_pt.y / MM_TO_IN).round(0),
+          x1_mm: (max_pt.x / MM_TO_IN).round(0),
+          y1_mm: (max_pt.y / MM_TO_IN).round(0),
+        }
+
+        zones = []
+        entities.each do |ent|
+          next unless ent.is_a?(Sketchup::Group) || ent.is_a?(Sketchup::ComponentInstance)
+          layer_name = ent.layer.nil? ? nil : ent.layer.name
+          next unless layer_name&.start_with?(VARIANT_LAYER_PREFIX)
+          gb = ent.bounds
+          zones << {
+            name: ent.name.to_s,
+            layer: layer_name,
+            bbox_mm: [
+              (gb.min.x / MM_TO_IN).round(0),
+              (gb.min.y / MM_TO_IN).round(0),
+              (gb.max.x / MM_TO_IN).round(0),
+              (gb.max.y / MM_TO_IN).round(0),
+            ],
+          }
+        end
+
+        {
+          ok: true,
+          envelope_bbox_mm: envelope,
+          zone_count: zones.size,
+          zones: zones,
+        }
+      end
+    end
+  end
+end
+
 # Top-level banner so Saad sees the module loaded.
-puts "[DesignOffice] v#{DesignOffice::VERSION} loaded — #{DesignOffice.methods.grep(/^(create|place|apply)/).size} ops available."
+puts "[DesignOffice] v#{DesignOffice::VERSION} loaded — #{DesignOffice.methods.grep(/^(create|place|apply|import|read)/).size} ops available."
