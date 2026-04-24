@@ -264,7 +264,13 @@ def testfit_sample_floor_plan_2d_svg(style: str) -> Response:
 @app.post("/api/testfit/parse")
 async def testfit_parse(
     file: UploadFile = File(...),
-    use_vision: bool = Form(default=False),
+    # iter-21b (Saad, 2026-04-24) : flip the default to True so the
+    # room / wall / opening extraction actually runs on new uploads.
+    # Vision HD costs tokens but it IS the whole point — without it the
+    # variant generator lays out zones on a bare envelope (the "random
+    # rectangles" bug Saad reported). Opt-out explicitly via
+    # `use_vision=false` for cheap headless tests.
+    use_vision: bool = Form(default=True),
 ) -> FloorPlan:
     if file.content_type not in ("application/pdf", "application/octet-stream"):
         raise HTTPException(status_code=415, detail=f"Unsupported file type: {file.content_type}")

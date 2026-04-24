@@ -514,7 +514,10 @@ function AssetPlanDrop() {
     setParsing({ name: f.name });
     setErrorMsg("");
     try {
-      const parsed = await uploadPlanPdf(f, false);
+      // iter-21b : Vision HD must run to populate rooms / walls /
+      // openings — without them the testfit variant generator lays
+      // out zones on a bare envelope. Token cost is worth it.
+      const parsed = await uploadPlanPdf(f, true);
       setFloorPlan(parsed);
       toast("Floor plan parsed");
     } catch (err) {

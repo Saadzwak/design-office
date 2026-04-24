@@ -120,7 +120,13 @@ export default function NewProjectModal({ open, onClose, onCreated }: Props) {
 
     setParseState({ kind: "parsing", fileName: file.name });
     try {
-      const plan = await uploadPlanPdf(file, false);
+      // iter-21b (Saad, 2026-04-24) : force Vision HD on every upload.
+      // Without it the parser returns rooms=[] / interior_walls=[] /
+      // openings=[] and the variant generator falls back to laying out
+      // zones on a bare envelope (the "random rectangles" bug). The
+      // token cost on a Lumen-sized plan is ~3-5 k input, ~1.5 k
+      // output — worth it for the semantic understanding.
+      const plan = await uploadPlanPdf(file, true);
       setParseState({ kind: "ready", plan, fileName: file.name });
     } catch (err) {
       setParseState({
