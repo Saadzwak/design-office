@@ -237,6 +237,13 @@ class VariantOutput(BaseModel):
         description="Recorded tool calls to SketchUp MCP (mockable).",
     )
     screenshot_paths: list[str] = Field(default_factory=list)
+    # iter-24 P1 (Saad, 2026-04-24) : URL relative to the backend root
+    # that the frontend can plug directly into `<img src>`. None when no
+    # screenshot was captured (mock backend, SketchUp down, or the
+    # screenshot file was <1 KB — i.e. not a real render). Keeping
+    # `screenshot_paths` alongside for backwards compat with older
+    # fixtures + anything that still reads the raw disk path.
+    sketchup_shot_url: str | None = None
     # iter-17 B : adjacency audit is optional so older fixtures
     # deserialize unchanged. Newly generated variants include it.
     adjacency_audit: AdjacencyAudit | None = None

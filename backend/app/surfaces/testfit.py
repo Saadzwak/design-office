@@ -526,6 +526,17 @@ class TestFitSurface:
             futures = [pool.submit(_run, a, s) for s, a in agents]
             results = [f.result() for f in futures]
 
+        # iter-24 P1 (Saad, 2026-04-24) — shared run_id so every
+        # variant screenshot file goes into sketchup_shots with a
+        # unique, sortable name : macro_<run_id>_<style>.png.
+        # This replaces the old `facade.screenshot(view_name="iso")`
+        # call which was missing `out_path=` entirely — SketchUp
+        # MCP only persists a PNG to disk when path= is given, so
+        # the old macro pipeline never wrote anything and the
+        # frontend had no live render to display.
+        SKETCHUP_SHOTS_DIR.mkdir(parents=True, exist_ok=True)
+        run_id = uuid.uuid4().hex[:12]
+
         # Replay each variant on the SketchUp (mock) backend and build
         # the VariantOutput. With tool_use there's no parse error path
         # — only the rare API-level failure, which yields an empty
@@ -563,7 +574,30 @@ class TestFitSurface:
             _import_reference_plan_if_available(facade, floor_plan)
             _replay_floor_plan(facade, floor_plan)
             _replay_zones(facade, variant_obj.get("zones", []))
-            shot = facade.screenshot(view_name="iso")
+
+            # iter-24 P1 — capture a fresh iso PNG on disk and expose
+            # its URL. On the mock backend `screenshot` returns a
+            # made-up path and no file is written ; we detect that
+            # via `shot_path.exists()` and leave `sketchup_shot_url`
+            # as None so the frontend knows to fall back.
+            shot_filename = f"macro_{run_id}_{style.value}.png"
+            shot_path = SKETCHUP_SHOTS_DIR / shot_filename
+            try:
+                facade.screenshot(view_name="iso", out_path=str(shot_path))
+            except Exception as exc:  # noqa: BLE001
+                # SketchUp may be down ; graceful degradation, but we
+                # log the failure so an architect can tell the pipeline
+                # ran without a render vs a real SketchUp crash.
+                print(
+                    f"[testfit.generate] screenshot failed for {style.value}: "
+                    f"{type(exc).__name__}: {exc}",
+                    flush=True,
+                )
+            sketchup_shot_url: str | None = None
+            screenshot_paths: list[str] = []
+            if shot_path.exists() and shot_path.stat().st_size > 1024:
+                sketchup_shot_url = f"/api/testfit/screenshot/{shot_filename}"
+                screenshot_paths = [str(shot_path)]
 
             metrics = VariantMetrics(**variant_obj.get("metrics", {}))
             variants.append(
@@ -573,7 +607,8 @@ class TestFitSurface:
                     narrative=variant_obj.get("narrative", ""),
                     metrics=metrics,
                     sketchup_trace=facade.trace(),
-                    screenshot_paths=[shot] if shot else [],
+                    screenshot_paths=screenshot_paths,
+                    sketchup_shot_url=sketchup_shot_url,
                 )
             )
 
@@ -1253,6 +1288,10 @@ def iterate_variant(
         update={
             "sketchup_trace": facade.trace(),
             "screenshot_paths": [str(shot_path)] if screenshot_url else [],
+            # iter-24 P1 — same URL field the macro /generate populates,
+            # so VariantCard can read one channel regardless of which
+            # endpoint produced the variant.
+            "sketchup_shot_url": screenshot_url,
         }
     )
 

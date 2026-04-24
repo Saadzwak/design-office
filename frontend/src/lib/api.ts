@@ -181,6 +181,11 @@ export type VariantOutput = {
   metrics: VariantMetrics;
   sketchup_trace: Array<{ tool: string; params: Record<string, unknown> }>;
   screenshot_paths: string[];
+  /** iter-24 P1 : backend-served URL for the freshly captured iso
+   *  render. Null when the mock backend or SketchUp-down path is taken ;
+   *  the frontend should then fall back to `live_screenshots` (post-
+   *  iterate state) or a Lumen fixture if the project IS Lumen. */
+  sketchup_shot_url?: string | null;
   /** iter-17 B : optional adjacency audit (null on pre-iter-17 fixtures). */
   adjacency_audit?: AdjacencyAudit | null;
 };
