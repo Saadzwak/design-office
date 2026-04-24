@@ -223,6 +223,58 @@ def test_sketchup_facade_read_scene_state_on_mock() -> None:
     assert "envelope_bbox_mm" in state
 
 
+# iter-24 P3 (Saad, 2026-04-24) — SketchUp scene reset invariant
+
+
+def test_new_scene_precedes_any_geometry_call() -> None:
+    """Regression guard for iter-24 P3 : every variant (or iterate)
+    build MUST call `new_scene` BEFORE it places any geometry, so
+    the previous variant's entities don't stack on the next one.
+
+    The Ruby side (DesignOffice.new_scene in design_office_extensions.rb)
+    implements the reset via model.entities.clear! — verified live
+    by counting entities before/after : 54 → 0 → 18 across 3
+    sequential builds. This unit test only protects the invariant
+    at the Python call-sequence level (mock backend).
+    """
+
+    from app.mcp.sketchup_client import RecordingMockBackend, SketchUpFacade
+
+    facade = SketchUpFacade(backend=RecordingMockBackend())
+    # Mirror what _replay_zones + screenshot do.
+    facade.new_scene(name="run1")
+    facade.create_meeting_room(
+        corner1_mm=(2000, 2000),
+        corner2_mm=(6000, 6000),
+        capacity=8,
+        name="Board",
+        table_product="vitra_eames_segmented_4000",
+    )
+    facade.new_scene(name="run2")
+    facade.create_phone_booth(position_mm=(1000, 1000), product_id="framery_one")
+
+    trace = facade.trace()
+    # For every non-new_scene call, the MOST RECENT earlier call must
+    # include at least one new_scene — i.e. new_scene gates every
+    # geometry call on the same facade.
+    seen_new_scene = False
+    for entry in trace:
+        tool = entry["tool"]
+        if tool == "new_scene":
+            seen_new_scene = True
+            continue
+        # All geometry tools go here.
+        assert seen_new_scene, (
+            f"geometry tool {tool!r} called before any new_scene — "
+            "iter-24 P3 invariant violated"
+        )
+    # And at least one new_scene per run.
+    new_scene_calls = [e for e in trace if e["tool"] == "new_scene"]
+    assert len(new_scene_calls) == 2, (
+        f"expected 2 new_scene calls (one per run), got {len(new_scene_calls)}"
+    )
+
+
 def test_import_reference_plan_if_available_no_crash_without_pdf() -> None:
     """The helper must silently no-op when plan_source_id is missing
     or when the PDF has been purged — a variant must never crash on

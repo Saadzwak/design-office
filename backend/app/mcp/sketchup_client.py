@@ -250,6 +250,22 @@ class SketchUpFacade:
     backend: SketchUpBackend
 
     def new_scene(self, name: str) -> None:
+        """Reset the SketchUp model and start a fresh scene.
+
+        iter-24 P3 (Saad, 2026-04-24) — this IS the primary scene-reset
+        primitive. The corresponding Ruby in
+        `sketchup-plugin/design_office_extensions.rb::new_scene` calls
+        `model.entities.clear!`, which wipes every primitive on the
+        active page — verified via direct `eval_ruby` count (54 → 0
+        → 18 across 3 sequential builds). The name parameter doesn't
+        control the reset ; it's metadata on the Scene Tab.
+
+        Callers MUST call this at the top of each variant build
+        (macro /generate, /iterate, standalone scripts) so geometry
+        from the previous variant doesn't stack on the next — the
+        "éparpillé" SketchUp state Saad reported in iter-24 Phase 1.
+        """
+
         self.backend.call("new_scene", name=name)
 
     def draw_envelope(self, points_mm: list[tuple[float, float]]) -> None:
