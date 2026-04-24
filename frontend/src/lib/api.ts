@@ -186,6 +186,14 @@ export type VariantOutput = {
    *  the frontend should then fall back to `live_screenshots` (post-
    *  iterate state) or a Lumen fixture if the project IS Lumen. */
   sketchup_shot_url?: string | null;
+  /** iter-24 P4 : 6 pseudo-3D angles (iso_ne / iso_nw / iso_se /
+   *  iso_sw / top_down / eye_level) captured after the variant build.
+   *  Empty dict when the multi-angle pass didn't run (mock backend,
+   *  SketchUp down, or pre-iter-24 fixture). Consumed by
+   *  PseudoThreeDViewer. */
+  sketchup_shot_urls?: Partial<
+    Record<"iso_ne" | "iso_nw" | "iso_se" | "iso_sw" | "top_down" | "eye_level", string>
+  >;
   /** iter-17 B : optional adjacency audit (null on pre-iter-17 fixtures). */
   adjacency_audit?: AdjacencyAudit | null;
 };

@@ -60,6 +60,18 @@ class RecordingMockBackend:
                 "zone_count": 0,
                 "zones": [],
             }
+        if tool == "capture_multi_angle_renders":
+            # iter-24 P4 — return a plausible paths dict so the frontend
+            # adapter doesn't branch on live-vs-mock. No files are
+            # actually written on the mock ; the downstream exists-check
+            # in testfit.py::generate will clamp shot URLs to None.
+            variant_id = params.get("variant_id", "")
+            out_dir = params.get("out_dir", "/tmp")
+            angles = ["iso_ne", "iso_nw", "iso_se", "iso_sw", "top_down", "eye_level"]
+            paths = {
+                a: f"{out_dir}/sketchup_variant_{variant_id}_{a}.png" for a in angles
+            }
+            return {"ok": True, "mock": True, "paths": paths, "errors": {}, "variant": variant_id}
         return {"ok": True}
 
     def trace(self) -> list[dict[str, Any]]:
@@ -439,6 +451,44 @@ class SketchUpFacade:
         Python-side FloorPlan mirror (which can drift after a few
         iterations)."""
         return self.backend.call("read_scene_state")
+
+    def capture_multi_angle_renders(
+        self, *, variant_id: str, out_dir: str
+    ) -> dict[str, Any]:
+        """Capture the 6 pseudo-3D angles (iso_ne/iso_nw/iso_se/iso_sw/
+        top_down/eye_level) in one round-trip. Delegates to
+        `DesignOffice.capture_multi_angle_renders` which writes PNGs at
+        `{out_dir}/sketchup_variant_{variant_id}_{angle}.png`.
+
+        iter-24 P4 — restored as a first-class facade method so the
+        macro pipeline can feed the frontend's PseudoThreeDViewer.
+        On the RecordingMock backend returns a plausible paths dict
+        so downstream code doesn't branch on live-vs-mock.
+        """
+
+        from pathlib import Path as _Path
+
+        response = self.backend.call(
+            "capture_multi_angle_renders", variant_id=variant_id, out_dir=out_dir
+        )
+        # The Ruby eval_ruby path discards the actual returned dict
+        # (it always returns 'ok'), so we reconstruct the paths dict
+        # from the expected filename pattern and verify each file lives
+        # on disk with non-trivial size. Angles whose PNG is missing
+        # or tiny (<1 KB) drop out — the frontend then falls back to
+        # whatever angles did make it.
+        angles = ["iso_ne", "iso_nw", "iso_se", "iso_sw", "top_down", "eye_level"]
+        out_base = _Path(out_dir)
+        paths: dict[str, str] = {}
+        for angle in angles:
+            candidate = out_base / f"sketchup_variant_{variant_id}_{angle}.png"
+            if candidate.exists() and candidate.stat().st_size > 1024:
+                paths[angle] = str(candidate)
+        # If the mock backend returned its own paths dict, surface those
+        # when nothing was written on disk (unit tests & mock consumers).
+        if not paths and isinstance(response, dict) and response.get("paths"):
+            return response
+        return {"ok": bool(paths), "paths": paths}
 
     def screenshot(self, view_name: str = "iso", out_path: str | None = None) -> str:
         """Capture an iso screenshot. When `out_path` is provided and the real

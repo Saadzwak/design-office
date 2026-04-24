@@ -599,6 +599,29 @@ class TestFitSurface:
                 sketchup_shot_url = f"/api/testfit/screenshot/{shot_filename}"
                 screenshot_paths = [str(shot_path)]
 
+            # iter-24 P4 — capture 6 pseudo-3D angles so the frontend's
+            # PseudoThreeDViewer has a dock to orbit. Sync capture : at
+            # ~1s per angle on a small plate this adds ~6s per variant
+            # (~18s per macro run) — well within the overall LLM budget.
+            # Uses a variant_id suffixed with the run_id so reruns don't
+            # overwrite each other's angle PNGs.
+            multi_variant_id = f"macro_{run_id}_{style.value}"
+            sketchup_shot_urls: dict[str, str] = {}
+            try:
+                multi = facade.capture_multi_angle_renders(
+                    variant_id=multi_variant_id,
+                    out_dir=str(SKETCHUP_SHOTS_DIR),
+                )
+                for angle, abs_path in (multi.get("paths") or {}).items():
+                    fname = Path(abs_path).name
+                    sketchup_shot_urls[angle] = f"/api/testfit/screenshot/{fname}"
+            except Exception as exc:  # noqa: BLE001
+                print(
+                    f"[testfit.generate] multi-angle capture failed for "
+                    f"{style.value}: {type(exc).__name__}: {exc}",
+                    flush=True,
+                )
+
             metrics = VariantMetrics(**variant_obj.get("metrics", {}))
             variants.append(
                 VariantOutput(
@@ -609,6 +632,7 @@ class TestFitSurface:
                     sketchup_trace=facade.trace(),
                     screenshot_paths=screenshot_paths,
                     sketchup_shot_url=sketchup_shot_url,
+                    sketchup_shot_urls=sketchup_shot_urls,
                 )
             )
 

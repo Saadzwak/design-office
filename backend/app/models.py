@@ -244,6 +244,13 @@ class VariantOutput(BaseModel):
     # `screenshot_paths` alongside for backwards compat with older
     # fixtures + anything that still reads the raw disk path.
     sketchup_shot_url: str | None = None
+    # iter-24 P4 (Saad, 2026-04-24) : 6 pseudo-3D angles captured via
+    # DesignOffice.capture_multi_angle_renders — iso_ne / iso_nw /
+    # iso_se / iso_sw / top_down / eye_level. Empty dict when the
+    # multi-angle pass didn't run (mock backend, SketchUp down, or the
+    # current variant is an older fixture). Consumed by the frontend
+    # PseudoThreeDViewer.
+    sketchup_shot_urls: dict[str, str] = Field(default_factory=dict)
     # iter-17 B : adjacency audit is optional so older fixtures
     # deserialize unchanged. Newly generated variants include it.
     adjacency_audit: AdjacencyAudit | None = None

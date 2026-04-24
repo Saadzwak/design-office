@@ -48,6 +48,7 @@ import {
   variantToDesign,
   type DesignVariant,
 } from "../lib/adapters/variantAdapter";
+import PseudoThreeDViewer from "../components/viewer/PseudoThreeDViewer";
 import { planSizeFromEnvelope } from "../lib/adapters/coordinates";
 
 type Tab = "macro" | "micro";
@@ -671,45 +672,59 @@ function VariantCard({
         {v.pitch}
       </p>
 
-      {/* Preview — 3D SketchUp iso only.
-          iter-24 P2 : imgUrl is resolved by the parent. When null (new
-          project, SketchUp down, macro still running) we render a
-          subtle "capturing SketchUp…" skeleton instead of a broken
-          hatched placeholder. */}
+      {/* Preview — 3D SketchUp iso.
+          iter-24 P2 : imgUrl resolved by the parent (live → backend →
+          Lumen fixture → null). When null we render a subtle
+          "capturing SketchUp…" skeleton instead of a broken
+          hatched placeholder.
+          iter-24 P4 : when the ACTIVE card has a full 6-angle dict
+          (sketchup_shot_urls from macro generate), swap the single
+          iso for a PseudoThreeDViewer with orbit + thumbnails dock
+          + cursor parallax. Non-active cards stay on single iso to
+          keep the grid light. */}
       <div
         className="overflow-hidden rounded-lg border border-mist-100"
         style={{ background: "var(--canvas-alt)", padding: 0 }}
       >
-        <div
-          className="relative flex aspect-[400/260] w-full items-center justify-center"
-          style={{ background: "var(--canvas-alt)" }}
-        >
-          {imgUrl ? (
-            <img
-              src={imgUrl}
-              alt={`${v.name} SketchUp iso render`}
-              className="h-full w-full object-contain"
-              onError={(e) => {
-                // The resolver already does priority chain ; if the
-                // resolved URL 404s (e.g. mid-generate, or the file
-                // was cleaned), swap to a "capturing…" skeleton so the
-                // card never shows a broken image icon.
-                (e.currentTarget as HTMLImageElement).style.display = "none";
-                (e.currentTarget.nextElementSibling as HTMLElement | null)?.removeAttribute(
-                  "hidden",
-                );
-              }}
+        {isActive && v.raw.sketchup_shot_urls && Object.keys(v.raw.sketchup_shot_urls).length >= 2 ? (
+          <div className="aspect-[400/260] w-full">
+            <PseudoThreeDViewer
+              sources={v.raw.sketchup_shot_urls}
+              caption={`${v.name} · live render`}
             />
-          ) : null}
-          <div
-            hidden={!!imgUrl}
-            className="placeholder-img absolute inset-0 flex items-center justify-center"
-          >
-            <span className="mono text-[11px] tracking-[0.14em] text-mist-500">
-              Capturing SketchUp…
-            </span>
           </div>
-        </div>
+        ) : (
+          <div
+            className="relative flex aspect-[400/260] w-full items-center justify-center"
+            style={{ background: "var(--canvas-alt)" }}
+          >
+            {imgUrl ? (
+              <img
+                src={imgUrl}
+                alt={`${v.name} SketchUp iso render`}
+                className="h-full w-full object-contain"
+                onError={(e) => {
+                  // The resolver already does priority chain ; if the
+                  // resolved URL 404s (e.g. mid-generate, or the file
+                  // was cleaned), swap to a "capturing…" skeleton so the
+                  // card never shows a broken image icon.
+                  (e.currentTarget as HTMLImageElement).style.display = "none";
+                  (e.currentTarget.nextElementSibling as HTMLElement | null)?.removeAttribute(
+                    "hidden",
+                  );
+                }}
+              />
+            ) : null}
+            <div
+              hidden={!!imgUrl}
+              className="placeholder-img absolute inset-0 flex items-center justify-center"
+            >
+              <span className="mono text-[11px] tracking-[0.14em] text-mist-500">
+                Capturing SketchUp…
+              </span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Metrics */}
