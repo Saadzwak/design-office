@@ -331,7 +331,7 @@ class TestFitSurface:
             out = self.orchestration.run_subagent(
                 agent, ctx, tag="testfit.parti_pris_proposer"
             )
-            payload = json.loads(_strip_json(out.text))
+            payload = json.loads(_strip_json(out.text), strict=False)
             proposals = payload.get("partis_pris", [])
             if not isinstance(proposals, list) or len(proposals) == 0:
                 return {s: _fallback_parti_pris_directive(s) for s in styles}
@@ -473,7 +473,10 @@ class TestFitSurface:
             total_out += sub_output.output_tokens
             try:
                 variant_json = _strip_json(sub_output.text)
-                variant_obj = json.loads(variant_json)
+                # iter-22b — strict=False so raw newlines / tabs in
+                # narrative strings don't break parsing. Opus emits
+                # multi-paragraph narratives literally.
+                variant_obj = json.loads(variant_json, strict=False)
             except Exception as exc:  # noqa: BLE001
                 variant_obj = {
                     "style": style.value,
@@ -549,7 +552,7 @@ class TestFitSurface:
             total_in += out.input_tokens
             total_out += out.output_tokens
             try:
-                payload = json.loads(_strip_json(out.text))
+                payload = json.loads(_strip_json(out.text), strict=False)
                 verdicts.append(ReviewerVerdict(**payload))
             except Exception as exc:  # noqa: BLE001
                 verdicts.append(
@@ -569,7 +572,7 @@ class TestFitSurface:
             total_in += out.input_tokens
             total_out += out.output_tokens
             try:
-                payload = json.loads(_strip_json(out.text))
+                payload = json.loads(_strip_json(out.text), strict=False)
                 audits_by_style[style] = _coerce_adjacency_audit(payload)
             except Exception as exc:  # noqa: BLE001
                 audits_by_style[style] = AdjacencyAudit(
@@ -761,6 +764,36 @@ def _replay_zones(facade: SketchUpFacade, zones: list[dict]) -> None:
             )
         elif kind == "biophilic_zone":
             facade.apply_biophilic_zone(bbox_mm=tuple(z.get("bbox_mm", [0, 0, 0, 0])))
+        # iter-22b (Saad, 2026-04-24) — hero entities for visual scale.
+        # Opus emits these in the sketchup_trace so variants get real
+        # human figures, plants, hero chairs / tables in the 3D iso.
+        elif kind == "place_human":
+            facade.place_human(
+                position_mm=tuple(z.get("position_mm", [0, 0])),
+                pose=str(z.get("pose", "standing")),
+                orientation_deg=float(z.get("orientation_deg", 0.0)),
+                color_rgb=z.get("color_rgb"),
+            )
+        elif kind == "place_plant":
+            facade.place_plant(
+                position_mm=tuple(z.get("position_mm", [0, 0])),
+                species=str(z.get("species", "ficus_lyrata")),
+                orientation_deg=float(z.get("orientation_deg", 0.0)),
+                color_rgb=z.get("color_rgb"),
+            )
+        elif kind == "place_hero":
+            facade.place_hero(
+                slug=str(z.get("slug", "")),
+                position_mm=tuple(z.get("position_mm", [0, 0])),
+                orientation_deg=float(z.get("orientation_deg", 0.0)),
+                color_rgb=z.get("color_rgb"),
+            )
+        elif kind == "apply_variant_palette":
+            facade.apply_variant_palette(
+                walls=z.get("walls"),
+                floor=z.get("floor"),
+                accent=z.get("accent"),
+            )
 
 
 _TRAILING_COMMA_RE = re.compile(r",(\s*[\]}])")

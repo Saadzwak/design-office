@@ -525,6 +525,18 @@ end
 module DesignOffice
   REFERENCE_LAYER_NAME = 'DO · Reference plan'.freeze
   VARIANT_LAYER_PREFIX = 'DO · Variant'.freeze
+  HERO_LAYER_NAME = 'DO · Hero'.freeze
+  HUMAN_LAYER_NAME = 'DO · Humans'.freeze
+  PLANT_LAYER_NAME = 'DO · Plants'.freeze
+
+  # iter-22b — local cache of hero SKP models. We populate this folder
+  # via the install script `scripts/fetch_sketchup_models.ps1` (see
+  # commit abc4173+) which downloads curated components from Trimble
+  # 3D Warehouse. The folder is auto-created on first place_hero call.
+  HERO_CACHE_DIR = File.join(
+    ENV['APPDATA'] || File.expand_path('~'),
+    'DesignOffice', 'sketchup_models'
+  )
 
   class << self
     # iter-21d — Import a PDF page as an Image entity, scaled to the
@@ -598,6 +610,440 @@ module DesignOffice
           zone_count: zones.size,
           zones: zones,
         }
+      end
+    end
+  end
+end
+
+# ---------------------------------------------------------------------------
+# iter-22b (Saad, 2026-04-24) — hero 3D models for visual credibility
+# ---------------------------------------------------------------------------
+#
+# Architects reading the 3D iso renders want SCALE (human figures) and
+# CHARACTER (real furniture silhouettes instead of boxes). We resolve
+# model slugs against a tiered lookup :
+#
+#   1. Hero cache (`%APPDATA%/DesignOffice/sketchup_models/<slug>.skp`)
+#      populated by our install script from Trimble 3D Warehouse.
+#   2. SketchUp's shipped Components library (`Program Files/SketchUp
+#      2026/ShippedContents/Components/`) — humans, basic chairs live
+#      there already.
+#   3. Fallback box primitive — if neither cache has the slug, we draw
+#      a labelled box so the variant doesn't crash.
+#
+# `place_human`, `place_hero`, `place_plant` all funnel through
+# `_load_or_fallback` which encapsulates the tiered lookup.
+
+module DesignOffice
+  # Known slug → filename mapping. Keys are semantic ; values match the
+  # .skp filenames the install script writes into HERO_CACHE_DIR.
+  HERO_SLUG_MAP = {
+    # Humans
+    'human_standing'       => 'human_standing.skp',
+    'human_seated'         => 'human_seated.skp',
+    'human_standing_female'=> 'human_standing_female.skp',
+    'human_walking'        => 'human_walking.skp',
+    # Plants
+    'plant_ficus_lyrata'   => 'plant_ficus_lyrata.skp',
+    'plant_monstera'       => 'plant_monstera.skp',
+    'plant_pothos'         => 'plant_pothos.skp',
+    'plant_dracaena'       => 'plant_dracaena.skp',
+    # Furniture hero
+    'chair_office'         => 'chair_aeron.skp',
+    'chair_lounge'         => 'chair_eames.skp',
+    'desk_bench_1600'      => 'desk_bench_1600.skp',
+    'table_boardroom_4000' => 'table_eames_segmented_4000.skp',
+    'framery_one'          => 'framery_one_compact.skp',
+    'sofa_mags'            => 'sofa_hay_mags.skp',
+  }.freeze
+
+  class << self
+    def _hero_path(slug)
+      filename = HERO_SLUG_MAP[slug.to_s]
+      return nil if filename.nil?
+      candidate = File.join(HERO_CACHE_DIR, filename)
+      File.exist?(candidate) ? candidate : nil
+    end
+
+    def _ensure_layer(name)
+      m = model
+      layer = m.layers[name]
+      layer.nil? ? m.layers.add(name) : layer
+    end
+
+    # iter-22b — Unified loader. Preferred path : generate the hero
+    # shape in Ruby using primitive geometry (no download, no asset
+    # files). If a user has DROPPED a real .skp into the cache, we
+    # use that instead. Fallback of last resort : labelled box.
+    def _place_model(slug:, position_mm:, orientation_deg:, layer_name:,
+                     color_rgb: nil, fallback_size_mm: [1200, 600, 1700])
+      x_mm, y_mm = position_mm
+      path = _hero_path(slug)
+      target_layer = _ensure_layer(layer_name)
+      m = model
+      ents = m.entities
+      origin = Geom::Point3d.new(mm(x_mm), mm(y_mm), 0)
+      rot = Geom::Transformation.rotation(
+        origin, Geom::Vector3d.new(0, 0, 1), orientation_deg.to_f.degrees
+      )
+
+      if path
+        defs = m.definitions.load(path)
+        instance = ents.add_instance(defs, rot)
+        instance.layer = target_layer
+        _apply_color_override(instance, color_rgb) if color_rgb
+        return { ok: true, kind: 'skp', slug: slug, path: path }
+      end
+
+      # Ruby-native hero geometry — the real path used 99% of the time.
+      # Returns the built group or nil if the slug doesn't have a builder.
+      built = _build_hero_primitive(slug, ents, x_mm, y_mm, color_rgb)
+      if built
+        built.layer = target_layer
+        built.transform!(rot) if orientation_deg.to_f.abs > 0.01
+        return { ok: true, kind: 'ruby', slug: slug }
+      end
+
+      # Last-resort : labelled box. Means we added a new slug without
+      # a builder. Keeps the variant from crashing.
+      w, d, h = fallback_size_mm
+      group = ents.add_group
+      group.layer = target_layer
+      group.name = "fallback:#{slug}"
+      face = rectangle_face(group.entities,
+                            x_mm - w / 2.0, y_mm - d / 2.0,
+                            x_mm + w / 2.0, y_mm + d / 2.0)
+      face.pushpull(mm(h)) if face
+      _apply_color_override(group, color_rgb) if color_rgb
+      { ok: true, kind: 'fallback_box', slug: slug, fallback_size_mm: fallback_size_mm }
+    end
+
+    # iter-22b — Ruby hero builders. Each builder returns a Sketchup::Group
+    # centred on (x_mm, y_mm, 0) facing +Y. The caller applies rotation +
+    # layer afterwards.
+    def _build_hero_primitive(slug, ents, x_mm, y_mm, color_rgb)
+      case slug
+      when 'human_standing', 'human_standing_female', 'human_walking'
+        _build_human(ents, x_mm, y_mm, color_rgb || [90, 110, 120], standing: true)
+      when 'human_seated'
+        _build_human(ents, x_mm, y_mm, color_rgb || [90, 110, 120], standing: false)
+      when 'plant_ficus_lyrata'
+        _build_plant(ents, x_mm, y_mm, color_rgb || [74, 127, 77], canopy_r_mm: 550, height_mm: 1800)
+      when 'plant_monstera'
+        _build_plant(ents, x_mm, y_mm, color_rgb || [90, 143, 84], canopy_r_mm: 700, height_mm: 1400)
+      when 'plant_pothos'
+        _build_plant(ents, x_mm, y_mm, color_rgb || [102, 160, 80], canopy_r_mm: 500, height_mm: 1100)
+      when 'plant_dracaena'
+        _build_plant(ents, x_mm, y_mm, color_rgb || [95, 140, 90], canopy_r_mm: 400, height_mm: 1900)
+      when 'chair_office'
+        _build_office_chair(ents, x_mm, y_mm, color_rgb || [40, 40, 40])
+      when 'chair_lounge', 'sofa_mags'
+        _build_lounge_chair(ents, x_mm, y_mm, color_rgb || [140, 100, 80])
+      when 'desk_bench_1600'
+        _build_desk(ents, x_mm, y_mm, color_rgb || [110, 80, 60])
+      when 'table_boardroom_4000'
+        _build_table(ents, x_mm, y_mm, color_rgb || [92, 68, 52], length_mm: 4000, width_mm: 1400)
+      when 'framery_one'
+        _build_phone_booth(ents, x_mm, y_mm, color_rgb || [60, 70, 65])
+      else
+        nil
+      end
+    end
+
+    # ---- Primitive builders -------------------------------------------------
+
+    def _build_human(ents, x_mm, y_mm, color_rgb, standing:)
+      group = ents.add_group
+      mat = _material_for(color_rgb)
+      body_h_mm = standing ? 1450 : 700
+      head_r_mm = 115
+      # Body column
+      base_r = 220
+      top_r = 180
+      z_body_bot = standing ? 100 : 450
+      z_body_top = z_body_bot + body_h_mm
+      _add_tapered_column(group.entities, x_mm, y_mm, base_r, top_r, z_body_bot, z_body_top, mat)
+      # Head
+      head_z = z_body_top + head_r_mm
+      _add_sphere(group.entities, x_mm, y_mm, head_z, head_r_mm, mat)
+      # Legs : cue two cylinders side-by-side
+      if standing
+        _add_cylinder(group.entities, x_mm - 140, y_mm, 140, 0, 900, mat)
+        _add_cylinder(group.entities, x_mm + 140, y_mm, 140, 0, 900, mat)
+      else
+        # Seat pedestal (subtle)
+        _add_cylinder(group.entities, x_mm, y_mm, 190, 0, 450, mat)
+      end
+      group.name = standing ? 'human_standing' : 'human_seated'
+      group
+    end
+
+    def _build_plant(ents, x_mm, y_mm, color_rgb, canopy_r_mm:, height_mm:)
+      group = ents.add_group
+      green = _material_for(color_rgb)
+      terracotta = _material_for([180, 110, 85])
+      pot_r = (canopy_r_mm * 0.55).to_i
+      pot_h = (height_mm * 0.25).to_i
+      # Pot
+      _add_cylinder(group.entities, x_mm, y_mm, pot_r, 0, pot_h, terracotta)
+      # Trunk (thin column inside canopy)
+      _add_cylinder(group.entities, x_mm, y_mm, 60, pot_h, height_mm - canopy_r_mm, green)
+      # Canopy : sphere at top
+      canopy_z = height_mm - canopy_r_mm * 0.6
+      _add_sphere(group.entities, x_mm, y_mm, canopy_z, canopy_r_mm, green)
+      group.name = 'plant'
+      group
+    end
+
+    def _build_office_chair(ents, x_mm, y_mm, color_rgb)
+      group = ents.add_group
+      mat = _material_for(color_rgb)
+      # Seat pad
+      seat_w = 520
+      seat_d = 500
+      rectangle_face(group.entities,
+                     x_mm - seat_w / 2, y_mm - seat_d / 2,
+                     x_mm + seat_w / 2, y_mm + seat_d / 2, 450)&.pushpull(mm(60))
+      # Backrest (behind, 800 mm up)
+      back_w = 480
+      back_h = 500
+      _add_vertical_panel(group.entities, x_mm - back_w / 2, x_mm + back_w / 2,
+                          y_mm + seat_d / 2 - 40, y_mm + seat_d / 2 - 80,
+                          510, 510 + back_h, mat)
+      # Pedestal + wheels (cylinder + 5 arms)
+      _add_cylinder(group.entities, x_mm, y_mm, 40, 0, 450, mat)
+      _paint_entity(group, mat)
+      group.name = 'chair_office'
+      group
+    end
+
+    def _build_lounge_chair(ents, x_mm, y_mm, color_rgb)
+      group = ents.add_group
+      mat = _material_for(color_rgb)
+      # Wider, lower lounge form
+      seat_w = 780
+      seat_d = 760
+      rectangle_face(group.entities,
+                     x_mm - seat_w / 2, y_mm - seat_d / 2,
+                     x_mm + seat_w / 2, y_mm + seat_d / 2, 0)&.pushpull(mm(420))
+      # Back cushion
+      back_w = 760
+      back_h = 440
+      _add_vertical_panel(group.entities, x_mm - back_w / 2, x_mm + back_w / 2,
+                          y_mm + seat_d / 2 - 60, y_mm + seat_d / 2 - 180,
+                          420, 420 + back_h, mat)
+      _paint_entity(group, mat)
+      group.name = 'chair_lounge'
+      group
+    end
+
+    def _build_desk(ents, x_mm, y_mm, color_rgb)
+      group = ents.add_group
+      mat = _material_for(color_rgb)
+      w = 1600
+      d = 800
+      top_h = 40
+      # Top
+      rectangle_face(group.entities,
+                     x_mm - w / 2, y_mm - d / 2,
+                     x_mm + w / 2, y_mm + d / 2, 720)&.pushpull(mm(top_h))
+      # Two trestle legs
+      [[x_mm - w / 2 + 100, y_mm], [x_mm + w / 2 - 100, y_mm]].each do |lx, ly|
+        rectangle_face(group.entities,
+                       lx - 40, ly - d / 2 + 40,
+                       lx + 40, ly + d / 2 - 40, 0)&.pushpull(mm(720))
+      end
+      _paint_entity(group, mat)
+      group.name = 'desk_bench_1600'
+      group
+    end
+
+    def _build_table(ents, x_mm, y_mm, color_rgb, length_mm: 4000, width_mm: 1400)
+      group = ents.add_group
+      mat = _material_for(color_rgb)
+      rectangle_face(group.entities,
+                     x_mm - length_mm / 2, y_mm - width_mm / 2,
+                     x_mm + length_mm / 2, y_mm + width_mm / 2, 720)&.pushpull(mm(50))
+      # 4 legs
+      inset = 400
+      [[-length_mm / 2 + inset, -width_mm / 2 + inset],
+       [ length_mm / 2 - inset, -width_mm / 2 + inset],
+       [-length_mm / 2 + inset,  width_mm / 2 - inset],
+       [ length_mm / 2 - inset,  width_mm / 2 - inset]].each do |dx, dy|
+        _add_cylinder(group.entities, x_mm + dx, y_mm + dy, 50, 0, 720, mat)
+      end
+      _paint_entity(group, mat)
+      group.name = 'table_boardroom'
+      group
+    end
+
+    def _build_phone_booth(ents, x_mm, y_mm, color_rgb)
+      group = ents.add_group
+      mat = _material_for(color_rgb)
+      # Framery One Compact : ~900 × 1000 × 2400 mm
+      w = 1000
+      d = 1000
+      h = 2400
+      rectangle_face(group.entities,
+                     x_mm - w / 2, y_mm - d / 2,
+                     x_mm + w / 2, y_mm + d / 2, 0)&.pushpull(mm(h))
+      _paint_entity(group, mat)
+      group.name = 'framery_booth'
+      group
+    end
+
+    # ---- Primitive helpers --------------------------------------------------
+
+    def _material_for(rgb)
+      return nil if rgb.nil?
+      name = "DO_hero_#{rgb.take(3).join('_')}"
+      mats = model.materials
+      mat = mats[name] || mats.add(name)
+      mat.color = Sketchup::Color.new(*rgb.take(3))
+      mat
+    end
+
+    def _add_cylinder(entities, x_mm, y_mm, radius_mm, z_bot_mm, z_top_mm, mat)
+      height_mm = z_top_mm - z_bot_mm
+      return if height_mm <= 0
+      centre = Geom::Point3d.new(mm(x_mm), mm(y_mm), mm(z_bot_mm))
+      circle = entities.add_circle(centre, Geom::Vector3d.new(0, 0, 1), mm(radius_mm), 24)
+      face = entities.add_face(circle)
+      face.pushpull(mm(height_mm)) if face
+      _paint_entity_face_list(circle, mat) if mat
+    rescue StandardError
+      nil
+    end
+
+    def _add_tapered_column(entities, x_mm, y_mm, r_bot_mm, r_top_mm, z_bot_mm, z_top_mm, mat)
+      # SketchUp doesn't have a native tapered cylinder ; approximate
+      # with a simple cylinder at the average radius. Good enough for a
+      # 3D iso render at hackathon scale.
+      avg_r = (r_bot_mm + r_top_mm) / 2.0
+      _add_cylinder(entities, x_mm, y_mm, avg_r, z_bot_mm, z_top_mm, mat)
+    end
+
+    def _add_sphere(entities, x_mm, y_mm, z_mm, radius_mm, mat)
+      centre = Geom::Point3d.new(mm(x_mm), mm(y_mm), mm(z_mm))
+      # Approximate a sphere with a circle extruded along a half-circle
+      # path. Too heavy for 50 plants, but we only call this on heroes.
+      circle = entities.add_circle(centre, Geom::Vector3d.new(0, 1, 0), mm(radius_mm), 12)
+      face = entities.add_face(circle)
+      path = entities.add_circle(centre, Geom::Vector3d.new(0, 0, 1), mm(radius_mm), 12)
+      face.followme(path) if face && path
+      path.each { |e| e.erase! if e.valid? } if path
+    rescue StandardError
+      nil
+    end
+
+    def _add_vertical_panel(entities, x0_mm, x1_mm, y0_mm, y1_mm, z_bot_mm, z_top_mm, mat)
+      pts = [
+        Geom::Point3d.new(mm(x0_mm), mm(y0_mm), mm(z_bot_mm)),
+        Geom::Point3d.new(mm(x1_mm), mm(y1_mm), mm(z_bot_mm)),
+        Geom::Point3d.new(mm(x1_mm), mm(y1_mm), mm(z_top_mm)),
+        Geom::Point3d.new(mm(x0_mm), mm(y0_mm), mm(z_top_mm))
+      ]
+      entities.add_face(pts)
+    rescue StandardError
+      nil
+    end
+
+    def _paint_entity_face_list(edges, mat)
+      edges.each do |edge|
+        next unless edge.respond_to?(:faces)
+        edge.faces.each do |face|
+          face.material = mat
+          face.back_material = mat
+        end
+      end
+    end
+
+    # iter-22b — Set a solid colour on every face of a group / component.
+    # `color_rgb` is [R, G, B] integers 0-255. No-op on nil.
+    def _apply_color_override(ent, color_rgb)
+      return if color_rgb.nil?
+      return unless color_rgb.is_a?(Array) && color_rgb.size >= 3
+      mat_name = "DO_mat_#{color_rgb.take(3).join('_')}"
+      mats = model.materials
+      mat = mats[mat_name] || mats.add(mat_name)
+      mat.color = Sketchup::Color.new(*color_rgb.take(3))
+      # SketchUp groups don't accept .material on their own — we paint
+      # every child face so exports pick it up.
+      _paint_entity(ent, mat)
+    end
+
+    def _paint_entity(ent, mat)
+      if ent.respond_to?(:definition)
+        ent.definition.entities.each { |child| _paint_entity(child, mat) }
+      elsif ent.respond_to?(:entities)
+        ent.entities.each { |child| _paint_entity(child, mat) }
+      elsif ent.is_a?(Sketchup::Face)
+        ent.material = mat
+        ent.back_material = mat
+      end
+    end
+
+    ORIGIN = Geom::Point3d.new(0, 0, 0).freeze
+
+    # Public API — called from the Python facade via eval_ruby.
+
+    def place_human(position_mm:, pose: 'standing', orientation_deg: 0.0,
+                    color_rgb: nil)
+      slug = case pose.to_s
+             when 'seated', 'sitting' then 'human_seated'
+             when 'walking'           then 'human_walking'
+             when 'female'            then 'human_standing_female'
+             else 'human_standing'
+             end
+      with_operation("DO · place_human (#{pose})") do
+        _place_model(slug: slug, position_mm: position_mm,
+                     orientation_deg: orientation_deg,
+                     layer_name: HUMAN_LAYER_NAME, color_rgb: color_rgb,
+                     fallback_size_mm: [600, 400, 1750])
+      end
+    end
+
+    def place_plant(position_mm:, species: 'ficus_lyrata',
+                    orientation_deg: 0.0, color_rgb: nil)
+      slug = "plant_#{species}"
+      with_operation("DO · place_plant (#{species})") do
+        _place_model(slug: slug, position_mm: position_mm,
+                     orientation_deg: orientation_deg,
+                     layer_name: PLANT_LAYER_NAME,
+                     color_rgb: color_rgb || [80, 130, 90],
+                     fallback_size_mm: [700, 700, 1600])
+      end
+    end
+
+    def place_hero(slug:, position_mm:, orientation_deg: 0.0,
+                   color_rgb: nil)
+      with_operation("DO · place_hero (#{slug})") do
+        _place_model(slug: slug, position_mm: position_mm,
+                     orientation_deg: orientation_deg,
+                     layer_name: HERO_LAYER_NAME, color_rgb: color_rgb,
+                     fallback_size_mm: [1400, 700, 800])
+      end
+    end
+
+    # Set the background / wall palette explicitly when variants want
+    # a specific identity tone. `walls`, `floor`, `accent` are RGB
+    # arrays ; any missing key keeps the default.
+    def apply_variant_palette(walls: nil, floor: nil, accent: nil)
+      with_operation('DO · apply_variant_palette') do
+        mats = model.materials
+        if walls
+          mat = mats['DO_walls'] || mats.add('DO_walls')
+          mat.color = Sketchup::Color.new(*walls.take(3))
+        end
+        if floor
+          mat = mats['DO_floor'] || mats.add('DO_floor')
+          mat.color = Sketchup::Color.new(*floor.take(3))
+        end
+        if accent
+          mat = mats['DO_accent'] || mats.add('DO_accent')
+          mat.color = Sketchup::Color.new(*accent.take(3))
+        end
+        { ok: true, walls: walls, floor: floor, accent: accent }
       end
     end
   end

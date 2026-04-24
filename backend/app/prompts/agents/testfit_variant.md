@@ -63,6 +63,31 @@ plan that a Python layer can replay through SketchUp MCP.
    like design://acoustic-standards or design://biophilic-office
    when relevant, and call out the TRADE-OFF openly.
 
+## Hero entities (new, iter-22b)
+
+To give the 3D iso render proper scale and visual character, emit
+**3 to 10 hero entities per variant** alongside the zones :
+
+- **Humans (2-4 per variant)** — 1 seated at a desk, 1 standing near
+  the café, 1 walking in the spine. Dress them in the parti pris
+  mood : muted ink for "atelier curé", warmer tones for "village",
+  vivid accent for "hybride flex".
+- **Plants (2-5 per variant)** — match `species` to the biophilic
+  tier you targeted. Ficus lyrata hero in the reception / foyer,
+  Monstera / Pothos distributed in collab zones, Dracaena anchor
+  points at the entrances.
+- **Hero furniture (1-3 per variant)** — boardroom table, phone
+  booth, a signature lounge piece. Do NOT hero all 50 desks — only
+  the few pieces that define the character of the scene.
+- **Variant palette** — emit one `apply_variant_palette` with
+  walls / floor / accent RGB so the whole model renders in the
+  mood you describe in the narrative.
+
+Position heroes where they make sense : a human sat at the bench
+cluster origin + 300 mm (= someone working), a plant in the middle
+of the collab zone (z=0, trunk rises automatically), a phone booth
+hero where the cluster of Framery pods lives in real life.
+
 ## Hard rules
 
 - Every zone you place must respect :
@@ -133,7 +158,17 @@ plan that a Python layer can replay through SketchUp MCP.
     {
       "kind": "biophilic_zone",
       "bbox_mm": [x0, y0, x1, y1]
-    }
+    },
+
+    // iter-22b hero entities — place 3-10 of these per variant to give
+    // the 3D iso render scale + visual credibility. They are ruby-
+    // generated in SketchUp (no assets required) so you can call them
+    // freely. Position in mm, orientation in degrees, colour RGB 0-255.
+
+    { "kind": "place_human", "position_mm": [x, y], "pose": "standing|seated|walking|female", "orientation_deg": 0, "color_rgb": [90, 110, 120] },
+    { "kind": "place_plant",  "position_mm": [x, y], "species": "ficus_lyrata|monstera|pothos|dracaena", "color_rgb": [74, 127, 77] },
+    { "kind": "place_hero",   "slug": "chair_office|chair_lounge|desk_bench_1600|table_boardroom_4000|framery_one|sofa_mags", "position_mm": [x, y], "orientation_deg": 0, "color_rgb": [40, 40, 40] },
+    { "kind": "apply_variant_palette", "walls": [235, 228, 215], "floor": [180, 160, 135], "accent": [47, 74, 63] }
   ],
   "metrics": {
     "workstation_count": 130,

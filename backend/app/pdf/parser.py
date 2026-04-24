@@ -298,8 +298,13 @@ def _robust_json_parse(text: str) -> dict:
             stripped = stripped[len("json") :]
 
     # Fast path : try directly on the unmodified payload.
+    # iter-22b (Saad, 2026-04-24) — `strict=False` so raw newlines and
+    # tabs inside JSON string values don't break parsing. Opus emits
+    # multi-line narratives with literal `\n` inside "narrative" :
+    # json's default strict mode rejects those. Passing strict=False
+    # also unblocked the 2 parse-error variants on the Lovable plan.
     try:
-        return json.loads(stripped)
+        return json.loads(stripped, strict=False)
     except json.JSONDecodeError as first_error:
         pass
 

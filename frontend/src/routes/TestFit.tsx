@@ -591,11 +591,10 @@ function VariantCard({
             ? "var(--sun)"
             : "var(--clay)";
 
-  // Iter-19 D : per-card 2D / 3D view state. Bundle-parity toggle
-  // now actually swaps the preview — 3D shows the committed SketchUp
-  // iso render from `/sketchup/sketchup_variant_{style}.png`, 2D
-  // keeps the normalised FloorPlan2D.
-  const [view, setView] = useState<"2d" | "3d">("2d");
+  // iter-22b (Saad, 2026-04-24) : 2D React SVG dropped from variant
+  // cards — the normalized-zone preview was noisy on real plans.
+  // Locked to 3D SketchUp iso renders only ; 2D will come back via
+  // AutoCAD XREF rendering once the full AutoCAD is wired.
   const sketchupUrl = `/sketchup/sketchup_variant_${v.id}.png`;
 
   return (
@@ -614,37 +613,30 @@ function VariantCard({
         transition: "all 250ms var(--ease)",
       }}
     >
-      {/* Header row */}
-      <div className="mb-3 flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
-          <span
-            className="inline-block h-3 w-3"
-            style={{
-              background: pigmentBackground,
-              borderRadius: 2,
-              transform: "rotate(45deg)",
-            }}
-          />
-          <span
-            className="font-display italic"
-            style={{
-              fontSize: 28,
-              fontWeight: 400,
-              fontVariationSettings: '"opsz" 96, "wght" 440, "SOFT" 100',
-            }}
-          >
-            {v.name}
-          </span>
-        </div>
-        <PillToggle<"2d" | "3d">
-          size="sm"
-          options={[
-            { value: "2d", label: "2D" },
-            { value: "3d", label: "3D" },
-          ]}
-          value={view}
-          onChange={(next) => setView(next)}
+      {/* Header row — iter-22b (Saad, 2026-04-24) : the 2D React SVG
+          was "nul" on the real Lovable plan, so we drop the 2D/3D
+          toggle here and lock to 3D SketchUp iso renders. Re-enable
+          the 2D once AutoCAD XREF delivers a proper DWG-quality
+          rendering. */}
+      <div className="mb-3 flex items-center gap-2.5">
+        <span
+          className="inline-block h-3 w-3"
+          style={{
+            background: pigmentBackground,
+            borderRadius: 2,
+            transform: "rotate(45deg)",
+          }}
         />
+        <span
+          className="font-display italic"
+          style={{
+            fontSize: 28,
+            fontWeight: 400,
+            fontVariationSettings: '"opsz" 96, "wght" 440, "SOFT" 100',
+          }}
+        >
+          {v.name}
+        </span>
       </div>
 
       {/* Pitch */}
@@ -655,45 +647,35 @@ function VariantCard({
         {v.pitch}
       </p>
 
-      {/* Preview — 2D or 3D depending on the toggle. */}
+      {/* Preview — 3D SketchUp iso only. */}
       <div
         className="overflow-hidden rounded-lg border border-mist-100"
-        style={{ background: "var(--canvas-alt)", padding: view === "3d" ? 0 : 8 }}
+        style={{ background: "var(--canvas-alt)", padding: 0 }}
       >
-        {view === "2d" ? (
-          <FloorPlan2D
-            zones={v.zones as Zone[]}
-            rooms={v.rooms}
-            walls={v.walls}
-            size={{ w: 400, h: 260 }}
-            ariaLabel={`${v.name} macro-zoning`}
+        <div
+          className="relative flex aspect-[400/260] w-full items-center justify-center"
+          style={{ background: "var(--canvas-alt)" }}
+        >
+          <img
+            src={sketchupUrl}
+            alt={`${v.name} SketchUp iso render`}
+            className="h-full w-full object-contain"
+            onError={(e) => {
+              // If the fixture PNG is missing, fall back to a
+              // placeholder so the card doesn't break.
+              (e.currentTarget as HTMLImageElement).style.display = "none";
+              (e.currentTarget.nextElementSibling as HTMLElement | null)?.removeAttribute(
+                "hidden",
+              );
+            }}
           />
-        ) : (
           <div
-            className="relative flex aspect-[400/260] w-full items-center justify-center"
-            style={{ background: "var(--canvas-alt)" }}
+            hidden
+            className="placeholder-img absolute inset-0 flex items-center justify-center"
           >
-            <img
-              src={sketchupUrl}
-              alt={`${v.name} SketchUp iso render`}
-              className="h-full w-full object-contain"
-              onError={(e) => {
-                // If the fixture PNG is missing, fall back to a
-                // placeholder so the card doesn't break.
-                (e.currentTarget as HTMLImageElement).style.display = "none";
-                (e.currentTarget.nextElementSibling as HTMLElement | null)?.removeAttribute(
-                  "hidden",
-                );
-              }}
-            />
-            <div
-              hidden
-              className="placeholder-img absolute inset-0 flex items-center justify-center"
-            >
-              <span>SKETCHUP ISO · {v.name.toUpperCase()}</span>
-            </div>
+            <span>SKETCHUP ISO · {v.name.toUpperCase()}</span>
           </div>
-        )}
+        </div>
       </div>
 
       {/* Metrics */}

@@ -329,6 +329,74 @@ class SketchUpFacade:
     def compute_surfaces_by_type(self) -> dict:
         return self.backend.call("compute_surfaces_by_type")
 
+    # iter-22b (Saad, 2026-04-24) — hero 3D primitives for visual scale.
+    # Ruby-native builders in design_office_extensions.rb produce styled
+    # humans / plants / chairs / tables without needing any .skp assets.
+    # Every call accepts an optional `color_rgb` so the LLM can match
+    # the variant's mood (darker for ML focus, lighter for lounge, etc).
+
+    def place_human(
+        self,
+        *,
+        position_mm: tuple[float, float],
+        pose: str = "standing",
+        orientation_deg: float = 0.0,
+        color_rgb: list[int] | None = None,
+    ) -> dict[str, Any]:
+        return self.backend.call(
+            "place_human",
+            position_mm=list(position_mm),
+            pose=pose,
+            orientation_deg=orientation_deg,
+            color_rgb=color_rgb,
+        )
+
+    def place_plant(
+        self,
+        *,
+        position_mm: tuple[float, float],
+        species: str = "ficus_lyrata",
+        orientation_deg: float = 0.0,
+        color_rgb: list[int] | None = None,
+    ) -> dict[str, Any]:
+        return self.backend.call(
+            "place_plant",
+            position_mm=list(position_mm),
+            species=species,
+            orientation_deg=orientation_deg,
+            color_rgb=color_rgb,
+        )
+
+    def place_hero(
+        self,
+        *,
+        slug: str,
+        position_mm: tuple[float, float],
+        orientation_deg: float = 0.0,
+        color_rgb: list[int] | None = None,
+    ) -> dict[str, Any]:
+        return self.backend.call(
+            "place_hero",
+            slug=slug,
+            position_mm=list(position_mm),
+            orientation_deg=orientation_deg,
+            color_rgb=color_rgb,
+        )
+
+    def apply_variant_palette(
+        self,
+        *,
+        walls: list[int] | None = None,
+        floor: list[int] | None = None,
+        accent: list[int] | None = None,
+    ) -> dict[str, Any]:
+        return self.backend.call(
+            "apply_variant_palette",
+            walls=walls,
+            floor=floor,
+            accent=accent,
+        )
+
     # iter-21d (Phase B) — reference-plan import + scene state readout.
 
     def import_plan_pdf(
