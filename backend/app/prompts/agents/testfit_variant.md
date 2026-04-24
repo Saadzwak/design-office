@@ -15,6 +15,12 @@ plan that a Python layer can replay through SketchUp MCP.
 - `<programme>` — the consolidated programme from Surface 1 (Markdown)
 - `<floor_plan_json>` — a `FloorPlan` Pydantic payload with envelope,
   columns, cores, stairs, windows
+- `<existing_rooms>` — a summary of the CURRENT partitioning of the plate
+  (list of rooms with label, kind, area_m2 and polygon bbox). When the
+  plan is a conversion (e.g. residential → office) this is the list of
+  existing cells you MUST reason about.
+- `<existing_walls>` — the interior wall segments (start/end in mm) that
+  form those rooms, plus the openings already cut into them.
 - `<catalog_json>` — the furniture catalogue available for placement
 - `<resources_excerpts>` — relevant MCP resources (acoustic, PMR, biophilic)
 - `<ratios_json>` — machine-readable planning ratios
@@ -33,12 +39,28 @@ plan that a Python layer can replay through SketchUp MCP.
    honour on the plate.
 3. Read the floor plan. Identify the sunny façade, the quiet façade,
    the cores, the depth-blocked zones.
-4. Lay out the zones — workstations, meetings, phone booths, collab,
-   amenities — executing the SIGNATURE MOVES. Respect the programme
-   quantities within ± 5 %.
-5. Write a narrative (3–5 paragraphs) that reads like an architect
-   briefing their team : reference the brief's language, cite
-   resources like design://acoustic-standards or design://biophilic-office
+4. **Read `<existing_rooms>` and `<existing_walls>`.** Before placing
+   any zone, decide — for every existing room — one of :
+   - **KEEP** : the room becomes a program cell as-is (e.g. Lot 4
+     becomes the boardroom). Preserve its polygon.
+   - **MERGE** : you open one or more existing walls to join two or
+     more rooms into a bigger space. You MUST list the wall indices
+     you open in the narrative and set `"wall_index": <i>` on a
+     `partition_wall` zone with `kind_value: "removed"` so downstream
+     knows what came out.
+   - **REPURPOSE** : the room keeps its footprint but changes function
+     (e.g. Kitchen becomes a huddle-4p). Preserve the polygon, swap
+     the program.
+   If the plate is bare (both lists empty), ignore this step and
+   proceed as usual.
+5. Lay out the program zones — workstations, meetings, phone booths,
+   collab, amenities — executing the SIGNATURE MOVES. Where you KEEP
+   or REPURPOSE a room, snap your zone bbox to the room's polygon
+   bbox. Respect the programme quantities within ± 5 %.
+6. Write a narrative (3–5 paragraphs) that reads like an architect
+   briefing their team : reference the brief's language, name the
+   existing rooms ("Lot 4 becomes the boardroom"), cite resources
+   like design://acoustic-standards or design://biophilic-office
    when relevant, and call out the TRADE-OFF openly.
 
 ## Hard rules
@@ -59,6 +81,14 @@ plan that a Python layer can replay through SketchUp MCP.
   directive says "Crit pit at the heart", the variant is "Crit pit at
   the heart" (possibly with a client-name prefix or suffix), NOT
   "Le Village Nordlight".
+- **When `<existing_rooms>` is non-empty, zone coordinates MUST align
+  to existing wall lines unless you explicitly REMOVE that wall.**
+  Random zones floating inside the envelope are a fail. Every zone is
+  either (a) inside a KEEP/REPURPOSE room's bbox, or (b) spanning
+  multiple rooms whose dividing wall you explicitly MERGE and mark as
+  removed in the output.
+- **Name existing rooms in the narrative.** "Lot 4 becomes the
+  boardroom" > "boardroom côté rue". The client recognises their plan.
 
 ## Output format — JSON only
 

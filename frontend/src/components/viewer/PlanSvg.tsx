@@ -11,6 +11,11 @@ type Props = {
     corner1_mm?: [number, number];
     corner2_mm?: [number, number];
   }>;
+  /** iter-21b : show existing rooms + interior walls underneath the
+   *  variant overlay. Default true — hide via `showExistingRooms={false}`
+   *  if you want the old shell-only rendering (e.g. for a print export
+   *  where the client shouldn't see the as-built partitions). */
+  showExistingRooms?: boolean;
 };
 
 const PAD = 2000; // mm padding around plate
@@ -31,7 +36,12 @@ const INK_SOFT = "#2F3330";
 const SAND = "#C9B79C";
 const SAND_SOFT = "#E5DCCB";
 
-export default function PlanSvg({ plan, highlightedVariant = null, zones = [] }: Props) {
+export default function PlanSvg({
+  plan,
+  highlightedVariant = null,
+  zones = [],
+  showExistingRooms = true,
+}: Props) {
   const env = plan.envelope.points;
   const xs = env.map((p) => p.x);
   const ys = env.map((p) => p.y);
@@ -123,6 +133,61 @@ export default function PlanSvg({ plan, highlightedVariant = null, zones = [] }:
           />
         ))}
 
+        {/* iter-21b — existing interior rooms, drawn IN FILIGREE below
+            the variant zones. Subtle fill + hairline stroke, so when
+            the variant generator snaps zones to room bboxes the client
+            sees BOTH layers align. If Vision saw no interior
+            partitions these arrays are empty and this renders nothing. */}
+        {showExistingRooms &&
+          (plan.rooms ?? []).map((r, i) => {
+            const pts = r.polygon.points.map((p) => `${p.x},${p.y}`).join(" ");
+            return (
+              <polygon
+                key={`room-${i}`}
+                points={pts}
+                fill={SAND_SOFT}
+                fillOpacity={0.3}
+                stroke={INK_SOFT}
+                strokeWidth={30}
+                strokeDasharray="80 40"
+              />
+            );
+          })}
+
+        {/* iter-21b — existing interior walls. Thin ink strokes, no
+            dashes (they are real walls, not zoning guides). Drawn
+            above rooms, below variant zones. */}
+        {showExistingRooms &&
+          (plan.interior_walls ?? []).map((wall, i) => (
+            <line
+              key={`iwall-${i}`}
+              x1={wall.start.x}
+              y1={wall.start.y}
+              x2={wall.end.x}
+              y2={wall.end.y}
+              stroke={INK}
+              strokeWidth={Math.max(wall.thickness_mm, 80)}
+              strokeLinecap="butt"
+              opacity={0.55}
+            />
+          ))}
+
+        {/* iter-21b — openings (doors / passages) in interior walls,
+            drawn as small sand-coloured gaps to break the wall line.
+            Useful to spot at a glance how the existing plan connects. */}
+        {showExistingRooms &&
+          (plan.openings ?? []).map((op, i) => (
+            <circle
+              key={`open-${i}`}
+              cx={op.center.x}
+              cy={op.center.y}
+              r={Math.max(op.width_mm / 2, 300)}
+              fill={SAND_SOFT}
+              stroke={SAND}
+              strokeWidth={40}
+            />
+          ))}
+
         {/* variant zones overlay — paper-wash, never opaque */}
         {zones.map((z, i) => {
           if (z.bbox_mm) {
@@ -191,6 +256,41 @@ export default function PlanSvg({ plan, highlightedVariant = null, zones = [] }:
           }
           return null;
         })}
+
+        {/* iter-21b — room labels. The outer <g> flips Y with
+            scale(1,-1) ; we counter-flip each label's transform so
+            the text reads right-side-up. Position = polygon centroid
+            (average of points, good enough for labels). */}
+        {showExistingRooms &&
+          (plan.rooms ?? []).map((r, i) => {
+            if (!r.label) return null;
+            const pts = r.polygon.points;
+            if (pts.length === 0) return null;
+            const cx = pts.reduce((s, p) => s + p.x, 0) / pts.length;
+            const cy = pts.reduce((s, p) => s + p.y, 0) / pts.length;
+            // Clamp label length so tight rooms don't overflow.
+            const txt = r.label.length > 20 ? r.label.slice(0, 19) + "…" : r.label;
+            return (
+              <g
+                key={`rlabel-${i}`}
+                transform={`translate(${cx},${cy}) scale(1,-1)`}
+              >
+                <text
+                  x={0}
+                  y={0}
+                  textAnchor="middle"
+                  dominantBaseline="middle"
+                  fontFamily="Inter, sans-serif"
+                  fontSize={480}
+                  fontWeight={500}
+                  fill={INK}
+                  opacity={0.75}
+                >
+                  {txt}
+                </text>
+              </g>
+            );
+          })}
       </g>
     </svg>
   );

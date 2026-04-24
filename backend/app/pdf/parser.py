@@ -19,7 +19,17 @@ from PIL import Image
 
 from app.claude_client import ClaudeClient
 from app.config import get_settings
-from app.models import Column, FloorPlan, Point2D, Polygon2D, TechnicalCore, Window
+from app.models import (
+    Column,
+    FloorPlan,
+    InteriorWall,
+    Point2D,
+    Polygon2D,
+    Room,
+    TechnicalCore,
+    WallOpening,
+    Window,
+)
 
 # Target maximum resolution for Vision HD.
 HD_TARGET_PX = 2576
@@ -136,12 +146,20 @@ Focus on what PyMuPDF CANNOT see:
   door swings, window hatching styles)
 - Facade semantics (which edge of the envelope is which cardinal direction,
   inferred from "N↑" arrow, sun diagrams, or labels)
+- **Interior rooms and partitions** — the most project-specific information
+  on the plan. For each enclosed cell of the plate, emit a `rooms_px`
+  polygon with its label (when visible). For each internal wall segment
+  (every line that divides two rooms, NOT part of the envelope), emit an
+  `interior_walls_px` entry. For each door / passage opening within an
+  interior wall, emit an `openings_px` entry.
 
 Return a strict JSON payload matching the schema in the user message. If you
 are uncertain about a geometry, include it under `uncertainties` rather than
 inventing coordinates. Do NOT leave `windows_px` empty if the plan clearly
 shows window hatching along the envelope — err on inclusion, flag low
-confidence in `uncertainties`."""
+confidence in `uncertainties`. Do NOT leave `rooms_px` empty if the plan
+shows rooms — err on inclusion, the downstream space planner NEEDS to see
+the existing partitioning to reason about keep / merge / repurpose."""
 
 _VISION_USER = """Extract the floor plan. Return JSON only (no prose) matching:
 
@@ -171,6 +189,26 @@ _VISION_USER = """Extract the floor plan. Return JSON only (no prose) matching:
      "direction_hint": "up|down|both|unknown",
      "is_fire_escape": false}
   ],
+  "rooms_px": [
+    // One entry per enclosed interior cell. Exclude circulation spines
+    // that are clearly corridors (include those under kind="corridor").
+    {"points_px": [[x,y], ...],
+     "label": "Chambre|Cuisine|Salle d'eau|Entrée|Lot 4|Open space|Boardroom|...",
+     "kind": "room|corridor|wc|kitchen|stairwell|terrace|unknown",
+     "area_hint_m2": 18.0}
+  ],
+  "interior_walls_px": [
+    // One entry per wall segment between two rooms, NOT part of the envelope.
+    {"x1": ..., "y1": ..., "x2": ..., "y2": ...,
+     "thickness_hint_mm": 150,
+     "is_load_bearing_hint": false}
+  ],
+  "openings_px": [
+    // Door or passage openings cut INTO an interior_walls_px segment.
+    {"center_px": [x,y], "width_px": w,
+     "kind": "door|passage|sliding|double_door|unknown",
+     "in_wall_index_hint": 2}          // index into interior_walls_px if known
+  ],
   "text_labels": [
     {"text": "...", "center_px": [x,y], "purpose": "room_name|dimension|scale|orientation|other"}
   ],
@@ -191,6 +229,15 @@ Rules:
 - If an orientation arrow is present, re-classify facades accordingly.
 - `windows_px` MUST include every hatched or double-line wall segment that
   reads as a window in the drawing.
+- `rooms_px` polygons MUST be closed (repeat the first point at the end, OR
+  the consumer will auto-close them). Counter-clockwise preferred but not
+  required.
+- `interior_walls_px` are SEGMENTS (start + end) — do NOT emit polylines.
+  If a single wall bends, emit one segment per straight run.
+- `openings_px` positions are the CENTRE of the door/passage along its wall.
+- If the plan shows no interior partitions (bare plate), return empty
+  arrays for rooms_px / interior_walls_px / openings_px and flag in
+  `uncertainties`.
 - Return valid JSON only. No markdown fences, no prose.
 """
 
@@ -256,6 +303,207 @@ def _rescale_px_to_mm(x_px: float, y_px: float, image_size: tuple[int, int], pla
     x_mm = (x_px / img_w) * pw_mm
     y_mm = (1 - y_px / img_h) * ph_mm
     return x_mm, y_mm
+
+
+# ---------------------------------------------------------------------------
+# iter-21b — interior partitioning extraction
+# ---------------------------------------------------------------------------
+#
+# These three helpers convert Vision's pixel-space rooms / walls /
+# openings into the FloorPlan's mm plan-local frame. Kept separate from
+# `fuse()` so they stay unit-testable without a full PDF round-trip.
+
+_MIN_ROOM_AREA_M2 = 1.0          # drop sub-1 m² polygons — always noise
+_MIN_WALL_LEN_MM = 500.0         # drop sub-50 cm walls — Vision fragments
+_DEFAULT_WALL_THICKNESS = 150.0  # mm, reasonable cloison placo-sur-ossature
+
+
+def _polygon_area_mm2(pts: list[Point2D]) -> float:
+    """Shoelace, absolute value."""
+    if len(pts) < 3:
+        return 0.0
+    total = 0.0
+    n = len(pts)
+    for i in range(n):
+        a = pts[i]
+        b = pts[(i + 1) % n]
+        total += a.x * b.y - b.x * a.y
+    return abs(total) / 2.0
+
+
+def _ensure_closed(pts: list[Point2D]) -> list[Point2D]:
+    """Drop a trailing duplicate (Vision often repeats the first point)."""
+    if len(pts) >= 2:
+        first, last = pts[0], pts[-1]
+        if abs(first.x - last.x) < 1.0 and abs(first.y - last.y) < 1.0:
+            return pts[:-1]
+    return pts
+
+
+def _extract_rooms_from_vision(
+    vision: dict,
+    image_size: tuple[int, int],
+    plate_mm: tuple[float, float],
+) -> list[Room]:
+    """Convert `vision["rooms_px"]` into a list of `Room` in mm.
+
+    Filters :
+    - polygon must have ≥ 3 unique points
+    - computed area ≥ 1 m² (parasitic polygons otherwise)
+    - label string is preserved verbatim when present — this is what the
+      variant generator will reference ("Lot 4", "Chambre", "Entrée").
+    """
+
+    raw = vision.get("rooms_px") or []
+    if not isinstance(raw, list):
+        return []
+    out: list[Room] = []
+    for entry in raw:
+        if not isinstance(entry, dict):
+            continue
+        pts_px = entry.get("points_px")
+        if not isinstance(pts_px, list) or len(pts_px) < 3:
+            continue
+        pts_mm: list[Point2D] = []
+        for p in pts_px:
+            if not isinstance(p, (list, tuple)) or len(p) < 2:
+                continue
+            try:
+                x_mm, y_mm = _rescale_px_to_mm(float(p[0]), float(p[1]), image_size, plate_mm)
+            except (TypeError, ValueError):
+                continue
+            pts_mm.append(Point2D(x=x_mm, y=y_mm))
+        pts_mm = _ensure_closed(pts_mm)
+        if len(pts_mm) < 3:
+            continue
+        area_mm2 = _polygon_area_mm2(pts_mm)
+        area_m2 = area_mm2 / 1_000_000.0
+        if area_m2 < _MIN_ROOM_AREA_M2:
+            continue
+        label = entry.get("label")
+        kind = entry.get("kind", "unknown")
+        if kind not in {
+            "room", "corridor", "wc", "kitchen", "stairwell",
+            "terrace", "utility", "unknown",
+        }:
+            kind = "unknown"
+        out.append(
+            Room(
+                polygon=Polygon2D(points=pts_mm),
+                label=str(label) if label else None,
+                kind=kind,
+                area_m2=round(area_m2, 2),
+            )
+        )
+    return out
+
+
+def _extract_interior_walls_from_vision(
+    vision: dict,
+    image_size: tuple[int, int],
+    plate_mm: tuple[float, float],
+) -> list[InteriorWall]:
+    """Convert `vision["interior_walls_px"]` into InteriorWall (mm).
+
+    Filters out segments shorter than 500 mm (Vision fragmentation).
+    Does NOT dedupe — the variant generator is happy to see a few
+    overlaps, and dedup heuristics on fragmented walls tend to create
+    more false merges than real wins at this stage. We can add a
+    proper line-merge pass later if it becomes noisy."""
+
+    raw = vision.get("interior_walls_px") or []
+    if not isinstance(raw, list):
+        return []
+    out: list[InteriorWall] = []
+    for entry in raw:
+        if not isinstance(entry, dict):
+            continue
+        try:
+            x1_mm, y1_mm = _rescale_px_to_mm(
+                float(entry["x1"]), float(entry["y1"]), image_size, plate_mm
+            )
+            x2_mm, y2_mm = _rescale_px_to_mm(
+                float(entry["x2"]), float(entry["y2"]), image_size, plate_mm
+            )
+        except (KeyError, TypeError, ValueError):
+            continue
+        length = math.hypot(x2_mm - x1_mm, y2_mm - y1_mm)
+        if length < _MIN_WALL_LEN_MM:
+            continue
+        thickness = entry.get("thickness_hint_mm")
+        try:
+            thickness_mm = float(thickness) if thickness is not None else _DEFAULT_WALL_THICKNESS
+        except (TypeError, ValueError):
+            thickness_mm = _DEFAULT_WALL_THICKNESS
+        thickness_mm = max(50.0, min(500.0, thickness_mm))
+        load_bearing = entry.get("is_load_bearing_hint")
+        out.append(
+            InteriorWall(
+                start=Point2D(x=x1_mm, y=y1_mm),
+                end=Point2D(x=x2_mm, y=y2_mm),
+                thickness_mm=thickness_mm,
+                is_load_bearing=load_bearing if isinstance(load_bearing, bool) else None,
+            )
+        )
+    return out
+
+
+def _extract_openings_from_vision(
+    vision: dict,
+    image_size: tuple[int, int],
+    plate_mm: tuple[float, float],
+    *,
+    wall_count: int,
+) -> list[WallOpening]:
+    """Convert `vision["openings_px"]` into WallOpening (mm).
+
+    `wall_count` is used to validate the `in_wall_index_hint` — an
+    out-of-range index is coerced to None so downstream doesn't trust
+    a bad pointer."""
+
+    raw = vision.get("openings_px") or []
+    if not isinstance(raw, list):
+        return []
+    out: list[WallOpening] = []
+    # pixel → mm scale factor for widths (use X axis ; a real architectural
+    # plan is close to isotropic so either axis is fine within 1 %).
+    img_w, _ = image_size
+    pw_mm, _ = plate_mm
+    px_to_mm = pw_mm / img_w if img_w > 0 else 1.0
+    for entry in raw:
+        if not isinstance(entry, dict):
+            continue
+        center_px = entry.get("center_px")
+        if not isinstance(center_px, (list, tuple)) or len(center_px) < 2:
+            continue
+        try:
+            cx_mm, cy_mm = _rescale_px_to_mm(
+                float(center_px[0]), float(center_px[1]), image_size, plate_mm
+            )
+        except (TypeError, ValueError):
+            continue
+        width_px = entry.get("width_px")
+        try:
+            width_mm = float(width_px) * px_to_mm if width_px is not None else 900.0
+        except (TypeError, ValueError):
+            width_mm = 900.0
+        width_mm = max(500.0, min(4000.0, width_mm))
+        kind_raw = entry.get("kind", "door")
+        kind = kind_raw if kind_raw in {
+            "door", "passage", "sliding", "double_door", "unknown",
+        } else "door"
+        wall_idx = entry.get("in_wall_index_hint")
+        if not isinstance(wall_idx, int) or wall_idx < 0 or wall_idx >= wall_count:
+            wall_idx = None
+        out.append(
+            WallOpening(
+                wall_index=wall_idx,
+                center=Point2D(x=cx_mm, y=cy_mm),
+                width_mm=width_mm,
+                kind=kind,  # type: ignore[arg-type]
+            )
+        )
+    return out
 
 
 MM_PER_PT = 500.0  # matches fixture generator POINTS_PER_MM=0.002
@@ -439,6 +687,28 @@ def fuse(
             ):
                 windows_out.append(vw)
 
+    # iter-21b — pull existing interior partitioning from Vision. The
+    # shell-only pipeline was handing the variant generator a blank box,
+    # so the "Lovable" residential plan's 6 apartments got ignored and
+    # zones landed at random. With these 3 lists populated, the prompt
+    # now passes them downstream as KEEP / MERGE / REPURPOSE inputs.
+    rooms_out: list[Room] = []
+    interior_walls_out: list[InteriorWall] = []
+    openings_out: list[WallOpening] = []
+    if vision and image_size:
+        rooms_out = _extract_rooms_from_vision(
+            vision, image_size, (plate_w_mm, plate_h_mm)
+        )
+        interior_walls_out = _extract_interior_walls_from_vision(
+            vision, image_size, (plate_w_mm, plate_h_mm)
+        )
+        openings_out = _extract_openings_from_vision(
+            vision,
+            image_size,
+            (plate_w_mm, plate_h_mm),
+            wall_count=len(interior_walls_out),
+        )
+
     confidence = 0.9 if vision else 0.7
     notes = "Vision HD + PyMuPDF fusion" if vision else "PyMuPDF only (Vision skipped)"
     return FloorPlan(
@@ -449,6 +719,9 @@ def fuse(
         cores=cores_out,
         windows=windows_out,
         stairs=stairs_out,
+        rooms=rooms_out,
+        interior_walls=interior_walls_out,
+        openings=openings_out,
         source_confidence=confidence,
         source_notes=notes,
     )

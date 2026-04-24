@@ -139,7 +139,24 @@ Consolidated programme (respect quantities ± 5 %) :
 {programme_markdown}
 </programme>
 
-Floor plan (mm, origin bottom-left) :
+Existing interior partitioning — ROOMS the plate already has (before
+your intervention). For each one you MUST decide KEEP / MERGE /
+REPURPOSE. If empty, the plate is bare :
+
+<existing_rooms>
+{existing_rooms}
+</existing_rooms>
+
+Existing interior WALLS + OPENINGS — these are the cloisons separating
+the rooms above. Wall indices are 0-based. Cite them in the narrative
+when you MERGE (open a wall) :
+
+<existing_walls>
+{existing_walls}
+</existing_walls>
+
+Floor plan (mm, origin bottom-left, envelope + cores + columns + windows +
+rooms + walls) :
 
 <floor_plan_json>
 {floor_plan_json}
@@ -406,6 +423,14 @@ class TestFitSurface:
             "variant_json": "",
             # Placeholder — populated per-slot after the proposer runs.
             "parti_pris_directive": "",
+            # iter-21b : existing partitioning summary — fed to the
+            # variant generator so it can reason KEEP / MERGE /
+            # REPURPOSE per room instead of laying zones at random on a
+            # blank box. Empty string when the plate is bare (Vision
+            # saw no interior rooms), in which case the prompt falls
+            # back to the legacy "free placement" flow.
+            "existing_rooms": _summarise_existing_rooms(floor_plan),
+            "existing_walls": _summarise_existing_walls(floor_plan),
         }
 
         total_in = 0
@@ -706,6 +731,71 @@ def _strip_json(text: str) -> str:
     if start != -1 and end != -1 and end > start:
         return stripped[start : end + 1]
     return stripped
+
+
+def _summarise_existing_rooms(plan: FloorPlan) -> str:
+    """Render `plan.rooms` as a numbered markdown table the LLM can scan.
+
+    iter-21b : empty → empty string (the variant prompt treats this as
+    "bare plate, fall back to free placement"). Populated → a numbered
+    list with label / kind / area / bbox so the LLM knows WHICH room
+    to KEEP / MERGE / REPURPOSE by index."""
+
+    rooms = plan.rooms or []
+    if not rooms:
+        return "(no existing rooms detected — bare plate)"
+    lines: list[str] = []
+    lines.append("idx | label | kind | area_m2 | bbox_mm (x0,y0,x1,y1)")
+    lines.append("--- | ----- | ---- | ------- | ---------------------")
+    for i, r in enumerate(rooms):
+        label = r.label or "(unlabeled)"
+        area = f"{r.area_m2:.1f}" if r.area_m2 else "?"
+        x0, y0, x1, y1 = r.polygon.bbox()
+        lines.append(
+            f"{i} | {label} | {r.kind} | {area} | "
+            f"({x0:.0f},{y0:.0f},{x1:.0f},{y1:.0f})"
+        )
+    return "\n".join(lines)
+
+
+def _summarise_existing_walls(plan: FloorPlan) -> str:
+    """Render `plan.interior_walls` + `plan.openings` for the LLM.
+
+    Walls are numbered by their 0-based index in `plan.interior_walls`
+    so the variant generator can cite them when it MERGEs (opens a
+    specific wall).  Openings list which wall they sit in (if Vision
+    knew) and their width."""
+
+    walls = plan.interior_walls or []
+    openings = plan.openings or []
+    if not walls and not openings:
+        return "(no interior walls detected)"
+
+    lines: list[str] = []
+    if walls:
+        lines.append("Interior walls (idx | start_mm | end_mm | thickness_mm | load_bearing) :")
+        for i, w in enumerate(walls):
+            lb = (
+                "yes" if w.is_load_bearing
+                else "no" if w.is_load_bearing is False
+                else "?"
+            )
+            lines.append(
+                f"- {i} | ({w.start.x:.0f},{w.start.y:.0f}) | "
+                f"({w.end.x:.0f},{w.end.y:.0f}) | "
+                f"{w.thickness_mm:.0f} | {lb}"
+            )
+    if openings:
+        if lines:
+            lines.append("")
+        lines.append("Openings (wall_index | center_mm | width_mm | kind) :")
+        for o in openings:
+            wi = o.wall_index if o.wall_index is not None else "?"
+            lines.append(
+                f"- {wi} | ({o.center.x:.0f},{o.center.y:.0f}) | "
+                f"{o.width_mm:.0f} | {o.kind}"
+            )
+    return "\n".join(lines)
 
 
 def _parti_pris_to_directive_text(p: dict) -> str:

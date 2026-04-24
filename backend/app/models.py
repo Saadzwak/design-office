@@ -67,6 +67,60 @@ class Stair(BaseModel):
     label: str | None = None
 
 
+# ──────────────────────────── iter-21b — existing partitioning ────────────
+# A real fit-out rarely lands on a bare plate. The "Lovable" residential-to-
+# office conversion (Saad, 2026-04-24) has 6 apartments, and the LLM was
+# laying zones randomly because it couldn't see them. These three models
+# carry the existing interior geometry from Vision HD into the variant
+# generator + the 2D viewer so reasoning and rendering both stop lying.
+
+
+class Room(BaseModel):
+    """A single enclosed interior cell of the plate, as-built.
+
+    `label` is what the plan SAYS (e.g. "Chambre", "Lot 4", "Cuisine",
+    "Open space"). `kind` is a semantic normalisation the variant
+    generator can key off. `area_m2` is a hint — computed from the
+    polygon when possible, else forwarded from Vision's estimate."""
+
+    polygon: Polygon2D
+    label: str | None = None
+    kind: Literal[
+        "room",
+        "corridor",
+        "wc",
+        "kitchen",
+        "stairwell",
+        "terrace",
+        "utility",
+        "unknown",
+    ] = "unknown"
+    area_m2: float | None = None
+
+
+class InteriorWall(BaseModel):
+    """A straight wall segment INSIDE the envelope — a room divider, not
+    the building envelope. Endpoints in mm in the plan-local frame."""
+
+    start: Point2D
+    end: Point2D
+    thickness_mm: float = Field(default=150.0, gt=0)
+    is_load_bearing: bool | None = None
+
+
+class WallOpening(BaseModel):
+    """A door or passage opening cut INTO an `InteriorWall`.
+
+    `wall_index` references the `FloorPlan.interior_walls[]` list.
+    `center` is the centre of the opening along the wall (still in mm
+    in the plan-local frame). `width_mm` is the clear width."""
+
+    wall_index: int | None = None
+    center: Point2D
+    width_mm: float = Field(default=900.0, gt=0)
+    kind: Literal["door", "passage", "sliding", "double_door", "unknown"] = "door"
+
+
 class FloorPlan(BaseModel):
     """Output of the PDF parsing pipeline, input to the variant generator."""
 
@@ -81,6 +135,12 @@ class FloorPlan(BaseModel):
     windows: list[Window] = Field(default_factory=list)
     doors: list[Door] = Field(default_factory=list)
     stairs: list[Stair] = Field(default_factory=list)
+    # iter-21b — existing interior partitioning, when Vision sees it.
+    # Default empty for back-compat with fixtures / tests that were built
+    # against the shell-only schema.
+    rooms: list[Room] = Field(default_factory=list)
+    interior_walls: list[InteriorWall] = Field(default_factory=list)
+    openings: list[WallOpening] = Field(default_factory=list)
     text_labels: list[str] = Field(default_factory=list)
     source_confidence: float = Field(default=1.0, ge=0.0, le=1.0)
     source_notes: str | None = None

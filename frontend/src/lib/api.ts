@@ -85,6 +85,39 @@ export type Stair = {
   label?: string | null;
 };
 
+// iter-21b — existing interior partitioning extracted by Vision HD.
+// Optional on the type so legacy fixtures (shell-only) deserialise
+// cleanly. PlanSvg tolerates missing arrays.
+
+export type Room = {
+  polygon: Polygon2D;
+  label: string | null;
+  kind:
+    | "room"
+    | "corridor"
+    | "wc"
+    | "kitchen"
+    | "stairwell"
+    | "terrace"
+    | "utility"
+    | "unknown";
+  area_m2: number | null;
+};
+
+export type InteriorWall = {
+  start: Point2D;
+  end: Point2D;
+  thickness_mm: number;
+  is_load_bearing: boolean | null;
+};
+
+export type WallOpening = {
+  wall_index: number | null;
+  center: Point2D;
+  width_mm: number;
+  kind: "door" | "passage" | "sliding" | "double_door" | "unknown";
+};
+
 export type FloorPlan = {
   level: number;
   name: string | null;
@@ -97,6 +130,9 @@ export type FloorPlan = {
   windows: Window[];
   doors: unknown[];
   stairs: Stair[];
+  rooms?: Room[];
+  interior_walls?: InteriorWall[];
+  openings?: WallOpening[];
   text_labels: string[];
   source_confidence: number;
   source_notes?: string | null;
