@@ -316,6 +316,17 @@
     overflow: hidden;
   }
 
+  /* iter-24 P0 (Saad, 2026-04-24) — the class above sets
+     `display: flex` unconditionally, which overrides the HTML5
+     `[hidden]` attribute (whose only effect is a UA `display: none`).
+     Without this rule the placeholder stays visible even when the
+     img it was supposed to replace has loaded fine. This caused
+     every Test Fit variant card to show the hatched placeholder
+     on top of the real PNG. */
+  .placeholder-img[hidden] {
+    display: none;
+  }
+
   /* ---------------------------------------------------------------------- */
   /* Skeleton (kept for completeness — new default is typewriter instead)    */
   /* ---------------------------------------------------------------------- */
