@@ -156,49 +156,12 @@ def test_parti_pris_proposer_prompt_exists_and_mentions_brief() -> None:
     assert "project-specific" in content.lower() or "tailored" in content.lower()
 
 
-# iter-21c — Harden _strip_json against LLM JSON slip-ups
-
-
-def test_strip_json_tolerates_trailing_commas() -> None:
-    """Opus sometimes emits `[…, ]` or `{…, }`. The adjacency audit
-    was going to score=0 whenever that happened on the Lovable plan."""
-
-    import json as _json
-
-    from app.surfaces.testfit import _strip_json
-
-    raw = """```json
-{
-  "score": 70,
-  "violations": [
-    {"rule_id": "a"},
-    {"rule_id": "b"},
-  ],
-  "recommendations": ["foo", "bar",],
-}
-```"""
-    cleaned = _strip_json(raw)
-    parsed = _json.loads(cleaned)
-    assert parsed["score"] == 70
-    assert len(parsed["violations"]) == 2
-    assert len(parsed["recommendations"]) == 2
-
-
-def test_strip_json_tolerates_inline_comments() -> None:
-    import json as _json
-
-    from app.surfaces.testfit import _strip_json
-
-    raw = """{
-      "score": 85,  // overall score
-      /* summary commented on purpose */
-      "summary": "ok",
-      "violations": [],
-      "recommendations": []
-    }"""
-    parsed = _json.loads(_strip_json(raw))
-    assert parsed["score"] == 85
-    assert parsed["summary"] == "ok"
+# iter-21c/22c → iter-23 : JSON defensive patches (_strip_json,
+# _close_unterminated_json, _truncate_to_last_balanced) were DELETED
+# when the variant / reviewer / adjacency / iterate / micro-zoning
+# agents migrated to tool_use. Schema validation happens on the
+# Anthropic API side ; there's nothing to parse or repair. The old
+# tests that covered those repair helpers are removed with them.
 
 
 # iter-21d — Phase B : SketchUp MCP reference-plan + read-scene-state
@@ -318,19 +281,5 @@ def test_import_reference_plan_if_available_fires_with_pdf() -> None:
     assert params["pdf_path"].endswith(".pdf")
 
 
-def test_strip_json_truncates_at_last_balanced_close() -> None:
-    """iter-21f : when Opus emits a stray fragment after the outer `}`,
-    the parser must still recover the intended object. Reproduces the
-    'Expecting ,' delimiter' error that hit the Lovable adjacency audits."""
-
-    import json as _json
-
-    from app.surfaces.testfit import _strip_json
-
-    raw = (
-        '{"score": 82, "violations": [{"rule_id": "a", "severity": "major"},'
-        '{"rule_id": "b"}], "recommendations": ["fix a"]}  , stray garbage }'
-    )
-    parsed = _json.loads(_strip_json(raw))
-    assert parsed["score"] == 82
-    assert len(parsed["violations"]) == 2
+# iter-21f test `test_strip_json_truncates_at_last_balanced_close`
+# deleted with the `_truncate_to_last_balanced` helper in iter-23.

@@ -17,7 +17,8 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
-from app.agents.orchestrator import Orchestration, SubAgent
+from app.agents.orchestrator import Orchestration, StructuredSubAgent, SubAgent
+from app.schemas import MoodBoardLLMOutput
 from app.claude_client import ClaudeClient
 from app.models import VariantOutput
 
@@ -153,12 +154,22 @@ Furniture catalogue (pick product_id from here):
 
 Return the JSON selection as specified in your system instructions."""
 
-    def _agent(self) -> SubAgent:
+    def _agent(self) -> StructuredSubAgent:
+        # iter-23 — tool_use schema guarantees MoodBoardLLMOutput shape.
         system = _read(PROMPTS_DIR / "moodboard_curator.md")
-        return SubAgent(
+        return StructuredSubAgent(
             name="MoodBoardCurator",
             system_prompt=system,
             user_template=self._USER_TEMPLATE,
+            output_schema=MoodBoardLLMOutput.model_json_schema(),
+            tool_name="emit_mood_board",
+            tool_description=(
+                "Emit the curated mood-board selection: header (tagline, "
+                "industry_note), atmosphere (hero_image_theme + palette), "
+                "materials, furniture (pick product_id from the catalogue), "
+                "planting, light. Every item must come from the MCP resources "
+                "or the catalogue ; no fabrication."
+            ),
             max_tokens=6000,
         )
 
@@ -175,23 +186,14 @@ Return the JSON selection as specified in your system instructions."""
             "catalog_json": _catalog_json(),
         }
         t0 = time.time()
-        out = orch.run_subagent(self._agent(), context, tag="moodboard.curate")
-        duration_ms = int((time.time() - t0) * 1000)
-
-        # Parse the JSON curator output. The agent is instructed to return
-        # JSON-only, but tolerate a stray code-fence wrapper just in case.
-        text = out.text.strip()
-        if text.startswith("```"):
-            # strip the first fence and the trailing one
-            text = text.strip("`")
-            # drop an optional 'json' hint on the first line
-            text = text.split("\n", 1)[-1] if text.startswith("json") else text
-            if text.endswith("```"):
-                text = text[:-3].rstrip()
         try:
-            selection = json.loads(text)
-        except json.JSONDecodeError as exc:
-            raise ValueError(f"Mood Board Curator returned invalid JSON: {exc}")
+            out = orch.run_structured_subagent(
+                self._agent(), context, tag="moodboard.curate"
+            )
+        except Exception as exc:  # noqa: BLE001
+            raise ValueError(f"Mood Board Curator API error: {exc}") from exc
+        duration_ms = int((time.time() - t0) * 1000)
+        selection = out.data
 
         pdf_id = _render_moodboard_pdf(
             client=req.client,

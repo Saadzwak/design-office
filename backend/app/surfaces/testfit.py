@@ -11,7 +11,21 @@ from pathlib import Path
 
 from pydantic import BaseModel, Field
 
-from app.agents.orchestrator import Orchestration, SubAgent, SubAgentOutput
+from app.agents.orchestrator import (
+    Orchestration,
+    StructuredSubAgent,
+    StructuredSubAgentOutput,
+    SubAgent,
+    SubAgentOutput,
+)
+from app.schemas import (
+    AdjacencyAuditLLMOutput,
+    IterateLLMOutput,
+    MicroZoningLLMOutput,
+    PartiPrisLLMOutput,
+    ReviewerLLMOutput,
+    VariantLLMOutput,
+)
 from app.claude_client import ClaudeClient
 from app.mcp.sketchup_client import SketchUpFacade, get_backend
 from app.models import (
@@ -285,21 +299,34 @@ class TestFitSurface:
             for style in VariantStyle
         ]
 
-    def _reviewer_agent(self) -> SubAgent:
-        return SubAgent(
+    def _reviewer_agent(self) -> StructuredSubAgent:
+        # iter-23 — tool_use guarantees ReviewerLLMOutput shape.
+        return StructuredSubAgent(
             name="Reviewer",
             system_prompt=_read(PROMPTS_DIR / "testfit_reviewer.md"),
             user_template=_REVIEWER_USER,
+            output_schema=ReviewerLLMOutput.model_json_schema(),
+            tool_name="emit_reviewer_verdict",
+            tool_description=(
+                "Emit the verdict (pmr_ok, erp_ok, programme_coverage_ok, "
+                "issues[], verdict). Keep issue bullets short and concrete."
+            ),
             max_tokens=2000,
         )
 
-    def _proposer_agent(self) -> SubAgent:
-        return SubAgent(
+    def _proposer_agent(self) -> StructuredSubAgent:
+        return StructuredSubAgent(
             name="PartiPrisProposer",
             system_prompt=_read(PROMPTS_DIR / "testfit_parti_pris_proposer.md"),
             user_template=_PROPOSER_USER,
-            # 3 partis pris × ~600 tokens each + JSON overhead ≈ 2.5 k.
-            # Give 4 k to be safe on a chatty Opus.
+            output_schema=PartiPrisLLMOutput.model_json_schema(),
+            tool_name="emit_partis_pris",
+            tool_description=(
+                "Emit exactly 3 project-tailored partis pris. Each needs id, "
+                "title, one_line, directive, 3-5 signature_moves, trade_off, "
+                "and a style_classification (villageois|atelier|hybride_flex)."
+            ),
+            # 3 partis pris × ~600 tokens each ≈ 2 k. 4 k headroom.
             max_tokens=4000,
         )
 
@@ -331,11 +358,10 @@ class TestFitSurface:
             agent = self._proposer_agent()
             ctx = dict(base_context)
             ctx.pop("parti_pris_directive", None)
-            out = self.orchestration.run_subagent(
+            out = self.orchestration.run_structured_subagent(
                 agent, ctx, tag="testfit.parti_pris_proposer"
             )
-            payload = json.loads(_strip_json(out.text), strict=False)
-            proposals = payload.get("partis_pris", [])
+            proposals = out.data.get("partis_pris", [])
             if not isinstance(proposals, list) or len(proposals) == 0:
                 return {s: _fallback_parti_pris_directive(s) for s in styles}
 
@@ -374,17 +400,19 @@ class TestFitSurface:
             # tailoring, not the whole Test Fit.
             return {s: _fallback_parti_pris_directive(s) for s in styles}
 
-    def _adjacency_agent(self) -> SubAgent:
-        return SubAgent(
+    def _adjacency_agent(self) -> StructuredSubAgent:
+        # iter-23 — tool_use guarantees valid AdjacencyAuditLLMOutput.
+        return StructuredSubAgent(
             name="AdjacencyValidator",
             system_prompt=_read(PROMPTS_DIR / "testfit_adjacency_validator.md"),
             user_template=_ADJACENCY_USER,
-            # iter-21c — bumped from 2000 to 4000. The Phase A floor
-            # plan carries up to 42 rooms + 31 walls, so the validator
-            # surface-area grew ; its output is sometimes 6-8 violations
-            # with long descriptions. 2000 was cutting off structured
-            # JSON mid-stream and triggering parse errors across all 3
-            # variants on the Lovable plan.
+            output_schema=AdjacencyAuditLLMOutput.model_json_schema(),
+            tool_name="emit_adjacency_audit",
+            tool_description=(
+                "Emit the adjacency audit (score 0-100, summary, up to 10 "
+                "violations, up to 3 recommendations). Each violation MUST "
+                "cite a rule_id verbatim from the adjacency-rules resource."
+            ),
             max_tokens=4000,
         )
 
@@ -404,17 +432,32 @@ class TestFitSurface:
         adjacency_resources = _load_resources(ADJACENCY_RESOURCES)
         floor_plan_json = floor_plan.model_dump_json()
 
+        # iter-23 (Saad, 2026-04-24) — variant generator uses the tool_use
+        # API so Claude's output is guaranteed to match VariantLLMOutput's
+        # JSON schema. No more parse errors, no more defensive repair.
         system = _read(PROMPTS_DIR / "testfit_variant.md")
+        variant_schema = VariantLLMOutput.model_json_schema()
         agents = [
             (
                 style,
-                SubAgent(
+                StructuredSubAgent(
                     name=style.value,
                     system_prompt=system,
                     user_template=_VARIANT_USER,
-                    # iter-22c — 32 k to avoid mid-string truncation
-                    # on big Lovable-scale variants (40+ rooms + heroes).
-                    max_tokens=32000,
+                    output_schema=variant_schema,
+                    tool_name="emit_variant",
+                    tool_description=(
+                        "Emit the full variant plan (style, title, 3-5 para "
+                        "narrative, zones array, metrics). Every zone must "
+                        "have a valid kind + the fields listed for that kind. "
+                        "Do NOT emit prose outside this tool call."
+                    ),
+                    # iter-23 — with tool_use the output is a structured
+                    # dict, much more compact than freeform JSON-in-text.
+                    # 16 k is enough for 40 rooms + zones + narrative ;
+                    # the Anthropic SDK now forces streaming above this
+                    # threshold, which we don't implement yet.
+                    max_tokens=16000,
                 ),
             )
             for style in styles
@@ -458,35 +501,41 @@ class TestFitSurface:
         # producing variants even if this extra agent hiccups.
         partis_pris_by_style = self._propose_partis_pris(base_context, styles)
 
-        # 1. Run variant generators in parallel.
-        def _run(agent: SubAgent, style: VariantStyle) -> tuple[VariantStyle, SubAgentOutput]:
+        # iter-23 — structured variant runner. Returns a dict already
+        # validated against VariantLLMOutput's JSON schema by the API,
+        # so there's no parse step. If Claude refuses the tool call
+        # (exceedingly rare with tool_choice forced) we fall back to
+        # an empty variant so the rest of the pipeline still renders.
+        def _run(
+            agent: StructuredSubAgent, style: VariantStyle
+        ) -> tuple[VariantStyle, StructuredSubAgentOutput | None, Exception | None]:
             ctx = dict(base_context)
             ctx["style_value"] = style.value
             ctx["parti_pris_directive"] = partis_pris_by_style.get(
                 style, _fallback_parti_pris_directive(style)
             )
-            return style, self.orchestration.run_subagent(agent, ctx, tag="testfit.variant")
+            try:
+                out = self.orchestration.run_structured_subagent(
+                    agent, ctx, tag="testfit.variant"
+                )
+                return style, out, None
+            except Exception as exc:  # noqa: BLE001
+                return style, None, exc
 
         with ThreadPoolExecutor(max_workers=len(agents)) as pool:
             futures = [pool.submit(_run, a, s) for s, a in agents]
             results = [f.result() for f in futures]
 
-        # 2. Replay each variant on the SketchUp (mock) backend and build
-        #    VariantOutput.
-        for style, sub_output in results:
-            total_in += sub_output.input_tokens
-            total_out += sub_output.output_tokens
-            try:
-                variant_json = _strip_json(sub_output.text)
-                # iter-22b — strict=False so raw newlines / tabs in
-                # narrative strings don't break parsing. Opus emits
-                # multi-paragraph narratives literally.
-                variant_obj = json.loads(variant_json, strict=False)
-            except Exception as exc:  # noqa: BLE001
+        # Replay each variant on the SketchUp (mock) backend and build
+        # the VariantOutput. With tool_use there's no parse error path
+        # — only the rare API-level failure, which yields an empty
+        # fallback variant.
+        for style, structured_out, err in results:
+            if structured_out is None:
                 variant_obj = {
                     "style": style.value,
-                    "title": f"{style.value} — parse error",
-                    "narrative": f"Variant JSON could not be parsed: {exc}. Raw:\n{sub_output.text[:500]}",
+                    "title": f"{style.value} — API error",
+                    "narrative": f"Structured variant call failed : {err}.",
                     "zones": [],
                     "metrics": {
                         "workstation_count": 0,
@@ -497,9 +546,13 @@ class TestFitSurface:
                         "circulation_m2": 0,
                         "total_programmed_m2": 0,
                         "flex_ratio_applied": 0,
-                        "notes": ["parse_error"],
+                        "notes": ["structured_api_error"],
                     },
                 }
+            else:
+                total_in += structured_out.input_tokens
+                total_out += structured_out.output_tokens
+                variant_obj = structured_out.data
 
             facade = SketchUpFacade(backend=get_backend())
             facade.new_scene(name=f"{client_name} — {style.value}")
@@ -530,21 +583,37 @@ class TestFitSurface:
         reviewer = self._reviewer_agent()
         adjacency = self._adjacency_agent()
 
-        def _review(style: VariantStyle, variant_json: str) -> tuple[VariantStyle, SubAgentOutput]:
+        # iter-23 — reviewer + adjacency through tool_use. Returns a
+        # dict validated by Anthropic against the schema ; the try/except
+        # only catches API-level failures (rare, given tool_choice forces
+        # the tool call).
+        def _review(
+            style: VariantStyle, variant_json: str
+        ) -> tuple[VariantStyle, StructuredSubAgentOutput | None, Exception | None]:
             ctx = dict(base_context)
             ctx["variant_json"] = variant_json
             ctx["style_value"] = style.value
-            return style, self.orchestration.run_subagent(
-                reviewer, ctx, tag="testfit.reviewer"
-            )
+            try:
+                out = self.orchestration.run_structured_subagent(
+                    reviewer, ctx, tag="testfit.reviewer"
+                )
+                return style, out, None
+            except Exception as exc:  # noqa: BLE001
+                return style, None, exc
 
-        def _adjacency(style: VariantStyle, variant_json: str) -> tuple[VariantStyle, SubAgentOutput]:
+        def _adjacency(
+            style: VariantStyle, variant_json: str
+        ) -> tuple[VariantStyle, StructuredSubAgentOutput | None, Exception | None]:
             ctx = dict(base_context)
             ctx["variant_json"] = variant_json
             ctx["style_value"] = style.value
-            return style, self.orchestration.run_subagent(
-                adjacency, ctx, tag="testfit.adjacency"
-            )
+            try:
+                out = self.orchestration.run_structured_subagent(
+                    adjacency, ctx, tag="testfit.adjacency"
+                )
+                return style, out, None
+            except Exception as exc:  # noqa: BLE001
+                return style, None, exc
 
         pairs = [(v.style, _variant_to_json(v)) for v in variants]
         with ThreadPoolExecutor(max_workers=max(1, len(pairs) * 2)) as pool:
@@ -553,36 +622,56 @@ class TestFitSurface:
             reviewer_results = [f.result() for f in rev_futures]
             adjacency_results = [f.result() for f in adj_futures]
 
-        for style, out in reviewer_results:
-            total_in += out.input_tokens
-            total_out += out.output_tokens
-            try:
-                payload = json.loads(_strip_json(out.text), strict=False)
-                verdicts.append(ReviewerVerdict(**payload))
-            except Exception as exc:  # noqa: BLE001
+        for style, rev_out, rev_err in reviewer_results:
+            if rev_out is None:
                 verdicts.append(
                     ReviewerVerdict(
                         style=style,
                         pmr_ok=False,
                         erp_ok=False,
                         programme_coverage_ok=False,
-                        issues=[f"reviewer_parse_error: {exc}"],
+                        issues=[f"reviewer_api_error: {rev_err}"],
+                        verdict="rejected",
+                    )
+                )
+                continue
+            total_in += rev_out.input_tokens
+            total_out += rev_out.output_tokens
+            try:
+                verdicts.append(ReviewerVerdict(**rev_out.data))
+            except Exception as exc:  # noqa: BLE001
+                # Shape-drift defence : schema said one thing, Claude
+                # sent another. Log + carry on with a minimal verdict.
+                verdicts.append(
+                    ReviewerVerdict(
+                        style=style,
+                        pmr_ok=False,
+                        erp_ok=False,
+                        programme_coverage_ok=False,
+                        issues=[f"reviewer_shape_error: {exc}"],
                         verdict="rejected",
                     )
                 )
 
-        # 4. Adjacency audit — attach onto the matching VariantOutput.
+        # Adjacency audit — attach onto the matching VariantOutput.
         audits_by_style: dict[VariantStyle, AdjacencyAudit] = {}
-        for style, out in adjacency_results:
-            total_in += out.input_tokens
-            total_out += out.output_tokens
+        for style, adj_out, adj_err in adjacency_results:
+            if adj_out is None:
+                audits_by_style[style] = AdjacencyAudit(
+                    score=0,
+                    summary=f"Adjacency API error : {adj_err}",
+                    violations=[],
+                    recommendations=[],
+                )
+                continue
+            total_in += adj_out.input_tokens
+            total_out += adj_out.output_tokens
             try:
-                payload = json.loads(_strip_json(out.text), strict=False)
-                audits_by_style[style] = _coerce_adjacency_audit(payload)
+                audits_by_style[style] = _coerce_adjacency_audit(adj_out.data)
             except Exception as exc:  # noqa: BLE001
                 audits_by_style[style] = AdjacencyAudit(
                     score=0,
-                    summary=f"Adjacency audit parse error : {exc}",
+                    summary=f"Adjacency shape error : {exc}",
                     violations=[],
                     recommendations=[],
                 )
@@ -801,141 +890,14 @@ def _replay_zones(facade: SketchUpFacade, zones: list[dict]) -> None:
             )
 
 
-_TRAILING_COMMA_RE = re.compile(r",(\s*[\]}])")
-_LINE_COMMENT_RE = re.compile(r"//[^\n]*")
-_BLOCK_COMMENT_RE = re.compile(r"/\*.*?\*/", re.DOTALL)
-
-
-def _truncate_to_last_balanced(text: str) -> str:
-    """Return the longest prefix of `text` that is a balanced JSON
-    object. Scans char-by-char keeping a bracket stack ; returns
-    the slice ending at the last point where the stack emptied at
-    depth 1 (outer object).
-
-    iter-21f — Opus' adjacency output sometimes produces a few
-    trailing tokens after the outer `}` that break json.loads
-    ("Expecting ',' delimiter"). Cutting at the last balanced `}`
-    recovers the intended payload in one shot."""
-
-    depth = 0
-    in_string = False
-    escape = False
-    last_close = -1
-    for i, ch in enumerate(text):
-        if in_string:
-            if escape:
-                escape = False
-            elif ch == "\\":
-                escape = True
-            elif ch == '"':
-                in_string = False
-            continue
-        if ch == '"':
-            in_string = True
-        elif ch == "{" or ch == "[":
-            depth += 1
-        elif ch == "}" or ch == "]":
-            depth -= 1
-            if depth == 0:
-                last_close = i
-    if last_close >= 0:
-        return text[: last_close + 1]
-    return text
-
-
-def _close_unterminated_json(text: str) -> str:
-    """iter-22c : last-resort repair for outputs truncated mid-string
-    (Opus hit max_tokens before closing the narrative). Walks the text
-    with the same bracket + string stack as `_truncate_to_last_balanced`
-    and, if the scan ends mid-string or mid-object, appends the
-    minimum characters needed to close everything cleanly :
-
-      - `"` if still inside a string
-      - `]` / `}` for each unclosed opening, in the right order
-
-    The recovered output has empty zones / placeholder values past the
-    truncation point, but at least the caller gets a valid JSON object
-    with whatever fields Opus DID manage to finish (style, title, at
-    least a partial narrative). Much better than score=0 parse_error."""
-
-    depth_stack: list[str] = []  # tracks '{' / '['
-    in_string = False
-    escape = False
-    for ch in text:
-        if in_string:
-            if escape:
-                escape = False
-            elif ch == "\\":
-                escape = True
-            elif ch == '"':
-                in_string = False
-            continue
-        if ch == '"':
-            in_string = True
-        elif ch == "{":
-            depth_stack.append("{")
-        elif ch == "[":
-            depth_stack.append("[")
-        elif ch == "}" and depth_stack and depth_stack[-1] == "{":
-            depth_stack.pop()
-        elif ch == "]" and depth_stack and depth_stack[-1] == "[":
-            depth_stack.pop()
-
-    if not in_string and not depth_stack:
-        return text  # already balanced, no-op
-
-    suffix = ""
-    # If stuck in a string, close it (content past truncation is lost).
-    if in_string:
-        suffix += '"'
-    # Close every opening in reverse order. The last thing we were
-    # inside is at the top of the stack, so pop from the top.
-    while depth_stack:
-        opener = depth_stack.pop()
-        suffix += "}" if opener == "{" else "]"
-    return text + suffix
-
-
-def _strip_json(text: str) -> str:
-    """Extract a parseable JSON object from Opus's raw output.
-
-    iter-21c (Saad, 2026-04-24) : made tolerant to the three LLM
-    mistakes that kept breaking the adjacency validator on the
-    Lovable plan — trailing commas before `]` / `}`, inline `// ...`
-    comments, block `/* ... */` comments.
-
-    iter-21f : Opus still occasionally emitted commentary or a stray
-    fragment after the outer `}` (violations=[…], ] — double bracket).
-    We now also truncate at the last balanced-close so the outer
-    object stays clean even if garbage follows.
-    """
-
-    stripped = text.strip()
-    if stripped.startswith("```"):
-        stripped = stripped.split("```", 2)[1]
-        if stripped.startswith("json"):
-            stripped = stripped[len("json") :]
-    # Take the outermost balanced braces.
-    start = stripped.find("{")
-    end = stripped.rfind("}")
-    if start != -1 and end != -1 and end > start:
-        stripped = stripped[start : end + 1]
-    # Clean common LLM JSON slip-ups before handing to json.loads.
-    # Strip `// comment` and `/* comment */` — not legal JSON but
-    # Opus sometimes emits them inside violations[].
-    stripped = _BLOCK_COMMENT_RE.sub("", stripped)
-    stripped = _LINE_COMMENT_RE.sub("", stripped)
-    # Strip trailing commas before `]` or `}`.
-    stripped = _TRAILING_COMMA_RE.sub(r"\1", stripped)
-    # iter-21f — last line of defence : cut at the last balanced close.
-    # iter-22c — BUT if the scan says we never closed (truncated
-    # mid-string, ran out of tokens), fall back to
-    # `_close_unterminated_json` which appends whatever closers are
-    # missing so at least the fields that DID finish are recoverable.
-    balanced = _truncate_to_last_balanced(stripped)
-    if balanced and balanced.endswith("}"):
-        return balanced
-    return _close_unterminated_json(stripped)
+# iter-23 (Saad, 2026-04-24) — `_strip_json`, `_close_unterminated_json`,
+# `_truncate_to_last_balanced`, and the 3 regex constants
+# (`_TRAILING_COMMA_RE`, `_LINE_COMMENT_RE`, `_BLOCK_COMMENT_RE`) were
+# DELETED when every JSON-emitting agent (variant generator, reviewer,
+# parti-pris proposer, adjacency, iterate, micro-zoning) migrated to
+# the `tool_use` API. Anthropic validates the schema server-side ;
+# there's no freeform text to parse or repair on the client. See
+# `docs/TOOL_USE_MIGRATION.md` for the pivot rationale.
 
 
 def _summarise_existing_rooms(plan: FloorPlan) -> str:
@@ -1196,10 +1158,19 @@ def iterate_variant(
     catalog_json = (FURNITURE_DIR / "catalog.json").read_text(encoding="utf-8")
     ratios_json = (BENCHMARKS_DIR / "ratios.json").read_text(encoding="utf-8")
 
-    agent = SubAgent(
+    # iter-23 — iterate uses the same VariantLLMOutput schema as the
+    # variant generator (iterate emits a fresh variant).
+    agent = StructuredSubAgent(
         name="Iterate",
         system_prompt=_read(PROMPTS_DIR / "testfit_iterate.md"),
         user_template=_ITERATE_USER,
+        output_schema=IterateLLMOutput.model_json_schema(),
+        tool_name="emit_iterated_variant",
+        tool_description=(
+            "Emit the updated variant plan reflecting the user's "
+            "instruction. Keep style unchanged, update zones / metrics / "
+            "narrative as the instruction implies."
+        ),
         max_tokens=16000,
     )
     # iter-21d (Phase B) — before prompting, read the live SketchUp
@@ -1234,13 +1205,13 @@ def iterate_variant(
         "ratios_json": ratios_json,
     }
 
-    sub = orch.run_subagent(agent, context, tag="testfit.iterate")
     try:
-        payload = json.loads(_strip_json(sub.text))
+        sub = orch.run_structured_subagent(agent, context, tag="testfit.iterate")
     except Exception as exc:  # noqa: BLE001
         raise ValueError(
-            f"Iteration agent returned malformed JSON: {exc}. Raw: {sub.text[:400]}"
+            f"Iteration agent API error: {exc}"
         ) from exc
+    payload = sub.data
 
     metrics = VariantMetrics(
         **payload.get("metrics", request.variant.metrics.model_dump())
@@ -1421,12 +1392,20 @@ def run_micro_zoning_structured(
     catalog_json = (FURNITURE_DIR / "catalog.json").read_text(encoding="utf-8")
     resources = _load_resources(MICRO_ZONING_RESOURCES + ["adjacency-rules.md"])
 
-    agent = SubAgent(
+    # iter-23 — tool_use-based micro-zoning. Schema forces a zones
+    # array with the agreed shape ; no more text-parse failures.
+    agent = StructuredSubAgent(
         name="MicroZoningStructured",
         system_prompt=_read(PROMPTS_DIR / "testfit_micro_zoning_structured.md"),
         user_template=_MICRO_ZONING_USER,
-        # Typed output with 12-14 zones + furniture + materials + acoustic
-        # runs ~12-18 k output tokens. Keep headroom.
+        output_schema=MicroZoningLLMOutput.model_json_schema(),
+        tool_name="emit_micro_zoning",
+        tool_description=(
+            "Emit the micro-zoning drill-down. Provide 3 to 30 zones, each "
+            "with surface, status (keep|merge|repurpose|new), furniture, "
+            "materials, acoustic and adjacency. Honour the variant's "
+            "partis-pris and the existing rooms you chose to keep."
+        ),
         max_tokens=16000,
     )
     context = {
@@ -1438,20 +1417,19 @@ def run_micro_zoning_structured(
         "resources": resources,
         "catalog_json": catalog_json,
     }
-    sub = orch.run_subagent(agent, context, tag="testfit.micro_zoning_structured")
-
     try:
-        payload = json.loads(_strip_json(sub.text))
-        if not isinstance(payload, dict):
-            raise ValueError("payload is not an object")
+        sub = orch.run_structured_subagent(
+            agent, context, tag="testfit.micro_zoning_structured"
+        )
     except Exception as exc:  # noqa: BLE001
         return StructuredMicroZoningResponse(
             variant_style=request.variant.style,
             zones=[],
-            markdown=f"Structured micro-zoning parse error : {exc}\nRaw output head :\n{sub.text[:800]}",
-            tokens={"input": sub.input_tokens, "output": sub.output_tokens},
-            duration_ms=sub.duration_ms,
+            markdown=f"Structured micro-zoning API error : {exc}",
+            tokens={"input": 0, "output": 0},
+            duration_ms=0,
         )
+    payload = sub.data
 
     zones = _coerce_structured_zones(payload.get("zones"))
     return StructuredMicroZoningResponse(
