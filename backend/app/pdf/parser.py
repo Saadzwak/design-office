@@ -269,6 +269,81 @@ Rules:
 """
 
 
+# iter-22a — tolerant JSON cleaner shared across the Vision + testfit
+# agents. Opus sometimes emits trailing commas, inline comments, or a
+# stray fragment after the outer `}` on its larger outputs.
+_JSON_TRAILING_COMMA_RE = re.compile(r",(\s*[\]}])")
+_JSON_LINE_COMMENT_RE = re.compile(r"//[^\n]*")
+_JSON_BLOCK_COMMENT_RE = re.compile(r"/\*.*?\*/", re.DOTALL)
+
+
+def _robust_json_parse(text: str) -> dict:
+    """Parse a JSON object from text with heuristic repair.
+
+    Tries raw json.loads first (fast path). On failure, applies :
+      1. markdown fence strip
+      2. outer-brace extraction
+      3. inline + block comment strip
+      4. trailing-comma strip
+      5. last-balanced close truncation (drops garbage after outer `}`)
+
+    Raises the ORIGINAL JSONDecodeError if every repair fails, so
+    callers see the underlying token position in the error message.
+    """
+
+    stripped = text.strip()
+    if stripped.startswith("```"):
+        stripped = stripped.split("```", 2)[1]
+        if stripped.startswith("json"):
+            stripped = stripped[len("json") :]
+
+    # Fast path : try directly on the unmodified payload.
+    try:
+        return json.loads(stripped)
+    except json.JSONDecodeError as first_error:
+        pass
+
+    # Outer-brace extraction.
+    start = stripped.find("{")
+    end = stripped.rfind("}")
+    candidate = stripped[start : end + 1] if (start != -1 and end != -1 and end > start) else stripped
+    candidate = _JSON_BLOCK_COMMENT_RE.sub("", candidate)
+    candidate = _JSON_LINE_COMMENT_RE.sub("", candidate)
+    candidate = _JSON_TRAILING_COMMA_RE.sub(r"\1", candidate)
+
+    # Last-balanced truncation (handles stray token after outer `}`).
+    depth = 0
+    in_string = False
+    escape = False
+    last_close = -1
+    for i, ch in enumerate(candidate):
+        if in_string:
+            if escape:
+                escape = False
+            elif ch == "\\":
+                escape = True
+            elif ch == '"':
+                in_string = False
+            continue
+        if ch == '"':
+            in_string = True
+        elif ch in "{[":
+            depth += 1
+        elif ch in "}]":
+            depth -= 1
+            if depth == 0:
+                last_close = i
+    if last_close >= 0:
+        candidate = candidate[: last_close + 1]
+
+    try:
+        return json.loads(candidate)
+    except json.JSONDecodeError:
+        # Re-raise the original error so the stack trace points at the
+        # true offending position in the raw LLM output.
+        raise first_error
+
+
 def call_vision_hd(
     png_bytes: bytes,
     client: ClaudeClient | None = None,
@@ -299,20 +374,15 @@ def call_vision_hd(
     text = "".join(
         block.text for block in response.content if getattr(block, "type", None) == "text"
     )
-    # Strip markdown fences if present.
-    stripped = text.strip()
-    if stripped.startswith("```"):
-        stripped = stripped.split("```", 2)[1]
-        if stripped.startswith("json"):
-            stripped = stripped[len("json") :]
-    try:
-        return json.loads(stripped)
-    except json.JSONDecodeError:
-        start = stripped.find("{")
-        end = stripped.rfind("}")
-        if start != -1 and end != -1:
-            return json.loads(stripped[start : end + 1])
-        raise
+    # iter-22a (Saad, 2026-04-24) — share the tolerant JSON cleaner
+    # used by the testfit agents. Opus' Vision HD on a big plan emits
+    # ~15 KB of JSON with occasional stray commas / comments / trailing
+    # fragments, which the old two-line stripper couldn't handle. The
+    # cleaner handles : markdown fences, trailing commas before ] / },
+    # // and /* … */ comments, and most importantly a last-balanced
+    # brace truncation that recovers the payload when Opus emits a
+    # stray token after the outer `}`.
+    return _robust_json_parse(text)
 
 
 # ---------------------------------------------------------------------------
