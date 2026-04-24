@@ -768,16 +768,55 @@ _LINE_COMMENT_RE = re.compile(r"//[^\n]*")
 _BLOCK_COMMENT_RE = re.compile(r"/\*.*?\*/", re.DOTALL)
 
 
+def _truncate_to_last_balanced(text: str) -> str:
+    """Return the longest prefix of `text` that is a balanced JSON
+    object. Scans char-by-char keeping a bracket stack ; returns
+    the slice ending at the last point where the stack emptied at
+    depth 1 (outer object).
+
+    iter-21f — Opus' adjacency output sometimes produces a few
+    trailing tokens after the outer `}` that break json.loads
+    ("Expecting ',' delimiter"). Cutting at the last balanced `}`
+    recovers the intended payload in one shot."""
+
+    depth = 0
+    in_string = False
+    escape = False
+    last_close = -1
+    for i, ch in enumerate(text):
+        if in_string:
+            if escape:
+                escape = False
+            elif ch == "\\":
+                escape = True
+            elif ch == '"':
+                in_string = False
+            continue
+        if ch == '"':
+            in_string = True
+        elif ch == "{" or ch == "[":
+            depth += 1
+        elif ch == "}" or ch == "]":
+            depth -= 1
+            if depth == 0:
+                last_close = i
+    if last_close >= 0:
+        return text[: last_close + 1]
+    return text
+
+
 def _strip_json(text: str) -> str:
     """Extract a parseable JSON object from Opus's raw output.
 
     iter-21c (Saad, 2026-04-24) : made tolerant to the three LLM
     mistakes that kept breaking the adjacency validator on the
     Lovable plan — trailing commas before `]` / `}`, inline `// ...`
-    comments, block `/* ... */` comments. The original version just
-    stripped a markdown fence and outer braces ; if Opus emitted a
-    comma before a closing brace the whole audit came back as
-    `score: 0, summary: parse error`.
+    comments, block `/* ... */` comments.
+
+    iter-21f : Opus still occasionally emitted commentary or a stray
+    fragment after the outer `}` (violations=[…], ] — double bracket).
+    We now also truncate at the last balanced-close so the outer
+    object stays clean even if garbage follows.
     """
 
     stripped = text.strip()
@@ -797,6 +836,8 @@ def _strip_json(text: str) -> str:
     stripped = _LINE_COMMENT_RE.sub("", stripped)
     # Strip trailing commas before `]` or `}`.
     stripped = _TRAILING_COMMA_RE.sub(r"\1", stripped)
+    # iter-21f — last line of defence : cut at the last balanced close.
+    stripped = _truncate_to_last_balanced(stripped)
     return stripped
 
 

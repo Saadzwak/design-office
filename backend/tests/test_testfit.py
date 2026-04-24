@@ -316,3 +316,21 @@ def test_import_reference_plan_if_available_fires_with_pdf() -> None:
     assert params["width_m"] == 25.0
     assert params["height_m"] == 36.0
     assert params["pdf_path"].endswith(".pdf")
+
+
+def test_strip_json_truncates_at_last_balanced_close() -> None:
+    """iter-21f : when Opus emits a stray fragment after the outer `}`,
+    the parser must still recover the intended object. Reproduces the
+    'Expecting ,' delimiter' error that hit the Lovable adjacency audits."""
+
+    import json as _json
+
+    from app.surfaces.testfit import _strip_json
+
+    raw = (
+        '{"score": 82, "violations": [{"rule_id": "a", "severity": "major"},'
+        '{"rule_id": "b"}], "recommendations": ["fix a"]}  , stray garbage }'
+    )
+    parsed = _json.loads(_strip_json(raw))
+    assert parsed["score"] == 82
+    assert len(parsed["violations"]) == 2

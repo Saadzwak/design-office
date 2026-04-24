@@ -12,6 +12,7 @@ import hashlib
 import io
 import json
 import math
+import re
 from pathlib import Path
 from typing import Any
 
@@ -587,6 +588,7 @@ def fuse(
     mm_per_pt = MM_PER_PT
     pymupdf_w_mm = (x1_pt - x0_pt) * MM_PER_PT
     pymupdf_h_mm = (y1_pt - y0_pt) * MM_PER_PT
+    calibration_note = "scale_calibration: skipped (no Vision dims)"
     if vision and isinstance(vision.get("envelope_real_dimensions_m"), dict):
         real = vision["envelope_real_dimensions_m"]
         try:
@@ -594,15 +596,46 @@ def fuse(
             real_h_mm = float(real.get("height_m", 0)) * 1000.0
         except (TypeError, ValueError):
             real_w_mm = real_h_mm = 0.0
-        # Sanity clamp : typical office/residential plate is between
-        # 150 m² and 8 000 m². Anything outside is rejected and we
-        # fall back to MM_PER_PT.
+        # iter-21f (Saad, 2026-04-24) : widened the sanity clamp from
+        # [150, 8 000] m² to [30, 50 000] m². Opus sometimes returns
+        # slightly undersized estimates for small residential plates
+        # (30–80 m²) and oversized ones for commercial floors
+        # (10k-40k m²). We only bail out on truly absurd values.
         real_area_m2 = (real_w_mm * real_h_mm) / 1_000_000.0
-        if 150.0 <= real_area_m2 <= 8000.0:
+        if 30.0 <= real_area_m2 <= 50_000.0:
             # Use width-based ratio (height-based would be equivalent
             # within rounding because PyMuPDF aspect ratio is preserved).
             if pymupdf_w_mm > 0:
                 mm_per_pt = MM_PER_PT * (real_w_mm / pymupdf_w_mm)
+                calibration_note = (
+                    f"scale_calibration: vision dims "
+                    f"{real_w_mm/1000:.1f}×{real_h_mm/1000:.1f} m"
+                    f" → mm_per_pt={mm_per_pt:.2f}"
+                )
+        else:
+            calibration_note = (
+                f"scale_calibration: Vision dims out of clamp "
+                f"(area={real_area_m2:.0f} m², expected 30-50000)"
+            )
+    # iter-21f — Secondary fallback : if Vision gave us a scale_label
+    # like "1:100" or "1:200", derive the scale from the PDF point
+    # dimensions directly. PDF pt = 1/72 inch = 0.352778 mm, so a
+    # 1:100 plan drawn at 1 pt = 1/72 inch has 1 pt = 35.28 mm of
+    # real-world distance.
+    if mm_per_pt == MM_PER_PT and vision:
+        label = str(vision.get("scale_label", "")).strip()
+        m = re.search(r"1\s*[:/]\s*(\d{1,5})", label)
+        if m:
+            try:
+                denom = int(m.group(1))
+                if 20 <= denom <= 2000:
+                    mm_per_pt = denom * (25.4 / 72.0)
+                    calibration_note = (
+                        f"scale_calibration: from label '{label}' "
+                        f"→ 1:{denom} → mm_per_pt={mm_per_pt:.2f}"
+                    )
+            except ValueError:
+                pass
 
     # Flip Y so that plan origin is bottom-left, plate-relative.
     def to_plan_mm(x_pt: float, y_pt: float) -> tuple[float, float]:
@@ -763,7 +796,11 @@ def fuse(
         )
 
     confidence = 0.9 if vision else 0.7
-    notes = "Vision HD + PyMuPDF fusion" if vision else "PyMuPDF only (Vision skipped)"
+    base_notes = "Vision HD + PyMuPDF fusion" if vision else "PyMuPDF only (Vision skipped)"
+    # iter-21f — surface the scale-calibration decision in source_notes so
+    # it's visible in the /api/testfit/generate response and debuggable
+    # without re-running the parse.
+    notes = f"{base_notes} · {calibration_note}" if vision else base_notes
     # iter-21d — surface the real-world dimensions on the FloorPlan so
     # downstream (SketchUp import, PPT export, dashboards) can label
     # the plate in m² without having to recompute. plate_w/h_mm are
