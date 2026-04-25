@@ -1,0 +1,2041 @@
+{
+  "envelope_mm": [
+    0.0,
+    0.0,
+    34000.0,
+    50027.0
+  ],
+  "plate_w_m": 34.0,
+  "plate_h_m": 50.027,
+  "plan_rooms_count": 44,
+  "plan_columns_count": 8,
+  "plan_cores_count": 2,
+  "variants": [
+    {
+      "variant_idx": 0,
+      "variant_style": "VariantStyle.VILLAGEOIS",
+      "title": "Studio Autour du Foyer — Bâtiment A",
+      "trace_len": 42,
+      "rows": [
+        {
+          "variant_idx": 0,
+          "variant_style": "VariantStyle.VILLAGEOIS",
+          "idx": 2,
+          "tool": "draw_envelope",
+          "source": "parser",
+          "params_summary": "4 pts",
+          "bbox_mm": [
+            0.0,
+            0.0,
+            34000.0,
+            50026.9
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 0,
+          "variant_style": "VariantStyle.VILLAGEOIS",
+          "idx": 3,
+          "tool": "place_column",
+          "source": "parser",
+          "params_summary": "x=22893.020565070372 y=20936.486239696496 r=668.655513685146",
+          "bbox_mm": [
+            22224.4,
+            20267.8,
+            23561.7,
+            21605.1
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 0,
+          "variant_style": "VariantStyle.VILLAGEOIS",
+          "idx": 4,
+          "tool": "place_column",
+          "source": "parser",
+          "params_summary": "x=14031.374493339847 y=18724.977225929575 r=668.655513685146",
+          "bbox_mm": [
+            13362.7,
+            18056.3,
+            14700.0,
+            19393.6
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 0,
+          "variant_style": "VariantStyle.VILLAGEOIS",
+          "idx": 5,
+          "tool": "place_column",
+          "source": "parser",
+          "params_summary": "x=8479.185610596935 y=20650.289367564328 r=668.6558445179849",
+          "bbox_mm": [
+            7810.5,
+            19981.6,
+            9147.8,
+            21318.9
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 0,
+          "variant_style": "VariantStyle.VILLAGEOIS",
+          "idx": 6,
+          "tool": "place_column",
+          "source": "parser",
+          "params_summary": "x=19541.93401831916 y=29923.01773805511 r=668.6561753508236",
+          "bbox_mm": [
+            18873.3,
+            29254.4,
+            20210.6,
+            30591.7
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 0,
+          "variant_style": "VariantStyle.VILLAGEOIS",
+          "idx": 7,
+          "tool": "place_column",
+          "source": "parser",
+          "params_summary": "x=18558.46326861998 y=33253.289605924525 r=668.6561753508236",
+          "bbox_mm": [
+            17889.8,
+            32584.6,
+            19227.1,
+            33921.9
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 0,
+          "variant_style": "VariantStyle.VILLAGEOIS",
+          "idx": 8,
+          "tool": "place_column",
+          "source": "parser",
+          "params_summary": "x=12824.149584822546 y=25687.327850463404 r=668.655513685146",
+          "bbox_mm": [
+            12155.5,
+            25018.7,
+            13492.8,
+            26356.0
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 0,
+          "variant_style": "VariantStyle.VILLAGEOIS",
+          "idx": 9,
+          "tool": "place_column",
+          "source": "parser",
+          "params_summary": "x=17007.80476020679 y=24511.32562193448 r=645.2404886908954",
+          "bbox_mm": [
+            16362.6,
+            23866.1,
+            17653.0,
+            25156.6
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 0,
+          "variant_style": "VariantStyle.VILLAGEOIS",
+          "idx": 10,
+          "tool": "place_column",
+          "source": "parser",
+          "params_summary": "x=14900.366494186155 y=32379.094266190605 r=668.6561753508236",
+          "bbox_mm": [
+            14231.7,
+            31710.4,
+            15569.0,
+            33047.8
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 0,
+          "variant_style": "VariantStyle.VILLAGEOIS",
+          "idx": 11,
+          "tool": "place_core",
+          "source": "parser",
+          "params_summary": "4 pts",
+          "bbox_mm": [
+            29519.7,
+            307.0,
+            33693.0,
+            4480.3
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 0,
+          "variant_style": "VariantStyle.VILLAGEOIS",
+          "idx": 12,
+          "tool": "place_core",
+          "source": "parser",
+          "params_summary": "4 pts",
+          "bbox_mm": [
+            32371.3,
+            42289.3,
+            33693.0,
+            49719.9
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 0,
+          "variant_style": "VariantStyle.VILLAGEOIS",
+          "idx": 14,
+          "tool": "create_collab_zone",
+          "source": "agent",
+          "params_summary": "bbox=(9000, 19900, 22000, 26900)",
+          "bbox_mm": [
+            9000.0,
+            19900.0,
+            22000.0,
+            26900.0
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 0,
+          "variant_style": "VariantStyle.VILLAGEOIS",
+          "idx": 15,
+          "tool": "apply_biophilic_zone",
+          "source": "agent",
+          "params_summary": "bbox=(12000, 14200, 18400, 19600)",
+          "bbox_mm": [
+            12000.0,
+            14200.0,
+            18400.0,
+            19600.0
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 0,
+          "variant_style": "VariantStyle.VILLAGEOIS",
+          "idx": 16,
+          "tool": "create_meeting_room",
+          "source": "agent",
+          "params_summary": "c1=(18500, 32300) c2=(23600, 41700) name='Boardroom Lot 1'",
+          "bbox_mm": [
+            18500.0,
+            32300.0,
+            23600.0,
+            41700.0
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 0,
+          "variant_style": "VariantStyle.VILLAGEOIS",
+          "idx": 17,
+          "tool": "create_meeting_room",
+          "source": "agent",
+          "params_summary": "c1=(18500, 27050) c2=(23600, 31900) name='Salle 6p Accueil'",
+          "bbox_mm": [
+            18500.0,
+            27050.0,
+            23600.0,
+            31900.0
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 0,
+          "variant_style": "VariantStyle.VILLAGEOIS",
+          "idx": 18,
+          "tool": "create_meeting_room",
+          "source": "agent",
+          "params_summary": "c1=(700, 22300) c2=(4500, 25700) name='Huddle Produit'",
+          "bbox_mm": [
+            700.0,
+            22300.0,
+            4500.0,
+            25700.0
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 0,
+          "variant_style": "VariantStyle.VILLAGEOIS",
+          "idx": 19,
+          "tool": "create_meeting_room",
+          "source": "agent",
+          "params_summary": "c1=(19100, 8600) c2=(22550, 13800) name='Huddle Design'",
+          "bbox_mm": [
+            19100.0,
+            8600.0,
+            22550.0,
+            13800.0
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 0,
+          "variant_style": "VariantStyle.VILLAGEOIS",
+          "idx": 20,
+          "tool": "create_phone_booth",
+          "source": "agent",
+          "params_summary": "pos=(8800, 22500)",
+          "bbox_mm": [
+            8800.0,
+            22500.0,
+            9830.0,
+            23500.0
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 0,
+          "variant_style": "VariantStyle.VILLAGEOIS",
+          "idx": 21,
+          "tool": "create_phone_booth",
+          "source": "agent",
+          "params_summary": "pos=(21300, 19000)",
+          "bbox_mm": [
+            21300.0,
+            19000.0,
+            22330.0,
+            20000.0
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 0,
+          "variant_style": "VariantStyle.VILLAGEOIS",
+          "idx": 22,
+          "tool": "create_workstation_cluster",
+          "source": "agent",
+          "params_summary": "origin=(1200, 26500) count=10 spacing=1600 ang=0.0",
+          "bbox_mm": [
+            1200.0,
+            26500.0,
+            17200.0,
+            27300.0
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 0,
+          "variant_style": "VariantStyle.VILLAGEOIS",
+          "idx": 23,
+          "tool": "create_workstation_cluster",
+          "source": "agent",
+          "params_summary": "origin=(21300, 22000) count=10 spacing=1600 ang=90.0",
+          "bbox_mm": [
+            21300.0,
+            22000.0,
+            22900.0,
+            37200.0
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 0,
+          "variant_style": "VariantStyle.VILLAGEOIS",
+          "idx": 24,
+          "tool": "create_workstation_cluster",
+          "source": "agent",
+          "params_summary": "origin=(12200, 9000) count=10 spacing=1600 ang=0.0",
+          "bbox_mm": [
+            12200.0,
+            9000.0,
+            28200.0,
+            9800.0
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 0,
+          "variant_style": "VariantStyle.VILLAGEOIS",
+          "idx": 25,
+          "tool": "create_partition_wall",
+          "source": "agent",
+          "params_summary": "(18500, 32300) -> (23600, 32300)",
+          "bbox_mm": [
+            18400.0,
+            32200.0,
+            23700.0,
+            32400.0
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 0,
+          "variant_style": "VariantStyle.VILLAGEOIS",
+          "idx": 26,
+          "tool": "create_partition_wall",
+          "source": "agent",
+          "params_summary": "(18500, 27050) -> (23600, 27050)",
+          "bbox_mm": [
+            18400.0,
+            26950.0,
+            23700.0,
+            27150.0
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 0,
+          "variant_style": "VariantStyle.VILLAGEOIS",
+          "idx": 27,
+          "tool": "create_partition_wall",
+          "source": "agent",
+          "params_summary": "(700, 22300) -> (4500, 22300)",
+          "bbox_mm": [
+            600.0,
+            22200.0,
+            4600.0,
+            22400.0
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 0,
+          "variant_style": "VariantStyle.VILLAGEOIS",
+          "idx": 28,
+          "tool": "create_partition_wall",
+          "source": "agent",
+          "params_summary": "(19100, 13800) -> (22550, 13800)",
+          "bbox_mm": [
+            19000.0,
+            13700.0,
+            22650.0,
+            13900.0
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 0,
+          "variant_style": "VariantStyle.VILLAGEOIS",
+          "idx": 29,
+          "tool": "place_human",
+          "source": "agent_decorative",
+          "params_summary": "pos=[15500, 22500] pose='standing'",
+          "bbox_mm": [
+            15250.0,
+            22250.0,
+            15750.0,
+            22750.0
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 0,
+          "variant_style": "VariantStyle.VILLAGEOIS",
+          "idx": 30,
+          "tool": "place_human",
+          "source": "agent_decorative",
+          "params_summary": "pos=[3500, 27500] pose='seated'",
+          "bbox_mm": [
+            3250.0,
+            27250.0,
+            3750.0,
+            27750.0
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 0,
+          "variant_style": "VariantStyle.VILLAGEOIS",
+          "idx": 31,
+          "tool": "place_human",
+          "source": "agent_decorative",
+          "params_summary": "pos=[21300, 24000] pose='seated'",
+          "bbox_mm": [
+            21050.0,
+            23750.0,
+            21550.0,
+            24250.0
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 0,
+          "variant_style": "VariantStyle.VILLAGEOIS",
+          "idx": 32,
+          "tool": "place_human",
+          "source": "agent_decorative",
+          "params_summary": "pos=[13500, 17500] pose='walking'",
+          "bbox_mm": [
+            13250.0,
+            17250.0,
+            13750.0,
+            17750.0
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 0,
+          "variant_style": "VariantStyle.VILLAGEOIS",
+          "idx": 33,
+          "tool": "place_plant",
+          "source": "agent_decorative",
+          "params_summary": "pos=[15500, 17000] sp='ficus_lyrata'",
+          "bbox_mm": [
+            14800.0,
+            16300.0,
+            16200.0,
+            17700.0
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 0,
+          "variant_style": "VariantStyle.VILLAGEOIS",
+          "idx": 34,
+          "tool": "place_plant",
+          "source": "agent_decorative",
+          "params_summary": "pos=[11000, 21500] sp='monstera'",
+          "bbox_mm": [
+            10300.0,
+            20800.0,
+            11700.0,
+            22200.0
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 0,
+          "variant_style": "VariantStyle.VILLAGEOIS",
+          "idx": 35,
+          "tool": "place_plant",
+          "source": "agent_decorative",
+          "params_summary": "pos=[20000, 21000] sp='pothos'",
+          "bbox_mm": [
+            19300.0,
+            20300.0,
+            20700.0,
+            21700.0
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 0,
+          "variant_style": "VariantStyle.VILLAGEOIS",
+          "idx": 36,
+          "tool": "place_plant",
+          "source": "agent_decorative",
+          "params_summary": "pos=[16500, 18500] sp='dracaena'",
+          "bbox_mm": [
+            15800.0,
+            17800.0,
+            17200.0,
+            19200.0
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 0,
+          "variant_style": "VariantStyle.VILLAGEOIS",
+          "idx": 37,
+          "tool": "place_hero",
+          "source": "agent_decorative",
+          "params_summary": "pos=[21000, 37000] slug='table_boardroom_4000'",
+          "bbox_mm": [
+            19000.0,
+            36300.0,
+            23000.0,
+            37700.0
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 0,
+          "variant_style": "VariantStyle.VILLAGEOIS",
+          "idx": 38,
+          "tool": "place_hero",
+          "source": "agent_decorative",
+          "params_summary": "pos=[14000, 23500] slug='sofa_mags'",
+          "bbox_mm": [
+            12800.0,
+            23000.0,
+            15200.0,
+            24000.0
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 0,
+          "variant_style": "VariantStyle.VILLAGEOIS",
+          "idx": 39,
+          "tool": "place_hero",
+          "source": "agent_decorative",
+          "params_summary": "pos=[8800, 22500] slug='framery_one'",
+          "bbox_mm": [
+            8300.0,
+            22000.0,
+            9300.0,
+            23000.0
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        }
+      ]
+    },
+    {
+      "variant_idx": 1,
+      "variant_style": "VariantStyle.ATELIER",
+      "title": "L'Enfilade Haussmannienne — Bâtiment A",
+      "trace_len": 46,
+      "rows": [
+        {
+          "variant_idx": 1,
+          "variant_style": "VariantStyle.ATELIER",
+          "idx": 2,
+          "tool": "draw_envelope",
+          "source": "parser",
+          "params_summary": "4 pts",
+          "bbox_mm": [
+            0.0,
+            0.0,
+            34000.0,
+            50026.9
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 1,
+          "variant_style": "VariantStyle.ATELIER",
+          "idx": 3,
+          "tool": "place_column",
+          "source": "parser",
+          "params_summary": "x=22893.020565070372 y=20936.486239696496 r=668.655513685146",
+          "bbox_mm": [
+            22224.4,
+            20267.8,
+            23561.7,
+            21605.1
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 1,
+          "variant_style": "VariantStyle.ATELIER",
+          "idx": 4,
+          "tool": "place_column",
+          "source": "parser",
+          "params_summary": "x=14031.374493339847 y=18724.977225929575 r=668.655513685146",
+          "bbox_mm": [
+            13362.7,
+            18056.3,
+            14700.0,
+            19393.6
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 1,
+          "variant_style": "VariantStyle.ATELIER",
+          "idx": 5,
+          "tool": "place_column",
+          "source": "parser",
+          "params_summary": "x=8479.185610596935 y=20650.289367564328 r=668.6558445179849",
+          "bbox_mm": [
+            7810.5,
+            19981.6,
+            9147.8,
+            21318.9
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 1,
+          "variant_style": "VariantStyle.ATELIER",
+          "idx": 6,
+          "tool": "place_column",
+          "source": "parser",
+          "params_summary": "x=19541.93401831916 y=29923.01773805511 r=668.6561753508236",
+          "bbox_mm": [
+            18873.3,
+            29254.4,
+            20210.6,
+            30591.7
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 1,
+          "variant_style": "VariantStyle.ATELIER",
+          "idx": 7,
+          "tool": "place_column",
+          "source": "parser",
+          "params_summary": "x=18558.46326861998 y=33253.289605924525 r=668.6561753508236",
+          "bbox_mm": [
+            17889.8,
+            32584.6,
+            19227.1,
+            33921.9
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 1,
+          "variant_style": "VariantStyle.ATELIER",
+          "idx": 8,
+          "tool": "place_column",
+          "source": "parser",
+          "params_summary": "x=12824.149584822546 y=25687.327850463404 r=668.655513685146",
+          "bbox_mm": [
+            12155.5,
+            25018.7,
+            13492.8,
+            26356.0
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 1,
+          "variant_style": "VariantStyle.ATELIER",
+          "idx": 9,
+          "tool": "place_column",
+          "source": "parser",
+          "params_summary": "x=17007.80476020679 y=24511.32562193448 r=645.2404886908954",
+          "bbox_mm": [
+            16362.6,
+            23866.1,
+            17653.0,
+            25156.6
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 1,
+          "variant_style": "VariantStyle.ATELIER",
+          "idx": 10,
+          "tool": "place_column",
+          "source": "parser",
+          "params_summary": "x=14900.366494186155 y=32379.094266190605 r=668.6561753508236",
+          "bbox_mm": [
+            14231.7,
+            31710.4,
+            15569.0,
+            33047.8
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 1,
+          "variant_style": "VariantStyle.ATELIER",
+          "idx": 11,
+          "tool": "place_core",
+          "source": "parser",
+          "params_summary": "4 pts",
+          "bbox_mm": [
+            29519.7,
+            307.0,
+            33693.0,
+            4480.3
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 1,
+          "variant_style": "VariantStyle.ATELIER",
+          "idx": 12,
+          "tool": "place_core",
+          "source": "parser",
+          "params_summary": "4 pts",
+          "bbox_mm": [
+            32371.3,
+            42289.3,
+            33693.0,
+            49719.9
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 1,
+          "variant_style": "VariantStyle.ATELIER",
+          "idx": 13,
+          "tool": "create_workstation_cluster",
+          "source": "agent",
+          "params_summary": "origin=(18900, 33000) count=12 spacing=1600 ang=0.0",
+          "bbox_mm": [
+            18900.0,
+            33000.0,
+            38100.0,
+            33800.0
+          ],
+          "overflow_ratio": 0.2135,
+          "classification": "major"
+        },
+        {
+          "variant_idx": 1,
+          "variant_style": "VariantStyle.ATELIER",
+          "idx": 14,
+          "tool": "create_workstation_cluster",
+          "source": "agent",
+          "params_summary": "origin=(14600, 44200) count=8 spacing=1600 ang=0.0",
+          "bbox_mm": [
+            14600.0,
+            44200.0,
+            27400.0,
+            45000.0
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 1,
+          "variant_style": "VariantStyle.ATELIER",
+          "idx": 15,
+          "tool": "create_workstation_cluster",
+          "source": "agent",
+          "params_summary": "origin=(1200, 15000) count=10 spacing=1600 ang=0.0",
+          "bbox_mm": [
+            1200.0,
+            15000.0,
+            17200.0,
+            15800.0
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 1,
+          "variant_style": "VariantStyle.ATELIER",
+          "idx": 16,
+          "tool": "create_meeting_room",
+          "source": "agent",
+          "params_summary": "c1=(18417, 26955) c2=(23658, 31981) name='Boardroom 8p — Grand Salon (ex-Chambre Lot)'",
+          "bbox_mm": [
+            18417.0,
+            26955.0,
+            23658.0,
+            31981.0
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 1,
+          "variant_style": "VariantStyle.ATELIER",
+          "idx": 17,
+          "tool": "create_meeting_room",
+          "source": "agent",
+          "params_summary": "c1=(18417, 21473) c2=(23658, 26727) name='Salle 6p — Salon Est (ex-Chambre)'",
+          "bbox_mm": [
+            18417.0,
+            21473.0,
+            23658.0,
+            26727.0
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 1,
+          "variant_style": "VariantStyle.ATELIER",
+          "idx": 18,
+          "tool": "create_meeting_room",
+          "source": "agent",
+          "params_summary": "c1=(13700, 36500) c2=(17500, 40000) name='Salle 4p Nord (ex-Cuisine)'",
+          "bbox_mm": [
+            13700.0,
+            36500.0,
+            17500.0,
+            40000.0
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 1,
+          "variant_style": "VariantStyle.ATELIER",
+          "idx": 19,
+          "tool": "create_meeting_room",
+          "source": "agent",
+          "params_summary": "c1=(4900, 26000) c2=(8500, 30000) name='Salle 4p Ouest (ex-Chambre Lot 63)'",
+          "bbox_mm": [
+            4900.0,
+            26000.0,
+            8500.0,
+            30000.0
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 1,
+          "variant_style": "VariantStyle.ATELIER",
+          "idx": 20,
+          "tool": "create_meeting_room",
+          "source": "agent",
+          "params_summary": "c1=(800, 26000) c2=(4500, 30000) name='Salle 4p (ex-Chambre)'",
+          "bbox_mm": [
+            800.0,
+            26000.0,
+            4500.0,
+            30000.0
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 1,
+          "variant_style": "VariantStyle.ATELIER",
+          "idx": 21,
+          "tool": "create_phone_booth",
+          "source": "agent",
+          "params_summary": "pos=(12900, 28000)",
+          "bbox_mm": [
+            12900.0,
+            28000.0,
+            13930.0,
+            29000.0
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 1,
+          "variant_style": "VariantStyle.ATELIER",
+          "idx": 22,
+          "tool": "create_phone_booth",
+          "source": "agent",
+          "params_summary": "pos=(13100, 24500)",
+          "bbox_mm": [
+            13100.0,
+            24500.0,
+            14130.0,
+            25500.0
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 1,
+          "variant_style": "VariantStyle.ATELIER",
+          "idx": 23,
+          "tool": "create_partition_wall",
+          "source": "agent",
+          "params_summary": "(18900, 32000) -> (18900, 41700)",
+          "bbox_mm": [
+            18800.0,
+            31900.0,
+            19000.0,
+            41800.0
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 1,
+          "variant_style": "VariantStyle.ATELIER",
+          "idx": 24,
+          "tool": "create_partition_wall",
+          "source": "agent",
+          "params_summary": "(14400, 43700) -> (18200, 43700)",
+          "bbox_mm": [
+            14300.0,
+            43600.0,
+            18300.0,
+            43800.0
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 1,
+          "variant_style": "VariantStyle.ATELIER",
+          "idx": 25,
+          "tool": "create_partition_wall",
+          "source": "agent",
+          "params_summary": "(600, 22200) -> (8600, 22200)",
+          "bbox_mm": [
+            500.0,
+            22100.0,
+            8700.0,
+            22300.0
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 1,
+          "variant_style": "VariantStyle.ATELIER",
+          "idx": 26,
+          "tool": "create_partition_wall",
+          "source": "agent",
+          "params_summary": "(18417, 31981) -> (23658, 31981)",
+          "bbox_mm": [
+            18317.0,
+            31881.0,
+            23758.0,
+            32081.0
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 1,
+          "variant_style": "VariantStyle.ATELIER",
+          "idx": 27,
+          "tool": "create_partition_wall",
+          "source": "agent",
+          "params_summary": "(18417, 26955) -> (23658, 26955)",
+          "bbox_mm": [
+            18317.0,
+            26855.0,
+            23758.0,
+            27055.0
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 1,
+          "variant_style": "VariantStyle.ATELIER",
+          "idx": 28,
+          "tool": "create_collab_zone",
+          "source": "agent",
+          "params_summary": "bbox=(11400, 32000, 18300, 36000)",
+          "bbox_mm": [
+            11400.0,
+            32000.0,
+            18300.0,
+            36000.0
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 1,
+          "variant_style": "VariantStyle.ATELIER",
+          "idx": 29,
+          "tool": "create_collab_zone",
+          "source": "agent",
+          "params_summary": "bbox=(9000, 14200, 15300, 18500)",
+          "bbox_mm": [
+            9000.0,
+            14200.0,
+            15300.0,
+            18500.0
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 1,
+          "variant_style": "VariantStyle.ATELIER",
+          "idx": 30,
+          "tool": "apply_biophilic_zone",
+          "source": "agent",
+          "params_summary": "bbox=(18700, 41803, 23517, 47743)",
+          "bbox_mm": [
+            18700.0,
+            41803.0,
+            23517.0,
+            47743.0
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 1,
+          "variant_style": "VariantStyle.ATELIER",
+          "idx": 31,
+          "tool": "apply_biophilic_zone",
+          "source": "agent",
+          "params_summary": "bbox=(11400, 35500, 14000, 36100)",
+          "bbox_mm": [
+            11400.0,
+            35500.0,
+            14000.0,
+            36100.0
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 1,
+          "variant_style": "VariantStyle.ATELIER",
+          "idx": 32,
+          "tool": "place_human",
+          "source": "agent_decorative",
+          "params_summary": "pos=[19800, 33500] pose='seated'",
+          "bbox_mm": [
+            19550.0,
+            33250.0,
+            20050.0,
+            33750.0
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 1,
+          "variant_style": "VariantStyle.ATELIER",
+          "idx": 33,
+          "tool": "place_human",
+          "source": "agent_decorative",
+          "params_summary": "pos=[15500, 44600] pose='seated'",
+          "bbox_mm": [
+            15250.0,
+            44350.0,
+            15750.0,
+            44850.0
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 1,
+          "variant_style": "VariantStyle.ATELIER",
+          "idx": 34,
+          "tool": "place_human",
+          "source": "agent_decorative",
+          "params_summary": "pos=[13800, 33800] pose='standing'",
+          "bbox_mm": [
+            13550.0,
+            33550.0,
+            14050.0,
+            34050.0
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 1,
+          "variant_style": "VariantStyle.ATELIER",
+          "idx": 35,
+          "tool": "place_human",
+          "source": "agent_decorative",
+          "params_summary": "pos=[11000, 25000] pose='walking'",
+          "bbox_mm": [
+            10750.0,
+            24750.0,
+            11250.0,
+            25250.0
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 1,
+          "variant_style": "VariantStyle.ATELIER",
+          "idx": 36,
+          "tool": "place_plant",
+          "source": "agent_decorative",
+          "params_summary": "pos=[21100, 44500] sp='ficus_lyrata'",
+          "bbox_mm": [
+            20400.0,
+            43800.0,
+            21800.0,
+            45200.0
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 1,
+          "variant_style": "VariantStyle.ATELIER",
+          "idx": 37,
+          "tool": "place_plant",
+          "source": "agent_decorative",
+          "params_summary": "pos=[13000, 35800] sp='monstera'",
+          "bbox_mm": [
+            12300.0,
+            35100.0,
+            13700.0,
+            36500.0
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 1,
+          "variant_style": "VariantStyle.ATELIER",
+          "idx": 38,
+          "tool": "place_plant",
+          "source": "agent_decorative",
+          "params_summary": "pos=[12500, 16500] sp='pothos'",
+          "bbox_mm": [
+            11800.0,
+            15800.0,
+            13200.0,
+            17200.0
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 1,
+          "variant_style": "VariantStyle.ATELIER",
+          "idx": 39,
+          "tool": "place_plant",
+          "source": "agent_decorative",
+          "params_summary": "pos=[3000, 28000] sp='dracaena'",
+          "bbox_mm": [
+            2300.0,
+            27300.0,
+            3700.0,
+            28700.0
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 1,
+          "variant_style": "VariantStyle.ATELIER",
+          "idx": 40,
+          "tool": "place_hero",
+          "source": "agent_decorative",
+          "params_summary": "pos=[21000, 29400] slug='table_boardroom_4000'",
+          "bbox_mm": [
+            19000.0,
+            28700.0,
+            23000.0,
+            30100.0
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 1,
+          "variant_style": "VariantStyle.ATELIER",
+          "idx": 41,
+          "tool": "place_hero",
+          "source": "agent_decorative",
+          "params_summary": "pos=[12900, 28000] slug='framery_one'",
+          "bbox_mm": [
+            12400.0,
+            27500.0,
+            13400.0,
+            28500.0
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 1,
+          "variant_style": "VariantStyle.ATELIER",
+          "idx": 42,
+          "tool": "place_hero",
+          "source": "agent_decorative",
+          "params_summary": "pos=[12500, 16200] slug='sofa_mags'",
+          "bbox_mm": [
+            11300.0,
+            15700.0,
+            13700.0,
+            16700.0
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        }
+      ]
+    },
+    {
+      "variant_idx": 2,
+      "variant_style": "VariantStyle.HYBRIDE_FLEX",
+      "title": "Plateau Neutre 3/2 — Haussmann hybride",
+      "trace_len": 50,
+      "rows": [
+        {
+          "variant_idx": 2,
+          "variant_style": "VariantStyle.HYBRIDE_FLEX",
+          "idx": 2,
+          "tool": "draw_envelope",
+          "source": "parser",
+          "params_summary": "4 pts",
+          "bbox_mm": [
+            0.0,
+            0.0,
+            34000.0,
+            50026.9
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 2,
+          "variant_style": "VariantStyle.HYBRIDE_FLEX",
+          "idx": 3,
+          "tool": "place_column",
+          "source": "parser",
+          "params_summary": "x=22893.020565070372 y=20936.486239696496 r=668.655513685146",
+          "bbox_mm": [
+            22224.4,
+            20267.8,
+            23561.7,
+            21605.1
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 2,
+          "variant_style": "VariantStyle.HYBRIDE_FLEX",
+          "idx": 4,
+          "tool": "place_column",
+          "source": "parser",
+          "params_summary": "x=14031.374493339847 y=18724.977225929575 r=668.655513685146",
+          "bbox_mm": [
+            13362.7,
+            18056.3,
+            14700.0,
+            19393.6
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 2,
+          "variant_style": "VariantStyle.HYBRIDE_FLEX",
+          "idx": 5,
+          "tool": "place_column",
+          "source": "parser",
+          "params_summary": "x=8479.185610596935 y=20650.289367564328 r=668.6558445179849",
+          "bbox_mm": [
+            7810.5,
+            19981.6,
+            9147.8,
+            21318.9
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 2,
+          "variant_style": "VariantStyle.HYBRIDE_FLEX",
+          "idx": 6,
+          "tool": "place_column",
+          "source": "parser",
+          "params_summary": "x=19541.93401831916 y=29923.01773805511 r=668.6561753508236",
+          "bbox_mm": [
+            18873.3,
+            29254.4,
+            20210.6,
+            30591.7
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 2,
+          "variant_style": "VariantStyle.HYBRIDE_FLEX",
+          "idx": 7,
+          "tool": "place_column",
+          "source": "parser",
+          "params_summary": "x=18558.46326861998 y=33253.289605924525 r=668.6561753508236",
+          "bbox_mm": [
+            17889.8,
+            32584.6,
+            19227.1,
+            33921.9
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 2,
+          "variant_style": "VariantStyle.HYBRIDE_FLEX",
+          "idx": 8,
+          "tool": "place_column",
+          "source": "parser",
+          "params_summary": "x=12824.149584822546 y=25687.327850463404 r=668.655513685146",
+          "bbox_mm": [
+            12155.5,
+            25018.7,
+            13492.8,
+            26356.0
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 2,
+          "variant_style": "VariantStyle.HYBRIDE_FLEX",
+          "idx": 9,
+          "tool": "place_column",
+          "source": "parser",
+          "params_summary": "x=17007.80476020679 y=24511.32562193448 r=645.2404886908954",
+          "bbox_mm": [
+            16362.6,
+            23866.1,
+            17653.0,
+            25156.6
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 2,
+          "variant_style": "VariantStyle.HYBRIDE_FLEX",
+          "idx": 10,
+          "tool": "place_column",
+          "source": "parser",
+          "params_summary": "x=14900.366494186155 y=32379.094266190605 r=668.6561753508236",
+          "bbox_mm": [
+            14231.7,
+            31710.4,
+            15569.0,
+            33047.8
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 2,
+          "variant_style": "VariantStyle.HYBRIDE_FLEX",
+          "idx": 11,
+          "tool": "place_core",
+          "source": "parser",
+          "params_summary": "4 pts",
+          "bbox_mm": [
+            29519.7,
+            307.0,
+            33693.0,
+            4480.3
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 2,
+          "variant_style": "VariantStyle.HYBRIDE_FLEX",
+          "idx": 12,
+          "tool": "place_core",
+          "source": "parser",
+          "params_summary": "4 pts",
+          "bbox_mm": [
+            32371.3,
+            42289.3,
+            33693.0,
+            49719.9
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 2,
+          "variant_style": "VariantStyle.HYBRIDE_FLEX",
+          "idx": 13,
+          "tool": "create_workstation_cluster",
+          "source": "agent",
+          "params_summary": "origin=(18800, 32500) count=8 spacing=1600 ang=0.0",
+          "bbox_mm": [
+            18800.0,
+            32500.0,
+            31600.0,
+            33300.0
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 2,
+          "variant_style": "VariantStyle.HYBRIDE_FLEX",
+          "idx": 14,
+          "tool": "create_workstation_cluster",
+          "source": "agent",
+          "params_summary": "origin=(18800, 27500) count=8 spacing=1600 ang=0.0",
+          "bbox_mm": [
+            18800.0,
+            27500.0,
+            31600.0,
+            28300.0
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 2,
+          "variant_style": "VariantStyle.HYBRIDE_FLEX",
+          "idx": 15,
+          "tool": "create_workstation_cluster",
+          "source": "agent",
+          "params_summary": "origin=(18800, 22000) count=6 spacing=1600 ang=0.0",
+          "bbox_mm": [
+            18800.0,
+            22000.0,
+            28400.0,
+            22800.0
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 2,
+          "variant_style": "VariantStyle.HYBRIDE_FLEX",
+          "idx": 16,
+          "tool": "create_meeting_room",
+          "source": "agent",
+          "params_summary": "c1=(14400, 43700) c2=(17500, 49800) name='Boardroom 8p — angle haussmannien (ex-Chambre idx 0)'",
+          "bbox_mm": [
+            14400.0,
+            43700.0,
+            17500.0,
+            49800.0
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 2,
+          "variant_style": "VariantStyle.HYBRIDE_FLEX",
+          "idx": 17,
+          "tool": "create_meeting_room",
+          "source": "agent",
+          "params_summary": "c1=(21200, 18600) c2=(24600, 22500) name='Salle 6p — ex-Chambre idx 24'",
+          "bbox_mm": [
+            21200.0,
+            18600.0,
+            24600.0,
+            22500.0
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 2,
+          "variant_style": "VariantStyle.HYBRIDE_FLEX",
+          "idx": 18,
+          "tool": "create_meeting_room",
+          "source": "agent",
+          "params_summary": "c1=(21300, 14300) c2=(24700, 18200) name='Huddle 4p Nord — ex-Chambre Lot 2 (idx 29)'",
+          "bbox_mm": [
+            21300.0,
+            14300.0,
+            24700.0,
+            18200.0
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 2,
+          "variant_style": "VariantStyle.HYBRIDE_FLEX",
+          "idx": 19,
+          "tool": "create_meeting_room",
+          "source": "agent",
+          "params_summary": "c1=(19100, 8600) c2=(22600, 13900) name='Huddle 4p Sud — ex-Chambre Lot 3 (idx 36)'",
+          "bbox_mm": [
+            19100.0,
+            8600.0,
+            22600.0,
+            13900.0
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 2,
+          "variant_style": "VariantStyle.HYBRIDE_FLEX",
+          "idx": 20,
+          "tool": "create_meeting_room",
+          "source": "agent",
+          "params_summary": "c1=(22900, 8600) c2=(26700, 13900) name='Salle marge — ex-Chambre Lot 3 (idx 37)'",
+          "bbox_mm": [
+            22900.0,
+            8600.0,
+            26700.0,
+            13900.0
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 2,
+          "variant_style": "VariantStyle.HYBRIDE_FLEX",
+          "idx": 21,
+          "tool": "create_phone_booth",
+          "source": "agent",
+          "params_summary": "pos=(17800, 21500)",
+          "bbox_mm": [
+            17800.0,
+            21500.0,
+            18830.0,
+            22500.0
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 2,
+          "variant_style": "VariantStyle.HYBRIDE_FLEX",
+          "idx": 22,
+          "tool": "create_phone_booth",
+          "source": "agent",
+          "params_summary": "pos=(17800, 19200)",
+          "bbox_mm": [
+            17800.0,
+            19200.0,
+            18830.0,
+            20200.0
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 2,
+          "variant_style": "VariantStyle.HYBRIDE_FLEX",
+          "idx": 23,
+          "tool": "create_collab_zone",
+          "source": "agent",
+          "params_summary": "bbox=(700, 14300, 8500, 22000)",
+          "bbox_mm": [
+            700.0,
+            14300.0,
+            8500.0,
+            22000.0
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 2,
+          "variant_style": "VariantStyle.HYBRIDE_FLEX",
+          "idx": 24,
+          "tool": "create_collab_zone",
+          "source": "agent",
+          "params_summary": "bbox=(700, 25900, 11100, 33700)",
+          "bbox_mm": [
+            700.0,
+            25900.0,
+            11100.0,
+            33700.0
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 2,
+          "variant_style": "VariantStyle.HYBRIDE_FLEX",
+          "idx": 25,
+          "tool": "create_collab_zone",
+          "source": "agent",
+          "params_summary": "bbox=(8700, 20000, 14000, 25800)",
+          "bbox_mm": [
+            8700.0,
+            20000.0,
+            14000.0,
+            25800.0
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 2,
+          "variant_style": "VariantStyle.HYBRIDE_FLEX",
+          "idx": 26,
+          "tool": "apply_biophilic_zone",
+          "source": "agent",
+          "params_summary": "bbox=(700, 22200, 4500, 25800)",
+          "bbox_mm": [
+            700.0,
+            22200.0,
+            4500.0,
+            25800.0
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 2,
+          "variant_style": "VariantStyle.HYBRIDE_FLEX",
+          "idx": 27,
+          "tool": "apply_biophilic_zone",
+          "source": "agent",
+          "params_summary": "bbox=(8700, 25900, 11100, 33700)",
+          "bbox_mm": [
+            8700.0,
+            25900.0,
+            11100.0,
+            33700.0
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 2,
+          "variant_style": "VariantStyle.HYBRIDE_FLEX",
+          "idx": 28,
+          "tool": "create_partition_wall",
+          "source": "agent",
+          "params_summary": "(14400, 43700) -> (17500, 43700)",
+          "bbox_mm": [
+            14300.0,
+            43600.0,
+            17600.0,
+            43800.0
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 2,
+          "variant_style": "VariantStyle.HYBRIDE_FLEX",
+          "idx": 29,
+          "tool": "create_partition_wall",
+          "source": "agent",
+          "params_summary": "(17500, 43700) -> (17500, 49800)",
+          "bbox_mm": [
+            17400.0,
+            43600.0,
+            17600.0,
+            49900.0
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 2,
+          "variant_style": "VariantStyle.HYBRIDE_FLEX",
+          "idx": 30,
+          "tool": "create_partition_wall",
+          "source": "agent",
+          "params_summary": "(21200, 18600) -> (24600, 18600)",
+          "bbox_mm": [
+            21100.0,
+            18500.0,
+            24700.0,
+            18700.0
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 2,
+          "variant_style": "VariantStyle.HYBRIDE_FLEX",
+          "idx": 31,
+          "tool": "create_partition_wall",
+          "source": "agent",
+          "params_summary": "(21200, 14300) -> (21200, 22500)",
+          "bbox_mm": [
+            21100.0,
+            14200.0,
+            21300.0,
+            22600.0
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 2,
+          "variant_style": "VariantStyle.HYBRIDE_FLEX",
+          "idx": 32,
+          "tool": "create_partition_wall",
+          "source": "agent",
+          "params_summary": "(19100, 13900) -> (22600, 13900)",
+          "bbox_mm": [
+            19000.0,
+            13800.0,
+            22700.0,
+            14000.0
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 2,
+          "variant_style": "VariantStyle.HYBRIDE_FLEX",
+          "idx": 33,
+          "tool": "create_partition_wall",
+          "source": "agent",
+          "params_summary": "(22900, 13900) -> (26700, 13900)",
+          "bbox_mm": [
+            22800.0,
+            13800.0,
+            26800.0,
+            14000.0
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 2,
+          "variant_style": "VariantStyle.HYBRIDE_FLEX",
+          "idx": 34,
+          "tool": "place_human",
+          "source": "agent_decorative",
+          "params_summary": "pos=[19600, 32800] pose='seated'",
+          "bbox_mm": [
+            19350.0,
+            32550.0,
+            19850.0,
+            33050.0
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 2,
+          "variant_style": "VariantStyle.HYBRIDE_FLEX",
+          "idx": 35,
+          "tool": "place_human",
+          "source": "agent_decorative",
+          "params_summary": "pos=[3000, 18000] pose='standing'",
+          "bbox_mm": [
+            2750.0,
+            17750.0,
+            3250.0,
+            18250.0
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 2,
+          "variant_style": "VariantStyle.HYBRIDE_FLEX",
+          "idx": 36,
+          "tool": "place_human",
+          "source": "agent_decorative",
+          "params_summary": "pos=[16000, 25000] pose='walking'",
+          "bbox_mm": [
+            15750.0,
+            24750.0,
+            16250.0,
+            25250.0
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 2,
+          "variant_style": "VariantStyle.HYBRIDE_FLEX",
+          "idx": 37,
+          "tool": "place_human",
+          "source": "agent_decorative",
+          "params_summary": "pos=[16000, 46500] pose='female'",
+          "bbox_mm": [
+            15750.0,
+            46250.0,
+            16250.0,
+            46750.0
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 2,
+          "variant_style": "VariantStyle.HYBRIDE_FLEX",
+          "idx": 38,
+          "tool": "place_plant",
+          "source": "agent_decorative",
+          "params_summary": "pos=[2500, 23800] sp='ficus_lyrata'",
+          "bbox_mm": [
+            1800.0,
+            23100.0,
+            3200.0,
+            24500.0
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 2,
+          "variant_style": "VariantStyle.HYBRIDE_FLEX",
+          "idx": 39,
+          "tool": "place_plant",
+          "source": "agent_decorative",
+          "params_summary": "pos=[9900, 30000] sp='monstera'",
+          "bbox_mm": [
+            9200.0,
+            29300.0,
+            10600.0,
+            30700.0
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 2,
+          "variant_style": "VariantStyle.HYBRIDE_FLEX",
+          "idx": 40,
+          "tool": "place_plant",
+          "source": "agent_decorative",
+          "params_summary": "pos=[9900, 26500] sp='pothos'",
+          "bbox_mm": [
+            9200.0,
+            25800.0,
+            10600.0,
+            27200.0
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 2,
+          "variant_style": "VariantStyle.HYBRIDE_FLEX",
+          "idx": 41,
+          "tool": "place_plant",
+          "source": "agent_decorative",
+          "params_summary": "pos=[6000, 16500] sp='dracaena'",
+          "bbox_mm": [
+            5300.0,
+            15800.0,
+            6700.0,
+            17200.0
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 2,
+          "variant_style": "VariantStyle.HYBRIDE_FLEX",
+          "idx": 42,
+          "tool": "place_plant",
+          "source": "agent_decorative",
+          "params_summary": "pos=[15900, 46000] sp='monstera'",
+          "bbox_mm": [
+            15200.0,
+            45300.0,
+            16600.0,
+            46700.0
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 2,
+          "variant_style": "VariantStyle.HYBRIDE_FLEX",
+          "idx": 43,
+          "tool": "place_hero",
+          "source": "agent_decorative",
+          "params_summary": "pos=[15950, 46750] slug='table_boardroom_4000'",
+          "bbox_mm": [
+            13950.0,
+            46050.0,
+            17950.0,
+            47450.0
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 2,
+          "variant_style": "VariantStyle.HYBRIDE_FLEX",
+          "idx": 44,
+          "tool": "place_hero",
+          "source": "agent_decorative",
+          "params_summary": "pos=[17800, 21500] slug='framery_one'",
+          "bbox_mm": [
+            17300.0,
+            21000.0,
+            18300.0,
+            22000.0
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 2,
+          "variant_style": "VariantStyle.HYBRIDE_FLEX",
+          "idx": 45,
+          "tool": "place_hero",
+          "source": "agent_decorative",
+          "params_summary": "pos=[4500, 18000] slug='sofa_mags'",
+          "bbox_mm": [
+            3300.0,
+            17500.0,
+            5700.0,
+            18500.0
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        },
+        {
+          "variant_idx": 2,
+          "variant_style": "VariantStyle.HYBRIDE_FLEX",
+          "idx": 46,
+          "tool": "place_hero",
+          "source": "agent_decorative",
+          "params_summary": "pos=[19600, 32500] slug='desk_bench_1600'",
+          "bbox_mm": [
+            18800.0,
+            32100.0,
+            20400.0,
+            32900.0
+          ],
+          "overflow_ratio": 0.0,
+          "classification": "clean"
+        }
+      ]
+    }
+  ],
+  "by_class": {
+    "clean": 122,
+    "major": 1
+  },
+  "by_class_source": {
+    "parser": {
+      "clean": 33
+    },
+    "agent": {
+      "clean": 54,
+      "major": 1
+    },
+    "agent_decorative": {
+      "clean": 35
+    }
+  },
+  "leaks": [
+    {
+      "variant_idx": 1,
+      "variant_style": "VariantStyle.ATELIER",
+      "idx": 13,
+      "tool": "create_workstation_cluster",
+      "source": "agent",
+      "params_summary": "origin=(18900, 33000) count=12 spacing=1600 ang=0.0",
+      "bbox_mm": [
+        18900.0,
+        33000.0,
+        38100.0,
+        33800.0
+      ],
+      "overflow_ratio": 0.2135,
+      "classification": "major"
+    }
+  ]
+}
