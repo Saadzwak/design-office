@@ -184,6 +184,15 @@ _VISION_USER = """Extract the floor plan. Return JSON only (no prose) matching:
     "source": "scale_label|inferred|unknown",  // how you derived this
     "confidence": 0.0                   // 0..1
   },
+  "envelope_bbox_px": {                 // OPTIONAL but STRONGLY ENCOURAGED — axis-aligned
+                                        // pixel bbox of the BUILDING ENVELOPE within
+                                        // the rendered image. Used by the parser to
+                                        // rescale rooms / walls correctly when the
+                                        // image has wide title-block margins, scale
+                                        // bars, or compass roses around the plate.
+    "x_min_px": 240, "y_min_px": 180,   // tight bbox of the actual building outline
+    "x_max_px": 2440, "y_max_px": 1640  // (NOT the page — exclude legend / cartouche).
+  },                                    // Omit this field entirely if unsure.
   "orientation_arrow": {"label": "N", "from_px": [x,y], "to_px": [x,y]}, // or null
   "envelope_points_px": [[x, y], ...],  // outer polygon in image pixel space (required)
   "columns_px": [{"cx": x, "cy": y, "r": radius_px}, ...],
@@ -242,6 +251,20 @@ _VISION_USER = """Extract the floor plan. Return JSON only (no prose) matching:
 
 Rules:
 - Use the image pixel coordinate system (origin at top-left of the rendered image).
+- **`envelope_bbox_px` strongly encouraged when the image has margins.**
+  Real architectural drawings (A1 plates, plans cadastraux, multi-page PDFs)
+  often show the building enclosed in a title-block frame, surrounded by
+  a wide cartouche, scale bar, compass rose, or legend. When that's the
+  case, `envelope_bbox_px` MUST be the tight axis-aligned bbox of the
+  ACTUAL BUILDING (the polygon you'd return in `envelope_points_px`),
+  NOT the bbox of the visible drawing including the title-block. A
+  building that occupies pixels 240–2440 horizontally × 180–1640
+  vertically inside a 2576-px image gets the bbox above. If the
+  drawing fills the page edge-to-edge with no margin, you may omit the
+  field entirely — the parser will fall back to the full page.
+  Critical : ALL `rooms_px`, `interior_walls_px`, and `openings_px`
+  coordinates MUST lie inside this bbox. If a room polygon would have
+  vertices outside it, your bbox is wrong, not the room.
 - **`envelope_real_dimensions_m` is MANDATORY and calibrates the whole pipeline.**
   Derivation priority:
   1. If a scale bar or scale label ("1:100", "échelle 1:200") + a dimension
@@ -351,29 +374,53 @@ def call_vision_hd(
 # ---------------------------------------------------------------------------
 
 
-def _rescale_px_to_mm(x_px: float, y_px: float, image_size: tuple[int, int], plate_mm: tuple[float, float]) -> tuple[float, float]:
-    """Assume the rendered plate fills most of the image — linear rescale.
-    image origin is top-left with y increasing down; plan origin is bottom-left
-    with y increasing up. Flip Y during rescale.
+def _rescale_px_to_mm(
+    x_px: float,
+    y_px: float,
+    image_size: tuple[int, int],
+    plate_mm: tuple[float, float],
+    *,
+    px_envelope: tuple[float, float, float, float] | None = None,
+) -> tuple[float, float]:
+    """Linear rescale from image pixel space to plan-mm space.
 
-    iter-27 P2 L1 — clamp pixel coordinates to ``[0, img_w] × [0, img_h]``
-    BEFORE the linear rescale. Vision HD occasionally emits points just
-    past the image bounds (rounding errors, OCR strays into a margin
-    legend) and historically also returned wildly out-of-bounds values
-    when it confused a multi-building campus plan for a single envelope.
-    Both used to leak as negative mm coordinates downstream — a y_px of
-    8000 on a 1822-pixel-tall image rescaled to y_mm ≈ -17 000 mm,
-    poisoning the variant generator's prompt with rooms outside the
-    plate. The clamp is a defensive backstop ; the active filter that
-    rejects whole rooms with a real overflow lives in
-    ``_extract_rooms_from_vision`` (L2).
+    image origin is top-left with y increasing down; plan origin is
+    bottom-left with y increasing up. Flip Y during rescale.
+
+    iter-27 P2 L1 — clamp pixel coordinates BEFORE the linear rescale.
+    Vision HD occasionally emits points just past the envelope bounds
+    (rounding, OCR drift into a margin legend) and historically also
+    returned wildly out-of-bounds values when it confused a
+    multi-building campus plan for a single envelope. Without the
+    clamp, a y_px of 8000 on a 1822-pixel-tall image rescaled to
+    y_mm ≈ -17 000 mm, poisoning the variant generator's prompt with
+    rooms outside the plate. The clamp is a defensive backstop ; the
+    active filter that rejects whole rooms with a real overflow lives
+    in ``_extract_rooms_from_vision`` (L2).
+
+    iter-27 P2 L3 — when ``px_envelope = (x0, y0, x1, y1)`` is provided
+    (typically from Vision's ``envelope_bbox_px`` field, validated by
+    ``_compute_px_envelope``), the rescale interprets that rect as the
+    BUILDING envelope inside the image rather than treating the whole
+    image as the building. This is what makes A1 plans with wide
+    title-block margins / scale bars / compass roses parse correctly :
+    rooms reported in image-pixel space land at the right plate mm
+    coordinate. Without ``px_envelope``, falls back to the full image
+    rectangle ``(0, 0, img_w, img_h)``, identical to the legacy
+    behaviour.
     """
     img_w, img_h = image_size
+    if px_envelope is None:
+        x0, y0, x1, y1 = 0.0, 0.0, float(img_w), float(img_h)
+    else:
+        x0, y0, x1, y1 = px_envelope
     pw_mm, ph_mm = plate_mm
-    x_clamped = min(max(float(x_px), 0.0), float(img_w))
-    y_clamped = min(max(float(y_px), 0.0), float(img_h))
-    x_mm = (x_clamped / img_w) * pw_mm if img_w > 0 else 0.0
-    y_mm = (1 - y_clamped / img_h) * ph_mm if img_h > 0 else 0.0
+    width_px = x1 - x0
+    height_px = y1 - y0
+    x_clamped = min(max(float(x_px), x0), x1)
+    y_clamped = min(max(float(y_px), y0), y1)
+    x_mm = ((x_clamped - x0) / width_px) * pw_mm if width_px > 0 else 0.0
+    y_mm = (1 - (y_clamped - y0) / height_px) * ph_mm if height_px > 0 else 0.0
     return x_mm, y_mm
 
 
@@ -401,27 +448,88 @@ _BBOX_OVERFLOW_REJECT_THRESHOLD = 0.05
 
 def _bbox_overflow_ratio(
     x_min: float, y_min: float, x_max: float, y_max: float,
-    img_w: int, img_h: int,
+    envelope: tuple[float, float, float, float],
 ) -> float:
-    """Return the fraction of the bbox area that lies OUTSIDE the image.
+    """Return the fraction of the bbox area that lies OUTSIDE the envelope.
 
-    Both bbox and image are axis-aligned in pixel space. A bbox entirely
-    inside returns 0.0 ; one entirely outside returns 1.0 ; one half
-    outside returns 0.5. Used by ``_extract_*_from_vision`` to drop
-    geometry that Vision placed past the page bounds.
+    Both bbox and envelope are axis-aligned in pixel space. A bbox
+    entirely inside the envelope returns 0.0 ; one entirely outside
+    returns 1.0 ; one half outside returns 0.5. Used by
+    ``_extract_*_from_vision`` to drop geometry that Vision placed past
+    the relevant envelope bounds (page bounds without L3, building
+    bounds with L3).
     """
+    e_x0, e_y0, e_x1, e_y1 = envelope
     bbox_area = max(0.0, x_max - x_min) * max(0.0, y_max - y_min)
     if bbox_area <= 0:
         return 0.0
-    inside_x_min = max(x_min, 0.0)
-    inside_y_min = max(y_min, 0.0)
-    inside_x_max = min(x_max, float(img_w))
-    inside_y_max = min(y_max, float(img_h))
+    inside_x_min = max(x_min, e_x0)
+    inside_y_min = max(y_min, e_y0)
+    inside_x_max = min(x_max, e_x1)
+    inside_y_max = min(y_max, e_y1)
     inside_area = (
         max(0.0, inside_x_max - inside_x_min)
         * max(0.0, inside_y_max - inside_y_min)
     )
     return max(0.0, min(1.0, 1.0 - inside_area / bbox_area))
+
+
+# iter-27 P2 L3 — build the pixel-space envelope rect for the parser.
+# When Vision returned a sane ``envelope_bbox_px`` we use it ; otherwise
+# we fall back to the full image. The validation rules are deliberately
+# loose : we trust Vision when its bbox has positive area, lies inside
+# the image, and covers at least 25 % of each image dimension (a tight
+# bbox would still produce a usable rescale ; a degenerate one wouldn't).
+def _compute_px_envelope(
+    vision: dict | None,
+    image_size: tuple[int, int],
+) -> tuple[float, float, float, float]:
+    img_w, img_h = image_size
+    fallback = (0.0, 0.0, float(img_w), float(img_h))
+    if not vision:
+        return fallback
+    raw = vision.get("envelope_bbox_px")
+    if not isinstance(raw, dict):
+        return fallback
+    try:
+        x0 = float(raw["x_min_px"])
+        y0 = float(raw["y_min_px"])
+        x1 = float(raw["x_max_px"])
+        y1 = float(raw["y_max_px"])
+    except (KeyError, TypeError, ValueError):
+        return fallback
+    # Sanity. The parser falls back to L1+L2 on the full image when
+    # Vision's bbox is malformed (out-of-order, outside image, too
+    # tight). Each rejection logs once at WARNING so a misbehaving
+    # Vision run is debuggable from production logs without breaking
+    # the pipeline.
+    reason: str | None = None
+    if x1 <= x0 or y1 <= y0:
+        reason = "bbox not strictly ordered (x_min < x_max, y_min < y_max)"
+    elif x0 < -1.0 or y0 < -1.0 or x1 > img_w + 1.0 or y1 > img_h + 1.0:
+        reason = (
+            f"bbox ({x0},{y0},{x1},{y1}) outside image (0,0,{img_w},{img_h})"
+        )
+    elif img_w > 0 and (x1 - x0) / img_w < 0.25:
+        reason = "bbox width < 25 % of image width"
+    elif img_h > 0 and (y1 - y0) / img_h < 0.25:
+        reason = "bbox height < 25 % of image height"
+    if reason is not None:
+        _logger.warning(
+            "vision_envelope_bbox_px_rejected",
+            extra={
+                "bbox_px_raw": [x0, y0, x1, y1],
+                "image_size_px": [img_w, img_h],
+                "reason": reason,
+                "fallback": "full image",
+            },
+        )
+        return fallback
+    # Clamp to image bounds so a 1-px overshoot doesn't propagate.
+    return (
+        max(0.0, x0), max(0.0, y0),
+        min(float(img_w), x1), min(float(img_h), y1),
+    )
 
 
 def _polygon_area_mm2(pts: list[Point2D]) -> float:
@@ -452,15 +560,17 @@ def _extract_rooms_from_vision(
     plate_mm: tuple[float, float],
     *,
     project_id: str | None = None,
+    px_envelope: tuple[float, float, float, float] | None = None,
 ) -> list[Room]:
     """Convert `vision["rooms_px"]` into a list of `Room` in mm.
 
     Filters :
     - polygon must have ≥ 3 unique points
-    - iter-27 P2 L2 — pre-rescale bbox must overlap the image envelope
-      (overflow ratio ≤ 5 %) ; rooms placed past the page bounds get
+    - iter-27 P2 L2 — pre-rescale bbox must overlap the px envelope
+      (overflow ratio ≤ 5 %) ; rooms placed past the envelope get
       dropped with a structured WARNING rather than clamped to a
-      meaningless L-shape.
+      meaningless L-shape. The envelope is the building bbox when L3
+      is active, the full image rectangle otherwise.
     - computed area ≥ 1 m² (parasitic polygons otherwise)
     - label string is preserved verbatim when present — this is what the
       variant generator will reference ("Lot 4", "Chambre", "Entrée").
@@ -470,6 +580,8 @@ def _extract_rooms_from_vision(
     if not isinstance(raw, list):
         return []
     img_w, img_h = image_size
+    if px_envelope is None:
+        px_envelope = (0.0, 0.0, float(img_w), float(img_h))
     out: list[Room] = []
     for room_index, entry in enumerate(raw):
         if not isinstance(entry, dict):
@@ -493,14 +605,20 @@ def _extract_rooms_from_vision(
         x_min_px, x_max_px = min(xs_px), max(xs_px)
         y_min_px, y_max_px = min(ys_px), max(ys_px)
         overflow = _bbox_overflow_ratio(
-            x_min_px, y_min_px, x_max_px, y_max_px, img_w, img_h
+            x_min_px, y_min_px, x_max_px, y_max_px, px_envelope
         )
         label = entry.get("label")
         if overflow > _BBOX_OVERFLOW_REJECT_THRESHOLD:
             # Compute the post-rescale mm bbox for the log so the human
             # reading the warning sees both coordinate frames.
-            x0_mm, y1_mm = _rescale_px_to_mm(x_min_px, y_min_px, image_size, plate_mm)
-            x1_mm, y0_mm = _rescale_px_to_mm(x_max_px, y_max_px, image_size, plate_mm)
+            x0_mm, y1_mm = _rescale_px_to_mm(
+                x_min_px, y_min_px, image_size, plate_mm,
+                px_envelope=px_envelope,
+            )
+            x1_mm, y0_mm = _rescale_px_to_mm(
+                x_max_px, y_max_px, image_size, plate_mm,
+                px_envelope=px_envelope,
+            )
             _logger.warning(
                 "vision_room_rejected_out_of_envelope",
                 extra={
@@ -509,10 +627,11 @@ def _extract_rooms_from_vision(
                     "room_label": str(label) if label else None,
                     "bbox_px": [x_min_px, y_min_px, x_max_px, y_max_px],
                     "image_size_px": [img_w, img_h],
+                    "px_envelope": list(px_envelope),
                     "bbox_mm_post_rescale": [x0_mm, y0_mm, x1_mm, y1_mm],
                     "overflow_ratio": round(overflow, 4),
                     "reason": (
-                        f"bbox overflows image bounds by "
+                        f"bbox overflows envelope bounds by "
                         f"{overflow:.1%} > {_BBOX_OVERFLOW_REJECT_THRESHOLD:.0%}"
                     ),
                 },
@@ -524,7 +643,10 @@ def _extract_rooms_from_vision(
             if not isinstance(p, (list, tuple)) or len(p) < 2:
                 continue
             try:
-                x_mm, y_mm = _rescale_px_to_mm(float(p[0]), float(p[1]), image_size, plate_mm)
+                x_mm, y_mm = _rescale_px_to_mm(
+                    float(p[0]), float(p[1]), image_size, plate_mm,
+                    px_envelope=px_envelope,
+                )
             except (TypeError, ValueError):
                 continue
             pts_mm.append(Point2D(x=x_mm, y=y_mm))
@@ -558,6 +680,7 @@ def _extract_interior_walls_from_vision(
     plate_mm: tuple[float, float],
     *,
     project_id: str | None = None,
+    px_envelope: tuple[float, float, float, float] | None = None,
 ) -> list[InteriorWall]:
     """Convert `vision["interior_walls_px"]` into InteriorWall (mm).
 
@@ -577,6 +700,11 @@ def _extract_interior_walls_from_vision(
     if not isinstance(raw, list):
         return []
     img_w, img_h = image_size
+    if px_envelope is None:
+        px_envelope = (0.0, 0.0, float(img_w), float(img_h))
+    e_x0, e_y0, e_x1, e_y1 = px_envelope
+    e_w = e_x1 - e_x0
+    e_h = e_y1 - e_y0
     out: list[InteriorWall] = []
     for wall_index, entry in enumerate(raw):
         if not isinstance(entry, dict):
@@ -588,19 +716,19 @@ def _extract_interior_walls_from_vision(
             continue
         # iter-27 P2 L2 overflow gate. Walls are 1D — the bbox-area
         # ratio degenerates to 0 for axis-aligned segments. Instead we
-        # check each endpoint against the image rectangle and reject
-        # if either lies > 5 % of an image dimension outside the
-        # envelope. This matches the opening logic and mirrors the room
-        # bbox-area metric semantically.
+        # check each endpoint against the px envelope rectangle and
+        # reject if either lies > 5 % of an envelope dimension outside.
+        # This matches the opening logic and mirrors the room bbox-area
+        # metric semantically.
         endpoint_outside = False
         endpoint_offset_px: list[float] = []
         for px, py in ((x1_px, y1_px), (x2_px, y2_px)):
-            dx_outside = max(0.0, -px, px - img_w)
-            dy_outside = max(0.0, -py, py - img_h)
+            dx_outside = max(0.0, e_x0 - px, px - e_x1)
+            dy_outside = max(0.0, e_y0 - py, py - e_y1)
             endpoint_offset_px.append(max(dx_outside, dy_outside))
             if (
-                (img_w > 0 and dx_outside / img_w > _BBOX_OVERFLOW_REJECT_THRESHOLD)
-                or (img_h > 0 and dy_outside / img_h > _BBOX_OVERFLOW_REJECT_THRESHOLD)
+                (e_w > 0 and dx_outside / e_w > _BBOX_OVERFLOW_REJECT_THRESHOLD)
+                or (e_h > 0 and dy_outside / e_h > _BBOX_OVERFLOW_REJECT_THRESHOLD)
             ):
                 endpoint_outside = True
         if endpoint_outside:
@@ -611,17 +739,22 @@ def _extract_interior_walls_from_vision(
                     "wall_index": wall_index,
                     "endpoints_px": [[x1_px, y1_px], [x2_px, y2_px]],
                     "image_size_px": [img_w, img_h],
+                    "px_envelope": list(px_envelope),
                     "max_endpoint_offset_px": max(endpoint_offset_px),
                     "reason": (
                         f"endpoint sits > "
-                        f"{_BBOX_OVERFLOW_REJECT_THRESHOLD:.0%} of image "
-                        f"dimension outside [0,{img_w}] × [0,{img_h}]"
+                        f"{_BBOX_OVERFLOW_REJECT_THRESHOLD:.0%} of envelope "
+                        f"dimension outside ({e_x0},{e_y0},{e_x1},{e_y1})"
                     ),
                 },
             )
             continue
-        x1_mm, y1_mm = _rescale_px_to_mm(x1_px, y1_px, image_size, plate_mm)
-        x2_mm, y2_mm = _rescale_px_to_mm(x2_px, y2_px, image_size, plate_mm)
+        x1_mm, y1_mm = _rescale_px_to_mm(
+            x1_px, y1_px, image_size, plate_mm, px_envelope=px_envelope,
+        )
+        x2_mm, y2_mm = _rescale_px_to_mm(
+            x2_px, y2_px, image_size, plate_mm, px_envelope=px_envelope,
+        )
         length = math.hypot(x2_mm - x1_mm, y2_mm - y1_mm)
         if length < _MIN_WALL_LEN_MM:
             continue
@@ -650,6 +783,7 @@ def _extract_openings_from_vision(
     *,
     wall_count: int,
     project_id: str | None = None,
+    px_envelope: tuple[float, float, float, float] | None = None,
 ) -> list[WallOpening]:
     """Convert `vision["openings_px"]` into WallOpening (mm).
 
@@ -667,11 +801,17 @@ def _extract_openings_from_vision(
     if not isinstance(raw, list):
         return []
     out: list[WallOpening] = []
-    # pixel → mm scale factor for widths (use X axis ; a real architectural
-    # plan is close to isotropic so either axis is fine within 1 %).
     img_w, img_h = image_size
+    if px_envelope is None:
+        px_envelope = (0.0, 0.0, float(img_w), float(img_h))
+    e_x0, e_y0, e_x1, e_y1 = px_envelope
+    e_w = e_x1 - e_x0
+    e_h = e_y1 - e_y0
     pw_mm, _ = plate_mm
-    px_to_mm = pw_mm / img_w if img_w > 0 else 1.0
+    # pixel → mm scale factor for widths (use envelope X span ; a real
+    # architectural plan is close to isotropic so either axis is fine
+    # within 1 %).
+    px_to_mm = pw_mm / e_w if e_w > 0 else 1.0
     for opening_index, entry in enumerate(raw):
         if not isinstance(entry, dict):
             continue
@@ -683,13 +823,12 @@ def _extract_openings_from_vision(
             cy_px = float(center_px[1])
         except (TypeError, ValueError):
             continue
-        # iter-27 P2 L2 — reject openings outside the image. Use the
-        # pixel-distance / image-dimension ratio as overflow proxy.
-        dx_outside = max(0.0, -cx_px, cx_px - img_w)
-        dy_outside = max(0.0, -cy_px, cy_px - img_h)
+        # iter-27 P2 L2 — reject openings outside the px envelope.
+        dx_outside = max(0.0, e_x0 - cx_px, cx_px - e_x1)
+        dy_outside = max(0.0, e_y0 - cy_px, cy_px - e_y1)
         if (
-            (img_w > 0 and dx_outside / img_w > _BBOX_OVERFLOW_REJECT_THRESHOLD)
-            or (img_h > 0 and dy_outside / img_h > _BBOX_OVERFLOW_REJECT_THRESHOLD)
+            (e_w > 0 and dx_outside / e_w > _BBOX_OVERFLOW_REJECT_THRESHOLD)
+            or (e_h > 0 and dy_outside / e_h > _BBOX_OVERFLOW_REJECT_THRESHOLD)
         ):
             _logger.warning(
                 "vision_opening_rejected_out_of_envelope",
@@ -698,15 +837,18 @@ def _extract_openings_from_vision(
                     "opening_index": opening_index,
                     "center_px": [cx_px, cy_px],
                     "image_size_px": [img_w, img_h],
+                    "px_envelope": list(px_envelope),
                     "reason": (
-                        f"center_px ({cx_px}, {cy_px}) outside image "
-                        f"({img_w}×{img_h}) by > "
+                        f"center_px ({cx_px}, {cy_px}) outside envelope "
+                        f"({e_x0},{e_y0},{e_x1},{e_y1}) by > "
                         f"{_BBOX_OVERFLOW_REJECT_THRESHOLD:.0%}"
                     ),
                 },
             )
             continue
-        cx_mm, cy_mm = _rescale_px_to_mm(cx_px, cy_px, image_size, plate_mm)
+        cx_mm, cy_mm = _rescale_px_to_mm(
+            cx_px, cy_px, image_size, plate_mm, px_envelope=px_envelope,
+        )
         width_px = entry.get("width_px")
         try:
             width_mm = float(width_px) * px_to_mm if width_px is not None else 900.0
@@ -860,6 +1002,17 @@ def fuse(
         ]
     )
 
+    # iter-27 P2 L3 — compute the pixel-space envelope rect now that we
+    # have image_size. When Vision returned a sane envelope_bbox_px,
+    # ``_compute_px_envelope`` returns its tight rect ; otherwise it
+    # falls back to (0, 0, img_w, img_h) (legacy behaviour, identical
+    # to L1+L2). The rect is threaded into the four pixel-space
+    # extractors (rooms, walls, openings, windows) so coordinates
+    # rescale relative to the building bbox rather than the page.
+    px_envelope: tuple[float, float, float, float] | None = None
+    if image_size is not None:
+        px_envelope = _compute_px_envelope(vision, image_size)
+
     # Columns.
     columns_out: list[Column] = []
     for c in vectors["circles"]:
@@ -942,10 +1095,12 @@ def fuse(
         for w in vision.get("windows_px", []) or []:
             try:
                 x1_mm, y1_mm = _rescale_px_to_mm(
-                    w["x1"], w["y1"], image_size, (plate_w_mm, plate_h_mm)
+                    w["x1"], w["y1"], image_size, (plate_w_mm, plate_h_mm),
+                    px_envelope=px_envelope,
                 )
                 x2_mm, y2_mm = _rescale_px_to_mm(
-                    w["x2"], w["y2"], image_size, (plate_w_mm, plate_h_mm)
+                    w["x2"], w["y2"], image_size, (plate_w_mm, plate_h_mm),
+                    px_envelope=px_envelope,
                 )
             except KeyError:
                 continue
@@ -990,10 +1145,12 @@ def fuse(
         rooms_out = _extract_rooms_from_vision(
             vision, image_size, (plate_w_mm, plate_h_mm),
             project_id=project_id,
+            px_envelope=px_envelope,
         )
         interior_walls_out = _extract_interior_walls_from_vision(
             vision, image_size, (plate_w_mm, plate_h_mm),
             project_id=project_id,
+            px_envelope=px_envelope,
         )
         openings_out = _extract_openings_from_vision(
             vision,
@@ -1001,6 +1158,7 @@ def fuse(
             (plate_w_mm, plate_h_mm),
             wall_count=len(interior_walls_out),
             project_id=project_id,
+            px_envelope=px_envelope,
         )
 
     confidence = 0.9 if vision else 0.7

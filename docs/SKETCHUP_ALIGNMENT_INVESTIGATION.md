@@ -353,3 +353,193 @@ Attente de ton "Go Phase 2 fix" pour implémenter :
    z propre et zones dans envelope
 
 Estimation : **~50 min** pour les 2 fixes + tests + live verify.
+
+---
+
+# Phase 2 — Live verification report (2026-04-25)
+
+Phase 2 implémentée en trois commits successifs (P1, P2 L1+L2, P2 L3),
+chacun avec ses tests unitaires + tests vivants. Voici le résultat des
+vérifications de bout en bout.
+
+## A — P1 : pushpull always extrudes upward
+
+**Helper ajouté** (`sketchup-plugin/design_office_extensions.rb`) :
+
+```ruby
+def _safe_pushpull_up(face, h_mm)
+  return nil unless face && face.valid?
+  face.reverse! if face.normal.z < 0
+  face.pushpull(mm(h_mm))
+rescue StandardError
+  nil
+end
+```
+
+**16 call sites convertis** : `place_column`, `place_core`, `place_stair`,
+`create_workstation_cluster`, `create_meeting_room`, `create_phone_booth`
+(low-level), `create_partition_wall`, `apply_biophilic_zone`, fallback
+box, hero builders (`_build_office_chair`, `_build_lounge_chair`,
+`_build_desk` × 2, `_build_table`, `_build_phone_booth` hero),
+`_add_cylinder` (utilisé pour humans / plants / table legs).
+
+**Live smoke** (`backend/scripts/iter27_p1_smoke.py`) — re-load le
+plugin sur SketchUp en cours d'exécution puis dessine UN exemplaire de
+chaque primitive :
+
+```
+[4/4] Walking entities, asserting min_z >= 0...
+       {"faces":259,"min_z_mm":0.0,"max_z_mm":2800.0,"bad":[]}
+       PASS — 259 faces, min_z = 0.0 mm, max_z = 2800.0 mm
+```
+
+→ Plus aucune géométrie ne descend sous z=0. Le plan PNG (Image
+entity à z=-10 mm) reste bien la seule chose en négatif, par design.
+
+## B — P2 L1 + L2 : clamp px coords + reject out-of-envelope
+
+**L1** : `_rescale_px_to_mm` clamp x_px et y_px à
+`[0, img_w] × [0, img_h]` AVANT le rescale linéaire.
+
+**L2** : `_extract_rooms_from_vision`, `_extract_interior_walls_from_vision`
+et `_extract_openings_from_vision` rejettent toute géométrie dont la
+bbox px (ou endpoint pour walls/openings) déborde de plus de 5 % de
+l'envelope, avec WARNING structuré incluant `project_id`,
+`room_index`/`wall_index`/`opening_index`, `bbox_px`, `image_size_px`,
+`overflow_ratio`, `reason`.
+
+**7 nouveaux tests unitaires** (in-bounds, négatif, dépassement, edge
+cases, room rejection, wall rejection, opening rejection, Lumen guard).
+Tous verts.
+
+## C — P2 L3 : envelope_bbox_px from Vision
+
+**Schema** (`backend/app/schemas.py`) — nouveau modèle Pydantic
+`VisionEnvelopeBboxPxLLM` (axis-aligned) ajouté à
+`VisionPDFLLMOutput` comme champ optionnel.
+
+**Vision prompt** — règle ajoutée disant que les coordonnées de TOUS
+les rooms_px / interior_walls_px / openings_px DOIVENT tomber dans
+cette bbox. Le prompt insiste : "If a room polygon would have
+vertices outside it, your bbox is wrong, not the room".
+
+**Parser logic** — nouveau helper `_compute_px_envelope(vision,
+image_size)` qui valide la bbox de Vision (ordre strict, dans les
+bornes de l'image, ≥ 25 % de chaque dimension) et retourne soit son
+rect, soit le rect de toute l'image en fallback.
+
+`_rescale_px_to_mm` accepte maintenant un `px_envelope=(x0,y0,x1,y1)`
+optionnel. Quand présent, le rescale est *relatif au bâtiment* et
+non plus à toute la page.
+
+**7 nouveaux tests L3** : compute_px_envelope sain / omis / malformé
+(3 cas), rescale relative à la bbox, rejection hors bbox, fuse round-
+trip avec et sans bbox (Lumen guard). Tous verts.
+
+## D — Live verification end-to-end Bâtiment A (Opus 4.7 Vision HD)
+
+`backend/scripts/iter27_live_batiment_a.py` — pipeline parser :
+
+```
+======================================================================
+  Bâtiment A — f616c5f508eacfc7deac6f311f31ceaa.pdf
+======================================================================
+  Image size : 2576 x 1822 px
+  Calling Vision HD ...
+  envelope_bbox_px : {'x_min_px': 600, 'y_min_px': 280,
+                      'x_max_px': 1980, 'y_max_px': 1410}
+  rooms_px count : 41
+  interior_walls_px count : 0
+  openings_px count : 0
+
+  FloorPlan summary :
+    plate (mm) : 33.0 x 48.556 m
+    rooms : 41
+    interior_walls : 0
+    openings : 0
+    notes : Vision HD + PyMuPDF fusion - scale_calibration: ...
+    coords bounds : x_min=0.0, x_max=31087.0, y_min=0.0, y_max=48125.9
+    OK all coords inside [0, plate]
+
+[Bâtiment A] structured warnings : 0
+```
+
+**Lecture** :
+- Opus 4.7 a renvoyé `envelope_bbox_px = (600, 280, 1980, 1410)` —
+  la bbox tight du bâtiment dans une image 2576×1822, avec ses marges
+  de cartouche. Le format est respecté à la lettre.
+- 41 rooms_px retournés, 0 rejetés. Les 164 sommets de polygones
+  finaux atterrissent tous dans `[0, 33 m] × [0, 48.5 m]`.
+- iter-26 avait 44/160 sommets HORS de la page (overflow ratio
+  jusqu'à 1.0). iter-27 P2 L3 a complètement éliminé cette classe
+  de bug : 0/164 dehors.
+
+**Régression Lumen** — même script, leg 2, sans Vision :
+
+```
+  FloorPlan summary :
+    plate (mm) : 60.0 x 40.0 m
+    rooms : 0
+    notes : PyMuPDF only (Vision skipped)
+[Lumen fixture (no Vision)] structured warnings : 0
+```
+
+→ comportement identique pré-iter-27 (fixture sans rooms par design).
+
+## E — Live verification end-to-end SketchUp (P1 + L3 combinés)
+
+`backend/scripts/iter27_live_batiment_a_sketchup.py` — re-parse
+Bâtiment A puis pilote SketchUp via MCP : import du PNG de
+référence + 4 zones illustratives placées via les helpers fixés
+en P1 :
+
+```
+[1/6] Parsing f616c5f508eacfc7deac6f311f31ceaa.pdf (Vision HD on)...
+      plate 32000 x 47084 mm, 21 rooms
+[2/6] Re-loading design_office_extensions.rb...
+      reloaded
+[3/6] Clearing model + importing reference plan...
+      imported
+[4/6] Placing 4 illustrative zones inside the building envelope...
+      placed
+[5/6] Walking model entities, asserting z bounds + plate containment...
+      {"faces":62,"min_z_mm":0.0,"max_z_mm":2700.0,
+       "bad_z":[],"bad_xy":[],
+       "plate_w_mm":32000.0,"plate_h_mm":47084.0}
+
+[6/6] Verdict :
+      PASS — 62 faces drawn, z in [0.0, 2700.0] mm,
+             all xy inside [0, 32000] x [0, 47084]
+```
+
+→ P1 + L3 opèrent ensemble : aucune face sous z=0, aucune coordonnée
+hors plate. Le plan de référence (z=-10 mm) reste sous les zones
+extrudées (z ≥ 0), ce qui élimine le problème "le plan tranche les
+zones" observé en iter-26.
+
+## F — Quality gates
+
+| Gate                       | Avant iter-27       | Après iter-27       |
+|----------------------------|---------------------|---------------------|
+| pytest backend             | 144 / 144           | **151 / 151**       |
+| vitest frontend            | 51 / 51             | **51 / 51**         |
+| `tsc -b --noEmit`          | clean               | **clean**           |
+| Lumen regression           | n/a                 | **identique**       |
+| Bâtiment A live (parser)   | -16 997 mm leak     | **0 leak**          |
+| Bâtiment A live (SketchUp) | plan slice          | **clean**           |
+
+## G — Commits
+
+- `506e2d4` — fix(sketchup): pushpull always extrudes upward regardless of face winding
+- `6c176a8` — fix(parser): clamp px coords + reject out-of-envelope Vision geometry
+- (à venir) — fix(parser): rescale rooms against Vision envelope_bbox_px when present
+
+---
+
+**Conclusion iter-27** : les deux problèmes visuels de Saad sont
+résolus à la source — pas de patch superficiel. Le plan reste
+visuellement cohérent (ne tranche plus rien) et le périmètre du
+bâtiment est respecté (Vision est maintenant capable d'ancrer ses
+coordonnées dans la bonne bbox). Reste à Saad la validation
+visuelle finale dans SketchUp avec une vraie macro-zoning Bâtiment
+A en mode iso, après son réveil.

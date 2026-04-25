@@ -527,3 +527,245 @@ def test_extract_rooms_no_warnings_when_all_in_bounds(
         if "out_of_envelope" in r.message
     ]
     assert rejection_logs == []
+
+
+# ---------------------------------------------------------------------------
+# iter-27 P2 L3 — envelope_bbox_px rescaling
+# ---------------------------------------------------------------------------
+
+
+def test_compute_px_envelope_uses_vision_bbox_when_sane() -> None:
+    """When Vision returns a well-formed envelope_bbox_px tucked inside
+    the image, ``_compute_px_envelope`` returns the tight rect instead
+    of the full page."""
+
+    from app.pdf.parser import _compute_px_envelope
+
+    vision = {
+        "envelope_bbox_px": {
+            "x_min_px": 240, "y_min_px": 180,
+            "x_max_px": 2440, "y_max_px": 1640,
+        }
+    }
+    env = _compute_px_envelope(vision, (2576, 1822))
+    assert env == (240.0, 180.0, 2440.0, 1640.0)
+
+
+def test_compute_px_envelope_falls_back_when_omitted() -> None:
+    """No envelope_bbox_px in Vision payload → return the full image
+    rectangle (legacy behaviour, identical to L1+L2 alone)."""
+
+    from app.pdf.parser import _compute_px_envelope
+
+    assert _compute_px_envelope({}, (1000, 800)) == (0.0, 0.0, 1000.0, 800.0)
+    assert _compute_px_envelope(None, (1000, 800)) == (0.0, 0.0, 1000.0, 800.0)
+
+
+def test_compute_px_envelope_falls_back_when_malformed(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Out-of-order, outside-image, or degenerate bboxes log a warning
+    AND fall back to the full image. The Vision pipeline must keep
+    working when the model emits junk for this optional field."""
+
+    import logging
+
+    from app.pdf.parser import _compute_px_envelope
+
+    caplog.set_level(logging.WARNING, logger="design_office.pdf.parser")
+
+    cases = [
+        # x_max < x_min
+        {"x_min_px": 500, "y_min_px": 100, "x_max_px": 100, "y_max_px": 800},
+        # bbox outside image (image is 1000 × 800)
+        {"x_min_px": 100, "y_min_px": 100, "x_max_px": 5000, "y_max_px": 800},
+        # bbox tinier than 25% of image
+        {"x_min_px": 100, "y_min_px": 100, "x_max_px": 200, "y_max_px": 200},
+    ]
+    for raw in cases:
+        env = _compute_px_envelope({"envelope_bbox_px": raw}, (1000, 800))
+        assert env == (0.0, 0.0, 1000.0, 800.0)
+    # One warning per malformed bbox.
+    rejection_logs = [
+        r for r in caplog.records
+        if r.message == "vision_envelope_bbox_px_rejected"
+    ]
+    assert len(rejection_logs) == len(cases)
+
+
+def test_extract_rooms_rescales_against_envelope_bbox_when_present() -> None:
+    """iter-27 P2 L3 — when ``px_envelope`` is provided, room
+    coordinates rescale RELATIVE to that bbox, not the full image.
+    The classic A1 case : a building occupying pixels [240, 180,
+    2440, 1640] inside a 2576 × 1822 image with title-block margins.
+    A room at the building's top-left corner (px 240, 180) must land
+    at plan-mm (0, plate_h) ; at bottom-right (2440, 1640) at
+    (plate_w, 0)."""
+
+    img_size = (2576, 1822)
+    plate = (10_000.0, 10_000.0)  # 10 m × 10 m for cleaner arithmetic
+    bbox = (240.0, 180.0, 2440.0, 1640.0)
+
+    # Room polygon at the four corners of the building bbox.
+    vision = {
+        "rooms_px": [
+            {
+                "points_px": [[240, 180], [2440, 180], [2440, 1640], [240, 1640]],
+                "label": "Whole building",
+                "kind": "room",
+            }
+        ]
+    }
+    rooms = _extract_rooms_from_vision(
+        vision, img_size, plate, px_envelope=bbox
+    )
+    assert len(rooms) == 1
+    pts = rooms[0].polygon.points
+    xs = sorted(p.x for p in pts)
+    ys = sorted(p.y for p in pts)
+    # Should span the full plate.
+    assert abs(xs[0] - 0.0) < 1
+    assert abs(xs[-1] - 10_000.0) < 1
+    assert abs(ys[0] - 0.0) < 1
+    assert abs(ys[-1] - 10_000.0) < 1
+
+
+def test_extract_rooms_rejects_outside_building_bbox(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """iter-27 P2 L3 — a room located inside the IMAGE but outside the
+    BUILDING bbox (e.g. a room number annotation that drifted into the
+    title-block legend) must be rejected, not rescaled."""
+
+    import logging
+
+    img_size = (2576, 1822)
+    plate = (10_000.0, 10_000.0)
+    bbox = (240.0, 180.0, 2440.0, 1640.0)
+
+    # Room located in the right margin of the page (still inside
+    # 2576 × 1822 image, but >> 5 % outside building bbox at x ≥ 2440).
+    vision = {
+        "rooms_px": [
+            {
+                "points_px": [[2500, 200], [2570, 200], [2570, 800], [2500, 800]],
+                "label": "Legend strip",
+                "kind": "room",
+            }
+        ]
+    }
+    caplog.set_level(logging.WARNING, logger="design_office.pdf.parser")
+    rooms = _extract_rooms_from_vision(
+        vision, img_size, plate,
+        px_envelope=bbox, project_id="pid-bldg",
+    )
+    assert rooms == []
+    matching = [
+        r for r in caplog.records
+        if r.message == "vision_room_rejected_out_of_envelope"
+    ]
+    assert len(matching) == 1
+    rec = matching[0]
+    assert getattr(rec, "px_envelope", None) == list(bbox)
+
+
+def test_fuse_with_envelope_bbox_round_trip() -> None:
+    """End-to-end : fuse() with a Vision payload carrying both a sane
+    ``envelope_bbox_px`` and rooms_px in image-pixel space should
+    produce a FloorPlan whose rooms land where the building
+    coordinates predict, NOT where the full-page rescale would put
+    them."""
+
+    from app.pdf.parser import fuse
+
+    # 100 × 100 pt PyMuPDF bounding box, calibrated by Vision to a real
+    # 20 m × 20 m envelope.
+    vectors = {
+        "lines": [],
+        "rects": [{"x": 0, "y": 0, "w": 100, "h": 100}],
+        "circles": [],
+        "page_height_pt": 200,
+    }
+    img_size = (1000, 1000)
+    # Building occupies the central 80 % of the image (margins of
+    # 100 px on each side).
+    vision = {
+        "envelope_real_dimensions_m": {
+            "width_m": 20.0, "height_m": 20.0,
+            "source": "scale_label", "confidence": 0.95,
+        },
+        "envelope_bbox_px": {
+            "x_min_px": 100, "y_min_px": 100,
+            "x_max_px": 900, "y_max_px": 900,
+        },
+        "rooms_px": [
+            # Room at the building's top-left quadrant : px (100,100)
+            # → mm (0, 20000), px (500,500) → mm (10000, 10000).
+            {
+                "points_px": [[100, 100], [500, 100], [500, 500], [100, 500]],
+                "label": "Top-left quadrant",
+                "kind": "room",
+            }
+        ],
+        "interior_walls_px": [],
+        "openings_px": [],
+        "windows_px": [],
+    }
+    plan = fuse(vectors, vision, image_size=img_size)
+    assert len(plan.rooms) == 1
+    room = plan.rooms[0]
+    xs = sorted(p.x for p in room.polygon.points)
+    ys = sorted(p.y for p in room.polygon.points)
+    # Vision dim 20 m → 20 000 mm plate. Room covers building px
+    # [100, 500] × [100, 500] = the top-left QUARTER of the building
+    # (each side is half of 800 px). After rescale + Y flip,
+    # X ∈ [0, 10 000] mm, Y ∈ [10 000, 20 000] mm.
+    assert abs(xs[0] - 0.0) < 50
+    assert abs(xs[-1] - 10_000.0) < 50
+    assert abs(ys[0] - 10_000.0) < 50
+    assert abs(ys[-1] - 20_000.0) < 50
+
+
+def test_fuse_without_envelope_bbox_uses_full_page() -> None:
+    """Lumen regression : the fixture pipeline doesn't emit
+    envelope_bbox_px, so fuse() must fall back to the full-image
+    rescale and produce IDENTICAL room coordinates to pre-iter-27."""
+
+    from app.pdf.parser import fuse
+
+    vectors = {
+        "lines": [],
+        "rects": [{"x": 0, "y": 0, "w": 100, "h": 100}],
+        "circles": [],
+        "page_height_pt": 200,
+    }
+    img_size = (1000, 1000)
+    vision = {
+        "envelope_real_dimensions_m": {
+            "width_m": 20.0, "height_m": 20.0,
+            "source": "scale_label", "confidence": 0.95,
+        },
+        # NO envelope_bbox_px field.
+        "rooms_px": [
+            {
+                "points_px": [[0, 0], [500, 0], [500, 500], [0, 500]],
+                "label": "Top-left half",
+                "kind": "room",
+            }
+        ],
+        "interior_walls_px": [],
+        "openings_px": [],
+        "windows_px": [],
+    }
+    plan = fuse(vectors, vision, image_size=img_size)
+    assert len(plan.rooms) == 1
+    room = plan.rooms[0]
+    xs = sorted(p.x for p in room.polygon.points)
+    ys = sorted(p.y for p in room.polygon.points)
+    # Without bbox : full image rescale. Room covers image px
+    # [0, 500] × [0, 500] = the top-left QUARTER of the page.
+    # X ∈ [0, 10 000] mm, Y ∈ [10 000, 20 000] mm.
+    assert abs(xs[0] - 0.0) < 50
+    assert abs(xs[-1] - 10_000.0) < 50
+    assert abs(ys[0] - 10_000.0) < 50
+    assert abs(ys[-1] - 20_000.0) < 50

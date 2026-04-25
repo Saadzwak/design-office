@@ -502,6 +502,23 @@ class VisionEnvelopeDimensionsLLM(BaseModel):
     confidence: float = Field(default=0.0, ge=0.0, le=1.0)
 
 
+# iter-27 P2 L3 — axis-aligned bbox of the BUILDING ENVELOPE in image
+# pixel space. Optional ; when Vision returns it, the parser rescales
+# rooms / walls / openings against this bbox instead of the full page,
+# correctly handling A1 plans whose rendered image has wide title-block
+# margins, scale bars, or compass roses surrounding the actual plate.
+# Without it the parser falls back to the full-page rescale + L1+L2
+# overflow guard. The format mirrors VisionEnvelopeDimensionsLLM (an
+# axis-aligned rect — Vision is solid on those, weak on exact polygons).
+class VisionEnvelopeBboxPxLLM(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    x_min_px: float = Field(..., ge=0)
+    y_min_px: float = Field(..., ge=0)
+    x_max_px: float = Field(..., ge=0)
+    y_max_px: float = Field(..., ge=0)
+
+
 class VisionOrientationArrowLLM(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -611,6 +628,11 @@ class VisionPDFLLMOutput(BaseModel):
 
     scale_label: str | None = None
     envelope_real_dimensions_m: VisionEnvelopeDimensionsLLM
+    # iter-27 P2 L3 — optional building bbox in pixel space ; the parser
+    # uses it to rescale interior geometry against the actual building
+    # envelope rather than the whole rendered page (handles A1 plans
+    # with wide title-block margins). Falls back gracefully when omitted.
+    envelope_bbox_px: VisionEnvelopeBboxPxLLM | None = None
     orientation_arrow: VisionOrientationArrowLLM | None = None
     envelope_points_px: list[list[float]] = Field(..., min_length=3)
     columns_px: list[VisionColumnLLM] = Field(default_factory=list)
