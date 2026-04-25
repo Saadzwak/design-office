@@ -29,6 +29,61 @@ import {
 import { INDUSTRY_LABEL, setMoodBoard } from "../lib/projectState";
 
 /**
+ * Iter-30B Stage 2.1 — persist the heavy per-direction mood-board state
+ * to localStorage so leaving and re-entering `/moodboard` (or refreshing)
+ * shows the previously-generated images instantly without re-firing the
+ * backend. The structured `projectState.moodboard_runs` only stores the
+ * pdf_id/palette ; the raw gallery + item-tile maps live here.
+ *
+ * Keyed by project_id so concurrent projects don't bleed into each
+ * other. Single JSON blob (~few KB even with 3 directions × 25 tiles).
+ */
+type MoodBoardCachedTiles = {
+  galleryByDir: Record<string, VisualMoodBoardGalleryTile[]>;
+  itemTilesByDir: Record<string, Record<string, VisualMoodBoardItemTile>>;
+  pdfIdByDir: Record<string, string>;
+  selection: Selection | null;
+  activeDirection: string;
+};
+
+function moodboardCacheKey(projectId: string): string {
+  return `design-office.moodboard.tiles.${projectId}`;
+}
+
+function loadMoodBoardCache(projectId: string): MoodBoardCachedTiles | null {
+  if (!projectId) return null;
+  try {
+    const raw = localStorage.getItem(moodboardCacheKey(projectId));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as MoodBoardCachedTiles;
+    // Defensive shape check — older payloads or partial writes shouldn't crash.
+    if (
+      typeof parsed !== "object" ||
+      parsed === null ||
+      typeof parsed.galleryByDir !== "object" ||
+      typeof parsed.itemTilesByDir !== "object"
+    ) {
+      return null;
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function saveMoodBoardCache(
+  projectId: string,
+  tiles: MoodBoardCachedTiles,
+): void {
+  if (!projectId) return;
+  try {
+    localStorage.setItem(moodboardCacheKey(projectId), JSON.stringify(tiles));
+  } catch {
+    /* quota exceeded — UI keeps working in-memory */
+  }
+}
+
+/**
  * MoodBoard — Claude Design bundle parity (iter-18j).
  *
  * Editorial hero with the tagline quoted in Fraunces italic, a
@@ -108,7 +163,19 @@ const DRILL_META: Array<{ k: DrillKey; title: string; icon: IconName; label: str
 export default function MoodBoard() {
   const project = useProjectState();
   const navigate = useNavigate();
-  const [selection, setSelection] = useState<Selection | null>(null);
+  // Lazy init from localStorage so the user immediately sees the
+  // previously-generated mood board on remount/refresh, instead of
+  // an empty state followed by a re-fetch round-trip.
+  const initialCache = useMemo(
+    () => loadMoodBoardCache(project.project_id),
+    // Only run on first render — switching projects is handled by a
+    // dedicated useEffect below.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
+  const [selection, setSelection] = useState<Selection | null>(
+    initialCache?.selection ?? null,
+  );
   const [response, setResponse] = useState<MoodBoardResponse | null>(null);
   const [drawer, setDrawer] = useState<DrillKey | null>(null);
   const [phase, setPhase] = useState<"idle" | "running" | "error">("idle");
@@ -119,21 +186,41 @@ export default function MoodBoard() {
   // backend. State maps below are populated lazily as each tab is
   // opened.
   const [directions, setDirections] = useState<MoodBoardDirection[]>([]);
-  const [activeDirection, setActiveDirection] = useState<string>("");
-  // Per-direction artefacts (slug → state).
+  const [activeDirection, setActiveDirection] = useState<string>(
+    initialCache?.activeDirection ?? "",
+  );
+  // Per-direction artefacts (slug → state). Lazy-initialised from
+  // localStorage cache so /moodboard rehydrates instantly on remount.
   const [galleryByDir, setGalleryByDir] = useState<
     Record<string, VisualMoodBoardGalleryTile[]>
-  >({});
+  >(initialCache?.galleryByDir ?? {});
   const [galleryPhaseByDir, setGalleryPhaseByDir] = useState<
     Record<string, "idle" | "running" | "error">
-  >({});
+  >(() => {
+    // If we restored gallery tiles from cache, mark those directions
+    // as already-loaded so we don't re-fire the request on mount.
+    const loaded = initialCache?.galleryByDir ?? {};
+    return Object.fromEntries(
+      Object.keys(loaded).map((slug) => [slug, "idle" as const]),
+    );
+  });
   const [itemTilesByDir, setItemTilesByDir] = useState<
     Record<string, Record<string, VisualMoodBoardItemTile>>
-  >({});
+  >(initialCache?.itemTilesByDir ?? {});
   const [itemTilesPhaseByDir, setItemTilesPhaseByDir] = useState<
     Record<string, "idle" | "running" | "ready" | "error">
-  >({});
-  const [pdfIdByDir, setPdfIdByDir] = useState<Record<string, string>>({});
+  >(() => {
+    const loaded = initialCache?.itemTilesByDir ?? {};
+    return Object.fromEntries(
+      Object.entries(loaded).map(([slug, tiles]) => [
+        slug,
+        Object.keys(tiles).length > 0 ? ("ready" as const) : ("idle" as const),
+      ]),
+    );
+  });
+  const [pdfIdByDir, setPdfIdByDir] = useState<Record<string, string>>(
+    initialCache?.pdfIdByDir ?? {},
+  );
 
   // Convenience views for the active direction (legacy variable
   // names so the JSX further down doesn't churn).
@@ -186,6 +273,56 @@ export default function MoodBoard() {
       });
     }
   }, [project.mood_board, response]);
+
+  // Iter-30B Stage 2.1 — persist the heavy per-direction tile maps so
+  // navigating away or refreshing rehydrates the previously-generated
+  // mood board instantly. Saves on every change to the maps; load
+  // happens once at mount via the lazy initial state above.
+  useEffect(() => {
+    if (!project.project_id) return;
+    saveMoodBoardCache(project.project_id, {
+      galleryByDir,
+      itemTilesByDir,
+      pdfIdByDir,
+      selection,
+      activeDirection,
+    });
+  }, [
+    project.project_id,
+    galleryByDir,
+    itemTilesByDir,
+    pdfIdByDir,
+    selection,
+    activeDirection,
+  ]);
+
+  // If the active project_id changes mid-session (rare, e.g. user
+  // creates a new project from the dashboard while /moodboard is
+  // mounted), reload the cache for the new project and reset the in-
+  // memory maps to that project's snapshot.
+  useEffect(() => {
+    const cached = loadMoodBoardCache(project.project_id);
+    if (!cached) return;
+    setSelection(cached.selection);
+    setActiveDirection((prev) => prev || cached.activeDirection || "");
+    setGalleryByDir(cached.galleryByDir);
+    setItemTilesByDir(cached.itemTilesByDir);
+    setPdfIdByDir(cached.pdfIdByDir);
+    setGalleryPhaseByDir(
+      Object.fromEntries(
+        Object.keys(cached.galleryByDir).map((slug) => [slug, "idle" as const]),
+      ),
+    );
+    setItemTilesPhaseByDir(
+      Object.fromEntries(
+        Object.entries(cached.itemTilesByDir).map(([slug, tiles]) => [
+          slug,
+          Object.keys(tiles).length > 0 ? ("ready" as const) : ("idle" as const),
+        ]),
+      ),
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [project.project_id]);
 
   // Active-direction palette REPLACES the curator's atmosphere
   // palette in the displayed swatch strip and labels. Keeps Stage 2
@@ -842,6 +979,7 @@ export default function MoodBoard() {
           <MoodDrawerContent
             k={drawer}
             selection={selection}
+            itemTiles={itemTiles}
             onClose={() => setDrawer(null)}
           />
         )}
@@ -879,6 +1017,53 @@ function slugifyItemKey(s: string): string {
   return out.replace(/^-+|-+$/g, "");
 }
 
+/**
+ * Per-category item-key helpers — single source of truth used by both
+ * the main collage (`buildTiles`) and the drawer panels (so the
+ * Materials / Furniture / Planting / Light tabs can look up the same
+ * NanoBanana photographs that appear in the collage).
+ *
+ * MUST stay in lock-step with the backend `_slug()` in
+ * `app.surfaces.visual_moodboard` — same slug → same cache key →
+ * same image.
+ */
+export function keyForMaterial(m: {
+  material?: string;
+  name?: string;
+  finish?: string;
+}): string {
+  const matName = m.material ?? m.name ?? "";
+  if (!matName) return "";
+  const finish = m.finish ?? "";
+  return `mat:${slugifyItemKey(matName)}${finish ? `:${slugifyItemKey(finish)}` : ""}`;
+}
+
+export function keyForFurniture(f: {
+  product_id?: string;
+  brand?: string;
+  name?: string;
+}): string {
+  if (f.product_id) return `fur:${slugifyItemKey(f.product_id)}`;
+  const parts = [slugifyItemKey(f.brand ?? ""), slugifyItemKey(f.name ?? "")].filter(Boolean);
+  return parts.length ? `fur:${parts.join("-")}` : "";
+}
+
+export function keyForLight(fx: {
+  brand?: string;
+  model?: string;
+  name?: string;
+}): string {
+  const brand = fx.brand ?? "";
+  const model = fx.model ?? fx.name ?? "";
+  const parts = [slugifyItemKey(brand), slugifyItemKey(model)].filter(Boolean);
+  return parts.length ? `lig:${parts.join("-")}` : "";
+}
+
+export function keyForPlant(p: { name?: string; latin?: string } | string): string {
+  const nm = typeof p === "string" ? p : p.name ?? p.latin ?? "";
+  return nm ? `pla:${slugifyItemKey(nm)}` : "";
+}
+
 type CollageTile = {
   tag: string;
   tint: string;
@@ -910,39 +1095,21 @@ function buildTiles(selection: Selection | null): CollageTile[] {
   // Materials first (they carry the richest swatches).
   for (const m of selection.materials ?? []) {
     if (tiles.length >= 12) break;
-    // Backend key shape: `mat:${slug(material)}:${slug(finish)}`,
-    // trailing colon trimmed if finish empty. Replicate exactly.
-    // Note: the curator schema field is `material` (LLM) but the
-    // frontend Selection type calls it `name` for legacy fixtures —
-    // use whichever is present.
     const matName = (m as { material?: string }).material ?? m.name ?? "";
-    const finish = (m as { finish?: string }).finish ?? "";
-    const key = `mat:${slugifyItemKey(matName)}${finish ? `:${slugifyItemKey(finish)}` : ""}`;
     tiles.push({
       tag: (matName || m.name || "MATERIAL").toUpperCase(),
       tint: m.swatch_hex ?? "#A89775",
       ratio: ratios[tiles.length % ratios.length],
-      itemKey: key,
+      itemKey: keyForMaterial(m as { material?: string; name?: string; finish?: string }),
       category: "material",
     });
   }
   // Furniture next.
   for (const f of selection.furniture ?? []) {
     if (tiles.length >= 16) break;
-    const pid = (f as { product_id?: string }).product_id;
-    const brand = f.brand ?? "";
-    const name = f.name ?? "";
-    let key: string;
-    if (pid) {
-      key = `fur:${slugifyItemKey(pid)}`;
-    } else {
-      const parts = [slugifyItemKey(brand), slugifyItemKey(name)].filter(
-        Boolean,
-      );
-      key = parts.length ? `fur:${parts.join("-")}` : "";
-    }
+    const key = keyForFurniture(f as { product_id?: string; brand?: string; name?: string });
     tiles.push({
-      tag: (name || "PIECE").toUpperCase(),
+      tag: (f.name || "PIECE").toUpperCase(),
       tint: "#2A2E28",
       ratio: ratios[tiles.length % ratios.length],
       itemKey: key || undefined,
@@ -962,12 +1129,9 @@ function buildTiles(selection: Selection | null): CollageTile[] {
   })();
   for (const fx of lightFixtures) {
     if (tiles.length >= 18) break;
+    const key = keyForLight(fx);
     const brand = fx.brand ?? "";
     const model = fx.model ?? fx.name ?? "";
-    const parts = [slugifyItemKey(brand), slugifyItemKey(model)].filter(
-      Boolean,
-    );
-    const key = parts.length ? `lig:${parts.join("-")}` : "";
     tiles.push({
       tag: `${brand} ${model}`.trim().toUpperCase() || "PENDANT",
       tint: "#3C5D50",
@@ -996,7 +1160,7 @@ function buildTiles(selection: Selection | null): CollageTile[] {
       tag: nm.toUpperCase(),
       tint: "#6B8F7F",
       ratio: ratios[tiles.length % ratios.length],
-      itemKey: `pla:${slugifyItemKey(nm)}`,
+      itemKey: keyForPlant(sp),
       category: "plant",
     });
   }
@@ -1097,10 +1261,12 @@ function isLightColour(hex: string): boolean {
 function MoodDrawerContent({
   k,
   selection,
+  itemTiles,
   onClose,
 }: {
   k: DrillKey;
   selection: Selection | null;
+  itemTiles: Record<string, VisualMoodBoardItemTile>;
   onClose: () => void;
 }) {
   return (
@@ -1113,10 +1279,18 @@ function MoodDrawerContent({
       </div>
 
       {k === "atmosphere" && <AtmospherePanel selection={selection} />}
-      {k === "materials" && <MaterialsPanel selection={selection} />}
-      {k === "furniture" && <FurniturePanel selection={selection} />}
-      {k === "planting" && <PlantingPanel selection={selection} />}
-      {k === "light" && <LightPanel selection={selection} />}
+      {k === "materials" && (
+        <MaterialsPanel selection={selection} itemTiles={itemTiles} />
+      )}
+      {k === "furniture" && (
+        <FurniturePanel selection={selection} itemTiles={itemTiles} />
+      )}
+      {k === "planting" && (
+        <PlantingPanel selection={selection} itemTiles={itemTiles} />
+      )}
+      {k === "light" && (
+        <LightPanel selection={selection} itemTiles={itemTiles} />
+      )}
       {k === "sources" && <SourcesPanel selection={selection} />}
     </div>
   );
@@ -1153,63 +1327,109 @@ function AtmospherePanel({ selection }: { selection: Selection | null }) {
   );
 }
 
-function MaterialsPanel({ selection }: { selection: Selection | null }) {
+function MaterialsPanel({
+  selection,
+  itemTiles,
+}: {
+  selection: Selection | null;
+  itemTiles: Record<string, VisualMoodBoardItemTile>;
+}) {
   const items = selection?.materials ?? [];
   return (
     <div className="grid gap-3.5" style={{ gridTemplateColumns: "repeat(2, 1fr)" }}>
-      {items.map((m, i) => (
-        <div key={i}>
-          <Placeholder
-            tag={(m.name ?? "MATERIAL").toUpperCase()}
-            tint={m.swatch_hex}
-            ratio="1/1"
-          />
-          <div className="mt-2 text-[13px]">{m.name}</div>
-          <div className="mono text-[10px] text-mist-500">
-            SOURCE · {(m.brand ?? "—").toUpperCase()}
+      {items.map((m, i) => {
+        const key = keyForMaterial(m as { material?: string; name?: string; finish?: string });
+        const resolved = key ? itemTiles[key] : undefined;
+        return (
+          <div key={i}>
+            {resolved ? (
+              <img
+                src={generatedImageUrl(resolved.visual_image_id)}
+                alt={resolved.label || m.name || "material"}
+                className="block w-full rounded animate-fade-rise"
+                style={{ aspectRatio: "1 / 1", objectFit: "cover" }}
+                loading="lazy"
+              />
+            ) : (
+              <Placeholder
+                tag={(m.name ?? "MATERIAL").toUpperCase()}
+                tint={m.swatch_hex}
+                ratio="1/1"
+              />
+            )}
+            <div className="mt-2 text-[13px]">{m.name}</div>
+            <div className="mono text-[10px] text-mist-500">
+              SOURCE · {(m.brand ?? "—").toUpperCase()}
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
 
-function FurniturePanel({ selection }: { selection: Selection | null }) {
+function FurniturePanel({
+  selection,
+  itemTiles,
+}: {
+  selection: Selection | null;
+  itemTiles: Record<string, VisualMoodBoardItemTile>;
+}) {
   const items = selection?.furniture ?? [];
   return (
     <div className="flex flex-col gap-4">
-      {items.map((f, i) => (
-        <div
-          key={i}
-          className="flex gap-3.5 rounded-lg border border-mist-100 p-3.5"
-        >
-          <div className="w-[100px] shrink-0">
-            <Placeholder tag="PRODUCT" ratio="1/1" />
+      {items.map((f, i) => {
+        const key = keyForFurniture(f as { product_id?: string; brand?: string; name?: string });
+        const resolved = key ? itemTiles[key] : undefined;
+        return (
+          <div
+            key={i}
+            className="flex gap-3.5 rounded-lg border border-mist-100 p-3.5"
+          >
+            <div className="w-[120px] shrink-0">
+              {resolved ? (
+                <img
+                  src={generatedImageUrl(resolved.visual_image_id)}
+                  alt={resolved.label || f.name || "furniture"}
+                  className="block w-full rounded animate-fade-rise"
+                  style={{ aspectRatio: "1 / 1", objectFit: "cover" }}
+                  loading="lazy"
+                />
+              ) : (
+                <Placeholder tag="PRODUCT" ratio="1/1" />
+              )}
+            </div>
+            <div className="flex-1">
+              <div className="mono text-mist-500">
+                {(f.brand ?? "BRAND").toUpperCase()}
+              </div>
+              <div
+                className="font-display"
+                style={{
+                  fontSize: 20,
+                  fontVariationSettings: '"opsz" 72, "wght" 440, "SOFT" 100',
+                }}
+              >
+                {f.name}
+              </div>
+              <div className="mono mt-1.5 text-mist-600">
+                {f.dimensions ?? f.product_ref ?? ""}
+              </div>
+            </div>
           </div>
-          <div>
-            <div className="mono text-mist-500">
-              {(f.brand ?? "BRAND").toUpperCase()}
-            </div>
-            <div
-              className="font-display"
-              style={{
-                fontSize: 20,
-                fontVariationSettings: '"opsz" 72, "wght" 440, "SOFT" 100',
-              }}
-            >
-              {f.name}
-            </div>
-            <div className="mono mt-1.5 text-mist-600">
-              {f.dimensions ?? f.product_ref ?? ""}
-            </div>
-          </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
 
-function PlantingPanel({ selection }: { selection: Selection | null }) {
+function PlantingPanel({
+  selection,
+  itemTiles,
+}: {
+  selection: Selection | null;
+  itemTiles: Record<string, VisualMoodBoardItemTile>;
+}) {
   const items = plantingEntries(selection?.planting);
   const strategy =
     selection?.planting && !Array.isArray(selection.planting)
@@ -1231,31 +1451,58 @@ function PlantingPanel({ selection }: { selection: Selection | null }) {
         </p>
       )}
       <div className="flex flex-col gap-2.5">
-        {items.map((p, i) => (
-          <div
-            key={`${p.label}-${i}`}
-            className="rounded p-3.5 font-display italic"
-            style={{
-              background: "rgba(107, 143, 127, 0.12)",
-              borderLeft: "3px solid var(--mint)",
-              fontSize: 16,
-              fontVariationSettings: '"opsz" 72, "wght" 380, "SOFT" 100',
-            }}
-          >
-            <div>{p.label || "—"}</div>
-            {p.strategy && (
-              <div className="mt-1 text-[12px] font-sans not-italic text-mist-600">
-                {p.strategy}
+        {items.map((p, i) => {
+          const key = keyForPlant(p.label || "");
+          const resolved = key ? itemTiles[key] : undefined;
+          return (
+            <div
+              key={`${p.label}-${i}`}
+              className="flex gap-3.5 overflow-hidden rounded"
+              style={{
+                background: "rgba(107, 143, 127, 0.12)",
+                borderLeft: "3px solid var(--mint)",
+              }}
+            >
+              {resolved && (
+                <div className="w-[100px] shrink-0">
+                  <img
+                    src={generatedImageUrl(resolved.visual_image_id)}
+                    alt={resolved.label || p.label || "plant"}
+                    className="block h-full w-full animate-fade-rise"
+                    style={{ aspectRatio: "1 / 1", objectFit: "cover" }}
+                    loading="lazy"
+                  />
+                </div>
+              )}
+              <div
+                className="flex-1 p-3.5 font-display italic"
+                style={{
+                  fontSize: 16,
+                  fontVariationSettings: '"opsz" 72, "wght" 380, "SOFT" 100',
+                }}
+              >
+                <div>{p.label || "—"}</div>
+                {p.strategy && (
+                  <div className="mt-1 text-[12px] font-sans not-italic text-mist-600">
+                    {p.strategy}
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-        ))}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
 }
 
-function LightPanel({ selection }: { selection: Selection | null }) {
+function LightPanel({
+  selection,
+  itemTiles,
+}: {
+  selection: Selection | null;
+  itemTiles: Record<string, VisualMoodBoardItemTile>;
+}) {
   const light = selection?.light ?? {};
   const fixtures = Array.isArray(light.fixtures) ? light.fixtures : [];
   const kelvin =
@@ -1290,15 +1537,56 @@ function LightPanel({ selection }: { selection: Selection | null }) {
       {fixtures.length > 0 && (
         <>
           <Eyebrow style={{ marginBottom: 10, marginTop: 24 }}>FIXTURES</Eyebrow>
-          <ul className="pl-4 leading-loose">
-            {fixtures.map((f, i) => (
-              <li key={i} className="text-[14px]">
-                {typeof f === "string"
-                  ? f
-                  : `${f.name ?? ""}${f.brand ? ` (${f.brand})` : ""}${f.usage ? ` — ${f.usage}` : ""}`}
-              </li>
-            ))}
-          </ul>
+          <div className="flex flex-col gap-3">
+            {fixtures.map((f, i) => {
+              if (typeof f === "string") {
+                return (
+                  <div key={i} className="text-[14px]">
+                    {f}
+                  </div>
+                );
+              }
+              const key = keyForLight(f);
+              const resolved = key ? itemTiles[key] : undefined;
+              return (
+                <div
+                  key={i}
+                  className="flex gap-3.5 rounded-lg border border-mist-100 p-3.5"
+                >
+                  <div className="w-[100px] shrink-0">
+                    {resolved ? (
+                      <img
+                        src={generatedImageUrl(resolved.visual_image_id)}
+                        alt={resolved.label || f.name || "fixture"}
+                        className="block w-full rounded animate-fade-rise"
+                        style={{ aspectRatio: "1 / 1", objectFit: "cover" }}
+                        loading="lazy"
+                      />
+                    ) : (
+                      <Placeholder tag="LIGHT" ratio="1/1" />
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <div className="mono text-mist-500">
+                      {(f.brand ?? "BRAND").toUpperCase()}
+                    </div>
+                    <div
+                      className="font-display"
+                      style={{
+                        fontSize: 18,
+                        fontVariationSettings: '"opsz" 72, "wght" 440, "SOFT" 100',
+                      }}
+                    >
+                      {f.name ?? ""}
+                    </div>
+                    {f.usage && (
+                      <div className="mono mt-1 text-mist-600">{f.usage}</div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </>
       )}
     </div>

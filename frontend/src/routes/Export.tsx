@@ -50,11 +50,43 @@ export default function Export() {
       (v) => v.style === project.testfit?.retained_style,
     ) ?? project.testfit?.variants?.[0] ?? null;
 
+  // Iter-30B Stage 2.1 — rehydrate the full ExportResponse from
+  // localStorage so leaving and re-entering /export still shows the
+  // previously-generated DXF (file name, layer count, download CTA).
+  // The structured `project.export_runs` only carries ids; the
+  // rendering metadata (dxf_filename, dxf_bytes, sheet, scale, layers)
+  // lives in this side-cache, keyed by project_id.
   useEffect(() => {
-    // If we have an export_id persisted, pre-seed. Otherwise the user
-    // triggers a run by clicking the DXF button.
-    // (nothing to hydrate yet — projectState export_runs carry only ids)
-  }, []);
+    if (response) return;
+    if (!project.project_id) return;
+    try {
+      const raw = localStorage.getItem(
+        `design-office.export.last.${project.project_id}`,
+      );
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as ExportResponse;
+      if (parsed && typeof parsed === "object" && parsed.export_id) {
+        setResponse(parsed);
+        setPhase("done");
+      }
+    } catch {
+      /* corrupt entry — ignore */
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [project.project_id]);
+
+  // Persist the response so the next mount can rehydrate it.
+  useEffect(() => {
+    if (!response || !project.project_id) return;
+    try {
+      localStorage.setItem(
+        `design-office.export.last.${project.project_id}`,
+        JSON.stringify(response),
+      );
+    } catch {
+      /* quota — UI still works in-memory */
+    }
+  }, [response, project.project_id]);
 
   // Iter-20b (Saad #23). Generate DXF now requires the active project
   // to have a floor_plan + retained variant — or falls back to the
