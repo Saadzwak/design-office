@@ -92,32 +92,95 @@ MoodBoard.tsx
      <Placeholder> as fallback
 ```
 
-## What's still missing (to do in Stage 2 / 3)
+## Stage 2 — three direction tabs (shipped, commit `11d4d61`)
 
-1. **PDF embedding** — `_render_moodboard_pdf` still produces 0
-   images. The rerender endpoint already accepts
-   `gallery_tile_paths` for the 4 hero tiles; it needs a parallel
-   `item_tile_paths: dict[str, str]` keyed by `item_key`, and the
-   layout needs to embed real product thumbnails next to each
-   material / furniture / plant / fixture entry.
-2. **3 variants** — currently the curator emits one direction per
-   project. The Pinterest references showed how three named
-   directions (e.g. "Scandinavian craft", "Tokyo workshop",
-   "Parisian atelier") give the architect choice. Implementation:
-   either (a) run the curator three times with different
-   `parti_pris` system-prompt seeds, or (b) extend the schema to
-   emit three sibling selections in a single call. (b) is faster
-   to ship; (a) gives more divergent results.
-3. **Visual quality iteration** — initial NanoBanana outputs
-   should be A/B'd against the Pinterest references. Likely
-   prompt tweaks: stronger "no rendering" cue (some outputs
-   still leak a CGI sheen on metals), explicit "shot on Mamiya
-   RZ67 medium-format" or "Hasselblad" anchor for the editorial
-   feel, named photographer references where appropriate.
-4. **Per-item dimension labels in the collage** — currently shows
-   only the item name. Editorial mood boards typically annotate
-   each tile with a 1-2-line caption (brand, product reference,
-   application). Easy add once the schema/render layer settles.
+Architecture decision (advisor-validated): **palette overlay only**,
+not re-curation, not schema v2. Same curator selection rendered
+through three named directions per industry. Same Vitra chair
+photographed under three ambient palettes ⇒ three visually
+distinct mood boards, three distinct A3 PDFs, three editorial
+taglines.
+
+### Direction definitions live in JSON
+
+`backend/app/data/moodboard/directions.json` — keyed
+`industry → [{slug, name, tagline, parti_pris,
+palette_overlay, atmosphere_cue, lighting_cue}, ...]`. Code reads
+JSON; iteration on naming/palette doesn't require a code change.
+Three entries per industry; `tech_startup`, `law_firm` and
+`creative_agency` tuned, others fall back to the generic
+`_DEFAULT_DIRECTIONS` set in `app.surfaces.visual_moodboard`.
+
+Precedence rule (documented in the JSON contract): the
+direction's palette **REPLACES** the curator's atmosphere palette;
+the curator still picks materials/furniture/plants/lights, the
+direction picks the colour DNA + parti-pris. No blending.
+
+### What changed
+
+- `VisualMoodBoardRequest.direction: str | None` — pass the slug
+  to `generate-gallery`, `generate-item-tiles`, or
+  `rerender-pdf`. Cache keys naturally split per direction
+  because every per-item / gallery / atmosphere prompt now bakes
+  in the direction's palette + atmosphere_cue + lighting_cue.
+- `MoodBoardRerenderRequest.direction` — flows through to
+  `_render_moodboard_pdf`, which mutates a defensive copy of the
+  selection so the printed PALETTE strip + tagline match the
+  active direction. The `pdf_id` hash includes the slug so each
+  direction produces a distinct PDF on disk.
+- `GET /api/moodboard/directions?industry=…` — exposes the 3
+  directions for a project's industry to the frontend.
+- `MoodBoard.tsx` tab bar — three pills above the hero, each
+  with a dot in the direction's accent colour, keyed lazy state
+  (`galleryByDir`, `itemTilesByDir`, `pdfIdByDir`). Switching
+  tabs is instant once a tab is loaded; never-clicked tabs cost
+  zero. Active-direction palette REPLACES the curator's in the
+  visible swatch strip; tagline pulls from the direction.
+- "Generate A3 PDF" download CTA pulls from `pdfIdByDir[active]`
+  so each tab downloads its own A3.
+
+### Cost notes
+
+A fully fresh project (cold cache for all 3 directions) burns:
+
+```
+3 directions × (4 hero gallery + ~14 item tiles) ≈ 54 calls
+54 × ~$0.04 (Pro tier) = ~$2.16 first time
+```
+
+After cache warms, every subsequent view of the same selection
+costs $0. The Lumen fixture had 21 cached tiles from Stage 1
+which are reused by directions whose palettes match closely;
+distinct-palette directions generate fresh photographs.
+
+## Stage 3 — visual prompt iteration (next)
+
+Hard cap: **3 iteration cycles or $3**, whichever first. After
+each cycle: render all 3 directions for Lumen via
+`scripts/moodboard_three_dir_preview.py`, compare against the
+Pinterest references, commit if better, document what changed.
+
+Likely first-cycle targets:
+
+1. Stronger "no CGI sheen" cue — current outputs occasionally
+   leak a renderer-glossy look on brass / stone. Worth probing
+   "shot on Mamiya RZ67 medium-format film, Portra 400" or
+   "Hasselblad H6D" as a film-stock anchor.
+2. Slug-direction-specific lighting: the JSON already carries
+   `lighting_cue` per direction; check whether NanoBanana picks
+   up Tokyo's "washi diffusion" vs Paris's "tungsten library
+   lamps" in the resulting tiles. If not, lift the lighting cue
+   earlier in the prompt where attention is highest.
+3. Furniture silhouette accuracy — `_furniture_prompt` already
+   says "Material truth: faithful to the real {head}". Some
+   outputs still drift toward generic chairs. Probe whether
+   NanoBanana respects named-product cues vs benefits from
+   image-to-image with a reference photo (out of scope unless
+   Stage 2 visual gap clearly demands it).
+4. **Per-item dimension labels** in the collage — currently
+   shows only the item name. Editorial mood boards typically
+   annotate each tile with a 1–2-line caption (brand, product
+   reference, application). Quick frontend-only add.
 
 ## Verified
 
