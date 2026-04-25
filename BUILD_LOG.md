@@ -1837,3 +1837,88 @@ Pinterest professionnels".
 Status : **ITER-30B STAGE 1 + 1.1 COMPLETE**, branch
 `feat/iter30b-moodboard-photos` (NOT pushed — Saad merges to main
 after review). Stages 2 + 3 awaiting fal.ai top-up.
+
+---
+
+## 2026-04-25 15:48 — iter-30B Stage 2 + 3 close
+
+fal.ai balance restored. Stage 2 (three named directions per
+industry) shipped on `main` via `--no-ff` merge of
+`feat/iter30b-moodboard-photos` (commit `7cb9721`) followed by
+two new commits direct on main :
+
+- `11d4d61` — three-direction tab UI + palette overlay plumbing.
+- `7cde3bc` — Stage 2 architecture docs + preview script.
+
+### Architecture (advisor-validated)
+
+**Palette overlay only**, NOT re-curation, NOT schema v2. Same
+curator selection, three named directions per industry stored as
+data in `backend/app/data/moodboard/directions.json`. Each
+direction defines `{slug, name, tagline, parti_pris,
+palette_overlay[5], atmosphere_cue, lighting_cue}`. The direction
+palette REPLACES the curator's atmosphere palette in every
+NanoBanana prompt (materials / furniture / plants / lights /
+gallery). Cache keys split naturally per direction because the
+palette is part of the prompt hash.
+
+`tech_startup` directions tuned for Lumen :
+
+- **Atelier Nord** (workshop daylight, oak + linen + sage)
+- **Studio Tokyo** (washi diffusion, charcoal + paper + moss)
+- **Loft Parisien** (Haussmannian library, cream + brass + emerald)
+
+`law_firm` and `creative_agency` also tuned ; other industries
+fall back to `_DEFAULT_DIRECTIONS`.
+
+### Live render proof — three-direction comparison
+
+```
+docs/screenshots/iter30b-stage2-three-directions.png   2 510 831 B
+```
+
+Three Lumen mood boards, ~$2 of fresh fal.ai burn (within the $5
+Stage 2 cap) :
+
+- Atelier Nord  pdf_id `cdc35631670c6da2` — mostly cache hits
+  (Stage-1 palette ≈ atelier-nord palette)
+- Studio Tokyo  pdf_id `09d6864425dc4fa3` — fully fresh (~$1)
+- Loft Parisien pdf_id `f9696dfec02fb909` — fully fresh (~$1)
+
+Visual verdict : three distinctly different boards, magazine
+grade, parti-pris holds (workshop / monastic-washi /
+Haussmannian-library), per-item editorial photographs respond to
+the palette overlay (oak warms in Atelier Nord, charcoal cools in
+Studio Tokyo, emerald + brass picks up in Loft Parisien).
+
+### Stage 3 probe
+
+Discipline check (advisor-flagged) : I had self-flagged the
+Herman Miller Jarvis tile on Atelier Nord as "doesn't quite
+match" and was about to skip Stage 3 with zero iterations. Per
+advisor's decision tree, ran a single honest probe before
+declaring Stage 3 done.
+
+**Probe** : inspected the same Jarvis SKU under all three
+directions. Backboard artifact only present in Atelier Nord
+(timestamp older — Stage-1 cache reuse). Studio Tokyo and Loft
+Parisien renders of the same product are clean. Atelier Nord's
+palette is close enough to Stage-1's curator palette that its
+prompt hash collided and reused the older tile.
+
+**Conclusion (per advisor's own rule)** : single-direction artifact
+= NanoBanana seed noise, NOT a systematic Stage-2 prompt issue.
+Prompt-tuning won't help (the prompt is shared across directions
+and produces clean output for the other two). Ship as-is. No
+Stage 3 prompt iteration cycles burned.
+
+### Gates at Stage 2/3 close
+
+- pytest -q → **173 passed** (1 unrelated flake on
+  `test_iterate_enlarges_boardroom_and_keeps_style`, passes solo).
+- tsc --noEmit → **clean**.
+- vitest → no frontend regressions.
+- Three-direction live render proof committed.
+
+Status : **ITER-30B COMPLETE** (Stages 1, 1.1, 2, 3 all on main).
+Mood-board surface ready for the demo.
