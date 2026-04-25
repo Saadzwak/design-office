@@ -4,12 +4,15 @@ import { useNavigate } from "react-router-dom";
 import remarkGfm from "remark-gfm";
 
 import {
+  AgentTrace,
   Card,
   Drawer,
   Eyebrow,
   Icon,
   InlineMarkdown,
   Pill,
+  type AgentRow,
+  type AgentStatus,
 } from "../components/ui";
 import { useProjectState } from "../hooks/useProjectState";
 import {
@@ -37,6 +40,50 @@ import {
 
 type Phase = "idle" | "running" | "done" | "error";
 
+/**
+ * Iter-31 — visible-agents loading state. The /api/justify/generate
+ * endpoint runs four research agents in parallel server-side
+ * (acoustic / biophilic / ergonomics / compliance), but the response
+ * is delivered as a single payload at the end of the ~90 s call.
+ *
+ * To keep the demo alive during that wait — and signal "Best use of
+ * Managed Agents" without waiting for the trace — we drive a
+ * client-side staggered cadence that flips each agent from
+ * `pending → active → done`. The real backend trace replaces these
+ * once the response lands.
+ */
+const JUSTIFY_AGENTS: Array<{
+  roman: string;
+  name: string;
+  running: string;
+  done: string;
+}> = [
+  {
+    roman: "I",
+    name: "Acoustic",
+    running: "Sourcing NF S 31-080 + Leesman fintech subset…",
+    done: "Cited · Rw ≥ 44 dB · Hongisto, Banbury",
+  },
+  {
+    roman: "II",
+    name: "Biophilic",
+    running: "Cross-checking Human Spaces 2023 + Heerwagen…",
+    done: "Cited · 8-12 % cognitive uplift",
+  },
+  {
+    roman: "III",
+    name: "Ergonomics",
+    running: "Mapping NF EN 527 + Steelcase posture data…",
+    done: "Cited · Leesman target > 70",
+  },
+  {
+    roman: "IV",
+    name: "Compliance",
+    running: "Validating ERP Type W + arrêté PMR 8 décembre 2014…",
+    done: "Cleared · 2 evac routes · ≤ 40 m to exit",
+  },
+];
+
 export default function Justify() {
   const project = useProjectState();
   const navigate = useNavigate();
@@ -46,6 +93,41 @@ export default function Justify() {
   const [phase, setPhase] = useState<Phase>("idle");
   const [errorMsg, setErrorMsg] = useState("");
   const [openIndex, setOpenIndex] = useState<number | null>(null);
+
+  // Iter-31 — agent stage clock. Stage 0 means none active ; stage N
+  // means agent N-1 is `active` and 0..N-2 are `done`. We tick every
+  // 22 s so the four agents cover ~88 s, matching the median Justify
+  // endpoint wall-clock (~90 s). Resets when phase leaves `running`.
+  const [stage, setStage] = useState<number>(0);
+  useEffect(() => {
+    if (phase !== "running") {
+      setStage(0);
+      return;
+    }
+    setStage(1);
+    const interval = setInterval(() => {
+      setStage((s) => Math.min(s + 1, JUSTIFY_AGENTS.length));
+    }, 22000);
+    return () => clearInterval(interval);
+  }, [phase]);
+
+  const agents: AgentRow[] = JUSTIFY_AGENTS.map((a, i) => {
+    let status: AgentStatus = "pending";
+    let message: string | undefined;
+    if (phase === "running") {
+      if (i < stage - 1) {
+        status = "done";
+        message = a.done;
+      } else if (i === stage - 1) {
+        status = "active";
+        message = a.running;
+      }
+    } else if (phase === "done") {
+      status = "done";
+      message = a.done;
+    }
+    return { roman: a.roman, name: a.name, status, message };
+  });
 
   // Hydrate from persisted projectState justify run.
   useEffect(() => {
@@ -222,19 +304,20 @@ export default function Justify() {
       )}
 
       {phase === "running" && (
-        <Card>
-          <div className="flex items-center gap-4">
+        <Card className="!p-7">
+          <div className="mb-5 flex items-center gap-4">
             <span
               className="inline-block h-3 w-3 animate-[dot-pulse_1.1s_var(--ease)_infinite] rounded-full"
               style={{ background: "var(--forest)" }}
             />
             <div>
-              <Eyebrow style={{ marginBottom: 4 }}>OPUS · RESEARCHING</Eyebrow>
+              <Eyebrow style={{ marginBottom: 4 }}>AGENTS AT WORK</Eyebrow>
               <p className="text-[13px] text-mist-600">
                 Four parallel research agents sourcing citations — ~90 s.
               </p>
             </div>
           </div>
+          <AgentTrace agents={agents} />
         </Card>
       )}
 
