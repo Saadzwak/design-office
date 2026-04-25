@@ -54,6 +54,16 @@ function firstSentence(text: string): string {
   // otherwise be the raw pipe-characters dump. Skip tables + the
   // separator row underneath, resume extraction on the first real
   // prose line.
+  //
+  // Iter-32 (Saad #2) : when the WHOLE section is just a table
+  // (no prose preamble or trailing line), `firstRealLine` is
+  // undefined and we used to fall back to `lines[0]` — the raw
+  // table header. The card preview then showed
+  // "| Category | Surface m² | % | Notes |" verbatim, AND the
+  // body slicing in `parseProgrammeSections` stripped the header
+  // off, breaking GFM parsing in the drawer. Returning "" here
+  // tells the caller "no inline preview available; just show the
+  // title", and the body remains intact for the drawer.
   const lines = trimmed.split(/\r?\n/);
   const firstRealLine = lines.find((line) => {
     const t = line.trim();
@@ -63,10 +73,10 @@ function firstSentence(text: string): string {
     if (t.startsWith("#")) return false; // heading (already consumed)
     return true;
   });
-  const source = firstRealLine || lines[0] || trimmed;
+  if (!firstRealLine) return "";
   // Stop at the first `.`, `!`, `?` followed by whitespace / end.
-  const match = source.match(/^(.+?[.!?])(\s|$)/s);
-  const first = match ? match[1] : source;
+  const match = firstRealLine.match(/^(.+?[.!?])(\s|$)/s);
+  const first = match ? match[1] : firstRealLine;
   return first.length > 160 ? first.slice(0, 157).trimEnd() + "…" : first;
 }
 
@@ -120,6 +130,12 @@ export function parseProgrammeSections(markdown: string): ProgrammeSection[] {
     }
     const bodyText = currentBody.join("\n").trim();
     const tldr = firstSentence(bodyText);
+    // Iter-32 (Saad #2) : ONLY strip the tldr off the body when it
+    // was actually extracted from the body's first prose line — i.e.
+    // when bodyText literally starts with the tldr string. Section
+    // bodies that are pure markdown tables now return tldr="" from
+    // firstSentence(), so this branch is correctly skipped and the
+    // body (header row + data rows) reaches react-markdown intact.
     const remaining =
       tldr && bodyText.startsWith(tldr)
         ? bodyText.slice(tldr.length).trim()
@@ -128,7 +144,9 @@ export function parseProgrammeSections(markdown: string): ProgrammeSection[] {
       id: slugify(cleaned) || `section-${sections.length + 1}`,
       icon: pickIcon(cleaned),
       title: cleaned,
-      tldr: tldr || bodyText.slice(0, 140),
+      // Empty string when no preview available — the card UI checks
+      // for this and renders title-only without raw markdown leak.
+      tldr,
       body: remaining || tldr || bodyText,
     });
     currentTitle = null;

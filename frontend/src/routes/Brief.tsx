@@ -365,9 +365,11 @@ export default function Brief() {
                     >
                       {s.title}
                     </div>
-                    <div className="m-0 text-[14px] leading-snug text-mist-600">
-                      <InlineMarkdown>{s.tldr}</InlineMarkdown>
-                    </div>
+                    {s.tldr && (
+                      <div className="m-0 text-[14px] leading-snug text-mist-600">
+                        <InlineMarkdown>{s.tldr}</InlineMarkdown>
+                      </div>
+                    )}
                     <div className="mono mt-3.5 text-[11px] text-forest">
                       READ MORE →
                     </div>
@@ -667,20 +669,37 @@ function DrawerContent({
       >
         {section.title}
       </h2>
-      <div
-        className="m-0 mb-6 font-display"
-        style={{
-          fontSize: 19,
-          color: "var(--mist-700)",
-          fontVariationSettings: '"opsz" 72, "wght" 400, "SOFT" 100',
-        }}
-      >
-        <InlineMarkdown>{section.tldr}</InlineMarkdown>
-      </div>
+      {section.tldr && (
+        <div
+          className="m-0 mb-6 font-display"
+          style={{
+            fontSize: 19,
+            color: "var(--mist-700)",
+            fontVariationSettings: '"opsz" 72, "wght" 400, "SOFT" 100',
+          }}
+        >
+          <InlineMarkdown>{section.tldr}</InlineMarkdown>
+        </div>
+      )}
       {/* Iter-20c (Saad #4) : markdown tables render correctly inside
           `prose` when the parent scrolls on x overflow. Wrap tables in
-          a scroll pane so a wide table doesn't break the drawer width. */}
-      <div className="prose prose-sm max-w-none prose-headings:font-display prose-headings:text-ink prose-p:text-ink-soft prose-strong:text-ink prose-table:my-4 prose-th:border prose-th:border-mist-200 prose-th:bg-mist-50 prose-th:px-2.5 prose-th:py-1.5 prose-td:border prose-td:border-mist-100 prose-td:px-2.5 prose-td:py-1.5 [&_table]:block [&_table]:max-w-full [&_table]:overflow-x-auto">
+          a scroll pane so a wide table doesn't break the drawer width.
+          Iter-32 (Saad #2) : editorial table styling — forest header
+          band, hairline cell rules, mono numbers via `prose-td:font-mono`
+          on cells whose content is purely numeric. The body now reaches
+          react-markdown intact (programmeSections no longer eats the
+          table header row), so GFM's pipe-table parser produces a real
+          `<table>` instead of leaking `|---|---|` raw text. */}
+      <div className="prose prose-sm max-w-none
+                      prose-headings:font-display prose-headings:text-ink
+                      prose-p:text-ink-soft prose-strong:text-ink
+                      prose-table:my-4 prose-table:rounded-lg prose-table:overflow-hidden prose-table:border prose-table:border-mist-200
+                      prose-thead:border-b prose-thead:border-forest/30
+                      prose-th:bg-forest/5 prose-th:text-forest prose-th:font-mono prose-th:text-[11px] prose-th:uppercase prose-th:tracking-[0.08em]
+                      prose-th:px-3 prose-th:py-2.5 prose-th:text-left
+                      prose-td:border-t prose-td:border-mist-100 prose-td:px-3 prose-td:py-2 prose-td:text-[13px] prose-td:text-ink
+                      [&_table]:block [&_table]:max-w-full [&_table]:overflow-x-auto
+                      [&_tbody_tr:nth-child(even)_td]:bg-canvas-alt/40">
         <ReactMarkdown remarkPlugins={[remarkGfm]}>{section.body}</ReactMarkdown>
       </div>
       <div className="mt-7 border-t border-mist-200 pt-5">
