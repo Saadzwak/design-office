@@ -9,6 +9,7 @@ export { default as AgentTrace } from "./AgentTrace";
 export type { AgentRow, AgentStatus } from "./AgentTrace";
 
 export { default as Card } from "./Card";
+export { default as CyclingTypewriter } from "./CyclingTypewriter";
 export { default as DotPulse } from "./DotPulse";
 export { default as DotStatus } from "./DotStatus";
 export { default as Drawer } from "./Drawer";

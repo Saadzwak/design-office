@@ -4,6 +4,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import {
   AgentTrace,
   Card,
+  CyclingTypewriter,
   Drawer,
   Eyebrow,
   FloorPlan2D,
@@ -438,19 +439,7 @@ function MacroView({
           ))}
         </div>
       ) : state.kind === "generating" ? (
-        <div className="grid gap-6" style={{ gridTemplateColumns: "repeat(3, 1fr)" }}>
-          {[0, 1, 2].map((i) => (
-            <div
-              key={i}
-              className="card flex h-[360px] items-center justify-center text-mist-500"
-              style={{ animation: `soft-breathe 3s var(--ease) ${i * 0.2}s infinite` }}
-            >
-              <span className="mono text-[11px] tracking-[0.14em]">
-                Composing variant {i + 1}…
-              </span>
-            </div>
-          ))}
-        </div>
+        <MacroLoadingGrid />
       ) : state.kind === "plan_ready" ? (
         <div
           className="card p-12 text-center"
@@ -595,6 +584,123 @@ function MacroView({
         onClose={() => setZoomedStyle(null)}
       />
     </>
+  );
+}
+
+/**
+ * Iter-32 (Saad fix 4) — macro generation loading state.
+ *
+ * Renders the eventual three-card layout in placeholder form so the
+ * user reads the wait as "the result is composing in this exact spot"
+ * rather than "three white boxes appeared." Each card carries:
+ *
+ * - The variant's editorial title (Villageois / Atelier / Hybride
+ *   flex) in italic Fraunces, sand-deep — same chrome the cards
+ *   show after generation, just italic instead of regular weight.
+ * - A tinted dot-pulse (per-variant pigment from variantAdapter) +
+ *   `<CyclingTypewriter>` cycling through 4 narrative messages
+ *   describing what the orchestration is doing this instant.
+ * - The same `soft-breathe` animation on the card so the trio
+ *   feels alive without the metronomic look of equal pulses
+ *   (staggered phase via `style.animationDelay`).
+ *
+ * Honest by construction: the typewriter loops as long as we're
+ * mounted. We never claim a step has finished — when the actual
+ * response lands, the parent unmounts this component and renders
+ * the real cards in its place.
+ */
+function MacroLoadingGrid() {
+  const slots: Array<{
+    style: VariantStyle;
+    title: string;
+    pigmentVar: string;
+    messages: string[];
+  }> = [
+    {
+      style: "villageois",
+      title: "Villageois",
+      pigmentVar: "var(--forest)",
+      messages: [
+        "Anchoring quartiers around a central social spine…",
+        "Calling Reviewer agent for circulation audit…",
+        "Capturing 6 SketchUp angles…",
+        "Validating PMR widths against the envelope…",
+      ],
+    },
+    {
+      style: "atelier",
+      title: "Atelier",
+      pigmentVar: "var(--sand-deep)",
+      messages: [
+        "Composing focus posts on the daylight façade…",
+        "Routing meeting rooms toward the core…",
+        "Calling Adjacency Validator on noise zones…",
+        "Capturing 6 SketchUp angles…",
+      ],
+    },
+    {
+      style: "hybride_flex",
+      title: "Hybride flex",
+      pigmentVar: "var(--mint)",
+      messages: [
+        "Reconciling 0.7 flex ratio with the headcount…",
+        "Carving neutral zones for daily reconfiguration…",
+        "Calling Reviewer agent for density check…",
+        "Capturing 6 SketchUp angles…",
+      ],
+    },
+  ];
+
+  return (
+    <div className="grid gap-6" style={{ gridTemplateColumns: "repeat(3, 1fr)" }}>
+      {slots.map((slot, i) => (
+        <div
+          key={slot.style}
+          className="card relative flex h-[360px] flex-col gap-5 p-7"
+          style={{
+            animation: `soft-breathe 3s var(--ease) ${i * 0.2}s infinite`,
+          }}
+        >
+          <div className="flex items-center justify-between">
+            <Eyebrow>VARIANT · {String(i + 1).padStart(2, "0")}</Eyebrow>
+            <span
+              className="inline-block h-2.5 w-2.5 animate-[dot-pulse_1.1s_var(--ease)_infinite] rounded-full"
+              style={{
+                background: slot.pigmentVar,
+                animationDelay: `${i * 0.15}s`,
+              }}
+              aria-hidden
+            />
+          </div>
+          <div
+            className="font-display italic"
+            style={{
+              fontSize: 28,
+              lineHeight: 1.05,
+              color: "var(--ink)",
+              fontVariationSettings: '"opsz" 144, "wght" 380, "SOFT" 100',
+            }}
+          >
+            {slot.title}
+          </div>
+          <div className="flex-1" />
+          <div className="border-t border-mist-100 pt-4">
+            <Eyebrow style={{ marginBottom: 6 }}>OPUS · LIVE</Eyebrow>
+            <div
+              className="font-mono text-[12px] leading-snug text-mist-700"
+              style={{ minHeight: 36 }}
+            >
+              <CyclingTypewriter
+                messages={slot.messages}
+                speed={28}
+                holdMs={1600}
+                startOffset={i * 900}
+              />
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }
 
