@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { createPortal } from "react-dom";
 import type { ReactNode } from "react";
 
 type Props = {
@@ -14,6 +15,14 @@ type Props = {
  * Modal — centre-screen panel with backdrop blur. Escape-close +
  * backdrop-click-close + body-scroll lock. Use for short forms ;
  * for drawer-style content prefer `Drawer`.
+ *
+ * Iter-31 (Bug 2) — rendered through `createPortal(..., document.body)`
+ * for the same reason as `Drawer`: the product's `<main>` carries an
+ * `animate-fade-rise` keyframe whose final `transform: translateY(0)`
+ * value makes it the containing block for descendant `position: fixed`
+ * elements. That pushed the New-Project modal 147px below the viewport
+ * top so its bottom 562px (Create button included) was off-screen with
+ * no way to scroll. Portaling escapes the transformed ancestor.
  */
 export default function Modal({
   open,
@@ -41,8 +50,9 @@ export default function Modal({
   }, [open]);
 
   if (!open) return null;
+  if (typeof document === "undefined") return null;
 
-  return (
+  return createPortal(
     <div
       className="fixed inset-0 z-[95] flex items-center justify-center p-6"
       style={{
@@ -64,6 +74,7 @@ export default function Modal({
       >
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

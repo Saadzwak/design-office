@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { createPortal } from "react-dom";
 import type { ReactNode } from "react";
 
 type Props = {
@@ -18,6 +19,16 @@ type Props = {
  *
  * Body-scroll lock kicks in while the drawer is open so the floor
  * plan under the mood-board / zone drill doesn't scroll under the hood.
+ *
+ * Iter-31 (Bug 2) — rendered through `createPortal(..., document.body)`.
+ * The product's `<main>` carries `animate-fade-rise` whose final
+ * keyframe leaves a `transform: translateY(0)` that makes `<main>` the
+ * containing block for any descendant `position: fixed` element. That
+ * mis-anchored the drawer 149px below the viewport top and made the
+ * bottom 298px scroll off-screen — looked like a scroll bug to the
+ * user. Portaling to `document.body` puts the drawer outside the
+ * transformed ancestor so `inset-y-0` resolves against the viewport
+ * again.
  */
 export default function Drawer({
   open,
@@ -47,7 +58,12 @@ export default function Drawer({
     };
   }, [open]);
 
-  return (
+  // SSR-safe : `document` is undefined during server render. The route
+  // shell never renders Drawer on the server, but guard anyway in
+  // case a future static-pre-render pass touches it.
+  if (typeof document === "undefined") return null;
+
+  return createPortal(
     <>
       {/* Backdrop */}
       <div
@@ -81,6 +97,7 @@ export default function Drawer({
       >
         {children}
       </aside>
-    </>
+    </>,
+    document.body,
   );
 }
