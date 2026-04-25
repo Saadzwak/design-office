@@ -11,7 +11,6 @@ import {
   MetricBadge,
   Pill,
   PillToggle,
-  Placeholder,
   ZONE_COLORS,
   type AgentRow,
   type IconName,
@@ -1150,12 +1149,12 @@ function ZoneDrawerContent({
         </p>
       )}
 
-      <Placeholder
-        tag={`ZOOMED PLAN · ZONE ${zone.n}`}
-        ratio="16/9"
-        tint="#3C5D50"
-        style={{ margin: "20px 0", border: "1px solid var(--mist-200)" }}
-      />
+      {/* Iter-32 — removed the ZOOMED PLAN placeholder block. The
+          per-zone plan zoom was never wired to a backend renderer
+          and only ever displayed a hatched <Placeholder /> that
+          added noise without information. The drawer keeps title /
+          narrative / surface / furniture / adjacency / citations,
+          which are the parts that actually carry signal. */}
 
       {zone.furniture.length > 0 && (
         <>
