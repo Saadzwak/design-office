@@ -571,7 +571,7 @@ class TestFitSurface:
             # layer underneath the variant geometry, so architects see
             # the real plan and the generated zones as a single scene.
             # No-op on the mock backend (returns ok=True, mock=True).
-            _import_reference_plan_if_available(facade, floor_plan)
+            _import_reference_image_if_available(facade, floor_plan)
             _replay_floor_plan(facade, floor_plan)
             _replay_zones(facade, variant_obj.get("zones", []))
 
@@ -848,23 +848,39 @@ def _zones_from_trace(trace: list[dict]) -> list[dict]:
     return zones
 
 
-def _import_reference_plan_if_available(
+def _import_reference_image_if_available(
     facade: SketchUpFacade, plan: FloorPlan
 ) -> None:
     """Best-effort SketchUp reference-plan import.
 
-    iter-21d (Phase B) : if the FloorPlan carries a `plan_source_id`
-    AND Vision inferred real envelope dimensions, we ask the MCP facade
-    to drop the source PDF as a reference image underneath the variant
-    scene. Any failure (PDF expired from disk, SketchUp not live,
-    mock backend) returns silently — the variant still renders, just
-    without the underlay. Never raises.
+    iter-21d (Phase B) introduced this helper to drop the source PDF
+    underneath each variant scene as an architectural underlay. iter-26
+    P1 (Saad, 2026-04-25) renamed it from `_import_reference_plan_…`
+    and switched the wire format from PDF to PNG :
+
+      - SketchUp's `add_image` only decodes raster formats. Feeding it
+        a `.pdf` path silently returns nil ; the feature was
+        effectively dark for every project that DID have a
+        plan_source_id.
+      - `save_source_pdf` now renders a sister PNG at the same hash,
+        and `resolve_source_png` returns the cached image (with a lazy
+        backfill for pre-iter-26 PDFs).
+      - The PNG is dropped at the model origin and explicitly resized
+        to `real_width_m × real_height_m` (via the Ruby
+        `import_plan_pdf` tool which forces both width and height).
+        That guarantees zone bboxes overlay the right spot on the
+        plan even if the PDF aspect doesn't match the building aspect
+        — the architect cares about zone alignment, not perfect
+        page reproduction.
+
+    All failure modes (no plan_source_id, PNG missing / corrupted,
+    SketchUp down, mock backend) return silently. Never raises.
     """
 
-    from app.pdf.parser import resolve_source_pdf
+    from app.pdf.parser import resolve_source_png
 
-    pdf_path = resolve_source_pdf(plan.plan_source_id)
-    if pdf_path is None:
+    image_path = resolve_source_png(plan.plan_source_id)
+    if image_path is None:
         return
     width_m = plan.real_width_m
     height_m = plan.real_height_m
@@ -872,7 +888,9 @@ def _import_reference_plan_if_available(
         return
     try:
         facade.import_plan_pdf(
-            pdf_path=str(pdf_path),
+            # Kept the kwarg name for backward compat with the MCP /
+            # mock backend wire ; the value is now an absolute PNG path.
+            pdf_path=str(image_path),
             width_m=float(width_m),
             height_m=float(height_m),
         )
@@ -1299,7 +1317,7 @@ def iterate_variant(
     facade.new_scene(name=f"{request.client_name} — {new_variant.style.value} (iter)")
     # iter-21d — re-import the reference PDF on iterate scenes too so
     # the architect's view stays consistent across edits.
-    _import_reference_plan_if_available(facade, request.floor_plan)
+    _import_reference_image_if_available(facade, request.floor_plan)
     _replay_floor_plan(facade, request.floor_plan)
     _replay_zones(facade, payload.get("zones", []))
 

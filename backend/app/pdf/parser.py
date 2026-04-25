@@ -850,17 +850,61 @@ def fuse(
     )
 
 
+# iter-26 P1 (Saad, 2026-04-25) — PDF rendering DPI for the SketchUp
+# reference layer. 200 DPI gives ~3300 px on a vanilla A4 page : sharp
+# enough that an architect can read room labels, light enough to keep
+# the import snappy on macro generate. Tunable via env if needed.
+_PDF_TO_PNG_DPI = 200
+
+
+def _render_pdf_first_page_to_png(pdf_path: Path, png_path: Path) -> None:
+    """Best-effort PyMuPDF render of `pdf_path[0]` to `png_path`.
+    Aspect ratio of the source PDF is preserved by `get_pixmap` — we
+    explicitly do NOT pass a `matrix=` that would warp the page.
+    """
+
+    doc = fitz.open(str(pdf_path))
+    try:
+        if doc.page_count == 0:
+            raise ValueError(f"empty PDF: {pdf_path}")
+        pix = doc.load_page(0).get_pixmap(dpi=_PDF_TO_PNG_DPI)
+        pix.save(str(png_path))
+    finally:
+        doc.close()
+
+
 def save_source_pdf(raw_bytes: bytes) -> str:
     """Persist an uploaded PDF under `out/plans/{sha256}.pdf` and
     return its content-hash id. Dedupes automatically on re-uploads
     of the same file — the id is deterministic. Returns the id, not
-    the path ; callers use `resolve_source_pdf(id)` to get the path."""
+    the path ; callers use `resolve_source_pdf(id)` / `resolve_source_png(id)`
+    to get the corresponding paths.
+
+    iter-26 P1 — also renders a sister PNG (`{sha256}.png`) at
+    `_PDF_TO_PNG_DPI`. SketchUp's `add_image` only decodes raster
+    formats (PNG / JPG / BMP / TIFF) — passing a `.pdf` straight in
+    silently returns nil. The PNG is what `_import_reference_image`
+    actually drops on the SketchUp scene under the variant zones.
+    Idempotent : if the PNG already exists from a previous save we
+    don't re-render.
+    """
 
     PLANS_DIR.mkdir(parents=True, exist_ok=True)
     digest = hashlib.sha256(raw_bytes).hexdigest()[:32]
-    target = PLANS_DIR / f"{digest}.pdf"
-    if not target.exists():
-        target.write_bytes(raw_bytes)
+    pdf_target = PLANS_DIR / f"{digest}.pdf"
+    if not pdf_target.exists():
+        pdf_target.write_bytes(raw_bytes)
+    png_target = PLANS_DIR / f"{digest}.png"
+    if not png_target.exists():
+        try:
+            _render_pdf_first_page_to_png(pdf_target, png_target)
+        except Exception:  # noqa: BLE001
+            # PDF rendering can fail on corrupt / encrypted files. We
+            # don't propagate : the SketchUp import will silently
+            # skip if the PNG is missing, and the rest of the pipeline
+            # (Vision HD on the original PDF, zones generation, etc.)
+            # still works.
+            pass
     return digest
 
 
@@ -876,6 +920,36 @@ def resolve_source_pdf(plan_source_id: str | None) -> Path | None:
         return None
     candidate = PLANS_DIR / f"{plan_source_id}.pdf"
     return candidate if candidate.exists() else None
+
+
+def resolve_source_png(plan_source_id: str | None) -> Path | None:
+    """Look up the on-disk PNG path for a content-hash id. Returns
+    None if the id is unsafe or the rendered image is missing.
+
+    iter-26 P1 — lazy backfill : if the source PDF exists but its
+    sister PNG does not (legacy uploads from before iter-26), we
+    render the PNG on first call so the SketchUp reference-layer
+    pipeline works without a server restart.
+    """
+
+    if not plan_source_id:
+        return None
+    if len(plan_source_id) != 32 or any(
+        c not in "0123456789abcdef" for c in plan_source_id
+    ):
+        return None
+    png_path = PLANS_DIR / f"{plan_source_id}.png"
+    if png_path.exists():
+        return png_path
+    # Lazy backfill from the sister PDF.
+    pdf_path = PLANS_DIR / f"{plan_source_id}.pdf"
+    if not pdf_path.exists():
+        return None
+    try:
+        _render_pdf_first_page_to_png(pdf_path, png_path)
+    except Exception:  # noqa: BLE001
+        return None
+    return png_path if png_path.exists() else None
 
 
 def parse_pdf(pdf_path: Path, use_vision: bool | None = None) -> FloorPlan:

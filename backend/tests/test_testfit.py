@@ -189,6 +189,117 @@ def test_save_and_resolve_source_pdf_round_trip(tmp_path) -> None:
     assert resolve_source_pdf("g" * 32) is None  # not hex
 
 
+# iter-26 P1 (Saad, 2026-04-25) — PDF→PNG cache for SketchUp underlay
+
+
+def _real_minimal_pdf_bytes() -> bytes:
+    """Return a tiny but actually valid 1-page PDF (≈210×297 mm, A4).
+    Hand-rolled rather than imported so the test stays self-contained.
+    Just enough to make PyMuPDF render a non-trivial pixmap."""
+
+    return (
+        b"%PDF-1.4\n"
+        b"1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n"
+        b"2 0 obj<</Type/Pages/Count 1/Kids[3 0 R]>>endobj\n"
+        b"3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 595 842]"
+        b"/Resources<<>>/Contents 4 0 R>>endobj\n"
+        b"4 0 obj<</Length 12>>stream\nBT ET\nendstream\nendobj\n"
+        b"xref\n0 5\n0000000000 65535 f \n0000000009 00000 n \n"
+        b"0000000052 00000 n \n0000000095 00000 n \n0000000170 00000 n \n"
+        b"trailer<</Size 5/Root 1 0 R>>\nstartxref\n216\n%%EOF\n"
+    )
+
+
+def test_save_source_pdf_also_writes_png_sister() -> None:
+    """iter-26 P1 — `save_source_pdf` must render a sister PNG at the
+    same hash so SketchUp's `add_image` (raster only) has something
+    valid to load. Idempotent : re-saving the same bytes does NOT
+    re-render the PNG."""
+
+    from app.pdf.parser import PLANS_DIR, save_source_pdf
+
+    raw = _real_minimal_pdf_bytes()
+    pdf_id = save_source_pdf(raw)
+    pdf_path = PLANS_DIR / f"{pdf_id}.pdf"
+    png_path = PLANS_DIR / f"{pdf_id}.png"
+    assert pdf_path.exists(), "PDF should be persisted"
+    assert png_path.exists(), "PNG sister should be rendered alongside"
+    assert png_path.stat().st_size > 100, "PNG must contain real bytes"
+
+    # Idempotency : re-save shouldn't change the PNG mtime.
+    mtime_before = png_path.stat().st_mtime
+    assert save_source_pdf(raw) == pdf_id
+    mtime_after = png_path.stat().st_mtime
+    assert mtime_before == mtime_after, "PNG must not be re-rendered on re-save"
+
+
+def test_resolve_source_png_lazy_backfill_for_legacy_pdfs() -> None:
+    """iter-26 P1 — pre-iter-26 caches only have the .pdf on disk.
+    On first `resolve_source_png(id)` call, the PNG must be lazily
+    rendered from the sister PDF so the SketchUp underlay works
+    without a server restart."""
+
+    from app.pdf.parser import PLANS_DIR, resolve_source_png
+
+    raw = _real_minimal_pdf_bytes()
+    # Manually persist the PDF without going through save_source_pdf
+    # (mimicking the iter-21d on-disk state pre-iter-26).
+    import hashlib
+
+    digest = hashlib.sha256(raw).hexdigest()[:32]
+    PLANS_DIR.mkdir(parents=True, exist_ok=True)
+    pdf_path = PLANS_DIR / f"{digest}.pdf"
+    png_path = PLANS_DIR / f"{digest}.png"
+    if png_path.exists():
+        png_path.unlink()  # ensure backfill kicks in
+    pdf_path.write_bytes(raw)
+
+    resolved = resolve_source_png(digest)
+    assert resolved is not None and resolved == png_path
+    assert png_path.exists()
+
+
+def test_resolve_source_png_returns_none_for_missing_pdf() -> None:
+    """When neither .png nor .pdf are on disk, the resolver returns
+    None — the import helper then silently skips."""
+
+    from app.pdf.parser import resolve_source_png
+
+    # 32 hex but never persisted.
+    assert resolve_source_png("0" * 32) is None
+    # Unsafe ids never even hit the disk.
+    assert resolve_source_png(None) is None
+    assert resolve_source_png("../../../etc/passwd") is None
+    assert resolve_source_png("g" * 32) is None  # not hex
+
+
+def test_save_source_pdf_png_preserves_pdf_aspect_ratio() -> None:
+    """A4 portrait (210×297 mm) must produce a PNG whose pixel
+    aspect ratio matches the page aspect (≈0.707, h>w). The Ruby
+    side then re-stretches to `real_width_m × real_height_m` for
+    zone overlay alignment ; here we just guarantee the renderer
+    didn't squish or rotate the page."""
+
+    import hashlib
+
+    from PIL import Image
+
+    from app.pdf.parser import PLANS_DIR, save_source_pdf
+
+    raw = _real_minimal_pdf_bytes()
+    pdf_id = save_source_pdf(raw)
+    png_path = PLANS_DIR / f"{pdf_id}.png"
+    with Image.open(png_path) as im:
+        w, h = im.size
+    aspect_pdf = 595.0 / 842.0  # MediaBox in our minimal PDF (A4 portrait pts)
+    aspect_png = w / h
+    # Allow 1 % tolerance for sub-pixel rounding from get_pixmap.
+    assert abs(aspect_png - aspect_pdf) < 0.01, (
+        f"PNG aspect {aspect_png:.4f} should match PDF page aspect "
+        f"{aspect_pdf:.4f} ; got w={w} h={h}"
+    )
+
+
 def test_sketchup_facade_import_plan_pdf_on_mock() -> None:
     """Mock backend must absorb import_plan_pdf without raising and
     return a recognisable payload so the caller can still log."""
@@ -275,14 +386,14 @@ def test_new_scene_precedes_any_geometry_call() -> None:
     )
 
 
-def test_import_reference_plan_if_available_no_crash_without_pdf() -> None:
+def test_import_reference_image_if_available_no_crash_without_pdf() -> None:
     """The helper must silently no-op when plan_source_id is missing
     or when the PDF has been purged — a variant must never crash on
     a missing reference layer."""
 
     from app.mcp.sketchup_client import RecordingMockBackend, SketchUpFacade
     from app.models import FloorPlan, Point2D, Polygon2D
-    from app.surfaces.testfit import _import_reference_plan_if_available
+    from app.surfaces.testfit import _import_reference_image_if_available
 
     plan = FloorPlan(
         envelope=Polygon2D(
@@ -296,20 +407,23 @@ def test_import_reference_plan_if_available_no_crash_without_pdf() -> None:
         # No plan_source_id → helper should skip.
     )
     facade = SketchUpFacade(backend=RecordingMockBackend())
-    _import_reference_plan_if_available(facade, plan)
+    _import_reference_image_if_available(facade, plan)
     assert not any(c["tool"] == "import_plan_pdf" for c in facade.trace())
 
 
-def test_import_reference_plan_if_available_fires_with_pdf() -> None:
-    """With a valid plan_source_id + real dims, the helper must fire
-    the import_plan_pdf MCP call."""
+def test_import_reference_image_if_available_fires_with_png() -> None:
+    """iter-26 P1 — with a valid plan_source_id + real dims, the
+    helper must fire the import_plan_pdf MCP call but pass the
+    sister .PNG path (since SketchUp's add_image only accepts raster
+    formats). The kwarg name on the wire stays `pdf_path` for
+    backward-compat with the existing Ruby + mock signatures."""
 
     from app.mcp.sketchup_client import RecordingMockBackend, SketchUpFacade
     from app.models import FloorPlan, Point2D, Polygon2D
     from app.pdf.parser import save_source_pdf
-    from app.surfaces.testfit import _import_reference_plan_if_available
+    from app.surfaces.testfit import _import_reference_image_if_available
 
-    pdf_id = save_source_pdf(b"%PDF-1.4\n(iter-21d test)\n%%EOF")
+    pdf_id = save_source_pdf(_real_minimal_pdf_bytes())
     plan = FloorPlan(
         envelope=Polygon2D(
             points=[
@@ -324,13 +438,17 @@ def test_import_reference_plan_if_available_fires_with_pdf() -> None:
         real_height_m=36.0,
     )
     facade = SketchUpFacade(backend=RecordingMockBackend())
-    _import_reference_plan_if_available(facade, plan)
+    _import_reference_image_if_available(facade, plan)
     import_calls = [c for c in facade.trace() if c["tool"] == "import_plan_pdf"]
     assert len(import_calls) == 1
     params = import_calls[0]["params"]
     assert params["width_m"] == 25.0
     assert params["height_m"] == 36.0
-    assert params["pdf_path"].endswith(".pdf")
+    # iter-26 P1 — path now points at the rendered PNG, not the source PDF.
+    assert params["pdf_path"].endswith(".png"), (
+        f"iter-26 P1 must pass PNG path to SketchUp ; got "
+        f"{params['pdf_path']!r}"
+    )
 
 
 # iter-21f test `test_strip_json_truncates_at_last_balanced_close`
