@@ -181,7 +181,15 @@ export default function Brief() {
       const res = await synthesizeBrief({
         brief: draft,
         client_name: project.client.name,
-        language: "fr",
+        // Iter-32 — switched from "fr" to "en" so the LLM emits the
+        // programme markdown with English H2 titles ("Functional
+        // programme" instead of "Programme fonctionnel"). Matches
+        // the iter-20a precedent on Justify, where Saad asked for
+        // English-only argumentaire titles for client-facing
+        // consistency. Headings on the brief cards + drawer title
+        // bar now read in English regardless of the input brief
+        // language.
+        language: "en",
       });
       setProgramme({ markdown: res.programme });
       setPhase({ kind: "done", response: res });
