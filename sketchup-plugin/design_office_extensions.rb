@@ -19,6 +19,28 @@ module DesignOffice
   DEFAULT_DESK_H_MM = 720
   WALL_HEIGHT_MM = 2700
 
+  # iter-29 — feature flag for the realistic-furniture render path.
+  #
+  # When ON (default), high-level builders (workstation_cluster, meeting_
+  # room, phone_booth, collab_zone, apply_biophilic_zone, place_human,
+  # place_plant, place_hero) emit detailed multi-piece geometry — desks
+  # paired with chairs, phone booths with glazed doors and stools,
+  # collab zones with style-specific seating, plants with terracotta
+  # pots and varied canopies, etc. — so the iso renders read as a real
+  # office fit-out instead of plain extruded volumes.
+  #
+  # When OFF, every builder falls back to the legacy "single extruded
+  # face per zone" implementation present pre-iter-29. This is what
+  # the agents, validators, prompts, and tests have been calibrated
+  # against ; the toggle MUST be a true rollback for reversibility.
+  #
+  # Default reads ENV at plugin load. Hot toggle via
+  # `DesignOffice.set_realistic_furniture(false/true)` from a Ruby
+  # console or via the eval_ruby MCP tool. Persists for the lifetime
+  # of the SketchUp process.
+  @@realistic_furniture =
+    ENV['DESIGN_OFFICE_REALISTIC_FURNITURE'].to_s.downcase != 'false'
+
   class << self
     def mm(value)
       value.to_f * MM_TO_IN
@@ -26,6 +48,17 @@ module DesignOffice
 
     def model
       Sketchup.active_model
+    end
+
+    # iter-29 — feature flag accessor (read by every builder).
+    def realistic_furniture?
+      @@realistic_furniture
+    end
+
+    # iter-29 — hot-toggle the flag. Returns the new state.
+    def set_realistic_furniture(enabled)
+      @@realistic_furniture = !!enabled
+      { realistic_furniture: @@realistic_furniture }
     end
 
     def with_operation(name)
