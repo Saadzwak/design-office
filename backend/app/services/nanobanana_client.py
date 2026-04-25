@@ -90,9 +90,24 @@ class NanoBananaClient:
         max_retries: int = 3,
         text_to_image_model: str = DEFAULT_TEXT_TO_IMAGE_MODEL,
         image_to_image_model: str = DEFAULT_IMAGE_TO_IMAGE_MODEL,
+        demo_fallback: bool | None = None,
     ) -> None:
+        # Demo fallback: when fal.ai credits are exhausted (or for offline
+        # demos), the client picks a deterministic image from the existing
+        # cache pool instead of submitting a fresh request. The picked
+        # image is written to the prompt's cache_path so the next call
+        # for the same selection is a true cache hit. Toggle via
+        # `MOODBOARD_DEMO_FALLBACK=1` (env) or the constructor arg.
+        if demo_fallback is None:
+            demo_fallback = os.environ.get("MOODBOARD_DEMO_FALLBACK", "").strip() in (
+                "1", "true", "True", "yes",
+            )
+        self.demo_fallback = bool(demo_fallback)
+        self._demo_pool: dict[str, list[Path]] | None = None
+        # In demo mode `FAL_KEY` is optional — the client never reaches
+        # the fal.ai endpoint. Outside demo mode it is required.
         self.api_key = api_key or os.environ.get("FAL_KEY")
-        if not self.api_key:
+        if not self.api_key and not self.demo_fallback:
             raise NanoBananaError(
                 "FAL_KEY is not set — visual generation is unavailable."
             )
@@ -247,6 +262,41 @@ class NanoBananaClient:
                 bytes_size=cached.stat().st_size,
             )
 
+        if self.demo_fallback:
+            # Demo mode: pick a deterministic image from the existing pool
+            # by aspect ratio + stable hash of the prompt. Write it to the
+            # prompt's cache_path so subsequent identical requests hit the
+            # real cache. We never reach fal.ai in this branch.
+            pool_path = self._pick_demo_fallback(
+                prompt=str(body.get("prompt", "")),
+                aspect_ratio=aspect_ratio,
+                exclude=cached.resolve(),
+            )
+            if pool_path is not None:
+                cached.write_bytes(pool_path.read_bytes())
+                log.info(
+                    "demo fallback: served %s for aspect %s (prompt hash %s)",
+                    pool_path.name, aspect_ratio, key[:8],
+                )
+                return GeneratedImage(
+                    path=cached,
+                    cache_key=key,
+                    prompt=str(body.get("prompt", "")),
+                    model=model,
+                    aspect_ratio=aspect_ratio,
+                    from_cache=False,
+                    request_id="demo-fallback",
+                    bytes_size=cached.stat().st_size,
+                )
+            # Pool empty / no match for ratio — fall through to fal.ai so
+            # we don't return a broken image. If fal.ai also fails, the
+            # caller surface degrades gracefully (per-item failures don't
+            # crash the response).
+            log.warning(
+                "demo fallback: no pool image for aspect %s, attempting fal.ai",
+                aspect_ratio,
+            )
+
         try:
             image_url, request_id = self._submit_and_poll(model=model, body=body)
         except NanoBananaError:
@@ -384,6 +434,76 @@ class NanoBananaClient:
                     continue
                 raise NanoBananaError(f"fal.ai image download failed for {url}: {exc}") from exc
         raise NanoBananaError(f"fal.ai image download exhausted retries: {last_exc}")
+
+    # --------------------------------------------------------------- demo
+
+    def _build_demo_pool(self) -> dict[str, list[Path]]:
+        """Classify cached PNGs by aspect ratio for demo fallback picks.
+
+        Reads each PNG header (PIL only loads the metadata, not pixels)
+        and buckets by `3:2` (hero gallery) or `4:3` (item tiles). Other
+        ratios go to the `any` bucket as a last-resort fallback.
+        """
+
+        try:
+            from PIL import Image  # type: ignore[import-untyped]
+        except ImportError:
+            log.warning("Pillow unavailable; demo pool empty")
+            return {"3:2": [], "4:3": [], "any": []}
+
+        pool: dict[str, list[Path]] = {"3:2": [], "4:3": [], "any": []}
+        for png in sorted(self.cache_dir.glob("*.png")):
+            try:
+                with Image.open(png) as im:
+                    w, h = im.size
+            except Exception:  # noqa: BLE001
+                continue
+            if h <= 0:
+                continue
+            ratio = w / h
+            pool["any"].append(png)
+            if abs(ratio - 1.5) < 0.05:
+                pool["3:2"].append(png)
+            elif abs(ratio - 4 / 3) < 0.05:
+                pool["4:3"].append(png)
+        log.info(
+            "demo pool: %d/3:2 + %d/4:3 + %d/any (cache_dir=%s)",
+            len(pool["3:2"]), len(pool["4:3"]), len(pool["any"]),
+            self.cache_dir,
+        )
+        return pool
+
+    def _pick_demo_fallback(
+        self,
+        *,
+        prompt: str,
+        aspect_ratio: str,
+        exclude: Path | None = None,
+    ) -> Path | None:
+        """Pick a deterministic pool image for the prompt + aspect ratio.
+
+        Picking is stable across runs : sha256(prompt) % len(pool). Same
+        prompt → same image, so the user never sees the moodboard "shuffle"
+        between renders. Different prompts (e.g. same SKU under three
+        directions) get different picks, preserving visual variety.
+        """
+
+        if self._demo_pool is None:
+            self._demo_pool = self._build_demo_pool()
+        bucket = self._demo_pool.get(aspect_ratio) or self._demo_pool.get("any") or []
+        # Drop the file we'd be writing to (in case it's already in the
+        # pool from a previous demo fallback) so we never seed it from
+        # itself.
+        if exclude is not None:
+            try:
+                bucket = [p for p in bucket if p.resolve() != exclude]
+            except OSError:
+                pass
+        if not bucket:
+            return None
+        digest = hashlib.sha256(prompt.encode("utf-8", errors="replace")).hexdigest()
+        idx = int(digest[:12], 16) % len(bucket)
+        return bucket[idx]
 
 
 # Module-level convenience for tests / debug scripts.

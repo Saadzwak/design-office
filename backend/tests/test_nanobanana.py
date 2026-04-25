@@ -51,8 +51,11 @@ def test_client_refuses_to_start_without_fal_key(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     monkeypatch.delenv("FAL_KEY", raising=False)
+    # Demo fallback bypasses the FAL_KEY requirement; for this test we
+    # want the strict path, so explicitly disable it.
+    monkeypatch.delenv("MOODBOARD_DEMO_FALLBACK", raising=False)
     with pytest.raises(NanoBananaError):
-        NanoBananaClient(cache_dir=tmp_path, api_key=None)
+        NanoBananaClient(cache_dir=tmp_path, api_key=None, demo_fallback=False)
 
 
 def test_client_cache_hit_bypasses_network(tmp_path: Path) -> None:
@@ -138,6 +141,123 @@ def test_client_downloads_and_caches_when_miss(
     )
     assert again.from_cache
     assert again.path == out.path
+
+
+# --------------------------------------------------- demo fallback (no fal.ai)
+
+
+def _seed_pool_pngs(cache_dir: Path) -> tuple[Path, Path]:
+    """Drop two PIL-readable PNGs in cache_dir at 3:2 and 4:3 ratios.
+
+    Returns (hero_png, item_png). Used by the demo-fallback tests below.
+    """
+
+    from PIL import Image  # type: ignore[import-untyped]
+
+    hero = cache_dir / "pool_hero_3x2.png"
+    item = cache_dir / "pool_item_4x3.png"
+    Image.new("RGB", (300, 200), color=(47, 74, 63)).save(hero)
+    Image.new("RGB", (320, 240), color=(232, 197, 71)).save(item)
+    return hero, item
+
+
+def test_demo_fallback_serves_from_pool_when_no_cache_match(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """In demo mode, an unseen prompt picks a deterministic pool image
+    instead of calling fal.ai. The picked bytes are written to the
+    prompt's cache_path so subsequent identical requests are real hits.
+    """
+
+    monkeypatch.delenv("FAL_KEY", raising=False)
+    hero_seed, item_seed = _seed_pool_pngs(tmp_path)
+    # Demo mode allows construction without FAL_KEY.
+    client = NanoBananaClient(cache_dir=tmp_path, demo_fallback=True)
+    assert client.demo_fallback is True
+
+    # Booby-trap the fal.ai paths — they must never be reached.
+    def _explode(*a, **kw):  # noqa: ANN001, ANN003
+        raise AssertionError("demo fallback must not call fal.ai")
+
+    monkeypatch.setattr(client, "_submit_and_poll", _explode)
+    monkeypatch.setattr(client, "_download_bytes", _explode)
+
+    out = client.text_to_image(
+        prompt="never-before-seen editorial mood for tech_startup",
+        aspect_ratio="3:2",
+    )
+    assert not out.from_cache
+    assert out.request_id == "demo-fallback"
+    assert out.path.exists() and out.bytes_size > 0
+    # The cache_path was written from the seed file's bytes.
+    assert out.path.read_bytes() == hero_seed.read_bytes()
+
+    # Same prompt again is now a true cache hit.
+    again = client.text_to_image(
+        prompt="never-before-seen editorial mood for tech_startup",
+        aspect_ratio="3:2",
+    )
+    assert again.from_cache
+    assert again.cache_key == out.cache_key
+
+    # 4:3 picks from the item bucket, not the hero bucket.
+    item_out = client.text_to_image(
+        prompt="never-before-seen Vitra Eames in studio",
+        aspect_ratio="4:3",
+    )
+    assert item_out.path.read_bytes() == item_seed.read_bytes()
+
+
+def test_demo_fallback_picking_is_deterministic_per_prompt(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Same prompt → same pool pick on every cold start. Different
+    prompts on the same aspect ratio MAY collide (single-bucket pool of
+    2), so we only assert determinism, not uniqueness here."""
+
+    from PIL import Image  # type: ignore[import-untyped]
+
+    monkeypatch.delenv("FAL_KEY", raising=False)
+    # Three distinct hero pool images so different prompts can land on
+    # different picks.
+    for i, color in enumerate([(10, 20, 30), (40, 50, 60), (70, 80, 90)]):
+        Image.new("RGB", (300, 200), color=color).save(
+            tmp_path / f"pool_hero_{i}.png"
+        )
+    client = NanoBananaClient(cache_dir=tmp_path, demo_fallback=True)
+    monkeypatch.setattr(
+        client, "_submit_and_poll",
+        lambda **_: (_ for _ in ()).throw(AssertionError("no fal.ai")),
+    )
+    monkeypatch.setattr(
+        client, "_download_bytes",
+        lambda *_a, **_k: (_ for _ in ()).throw(AssertionError("no fal.ai")),
+    )
+
+    a1 = client.text_to_image(prompt="prompt-A", aspect_ratio="3:2")
+    a2 = client.text_to_image(prompt="prompt-A", aspect_ratio="3:2")
+    # Same prompt → same cache_path (already a true hit on second call).
+    assert a1.path == a2.path
+
+    # Wipe just `a1`'s cache_path so we can re-pick. Pool stays the same.
+    a1.path.unlink()
+    a3 = client.text_to_image(prompt="prompt-A", aspect_ratio="3:2")
+    # Pick was reproducible: same bytes as the first pick.
+    assert a3.bytes_size == a1.bytes_size
+
+
+def test_demo_fallback_env_var_toggles_mode(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.delenv("FAL_KEY", raising=False)
+    monkeypatch.setenv("MOODBOARD_DEMO_FALLBACK", "1")
+    client = NanoBananaClient(cache_dir=tmp_path)
+    assert client.demo_fallback is True
+
+    monkeypatch.setenv("MOODBOARD_DEMO_FALLBACK", "0")
+    monkeypatch.setenv("FAL_KEY", "fake:key")
+    client2 = NanoBananaClient(cache_dir=tmp_path)
+    assert client2.demo_fallback is False
 
 
 # ------------------------------------------------------- visual mood board prompt
