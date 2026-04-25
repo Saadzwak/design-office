@@ -172,3 +172,37 @@ def test_moodboard_pdf_endpoint_streams_existing_file() -> None:
     assert response.status_code == 200
     assert response.headers["content-type"] == "application/pdf"
     assert int(response.headers["content-length"]) > 2_000
+
+
+def test_truncate_to_width_adds_ellipsis_when_overflowing() -> None:
+    """Iter-30B regression: long material captions must truncate
+    inside the cell width with an ellipsis instead of running past
+    the cell edge.
+    """
+
+    from reportlab.pdfgen import canvas
+
+    from app.surfaces.moodboard import _truncate_to_width
+
+    c = canvas.Canvas("/tmp/_dummy_truncate.pdf")
+    long = "Upholstery — Lumen yellow accent fabric"
+    short = "Oak"
+    # 22 mm cell width — same order of magnitude as the actual A3 grid
+    # cells. Helvetica 7pt at this width fits ~12 chars.
+    cell_w = 22 * 2.83464566929  # mm → points
+    out_long = _truncate_to_width(c, long, "Helvetica", 7, cell_w)
+    out_short = _truncate_to_width(c, short, "Helvetica", 7, cell_w)
+    assert out_long != long  # was actually truncated
+    assert out_long.endswith("…")
+    assert out_short == short  # short input passes through unchanged
+
+
+def test_truncate_to_width_handles_zero_and_empty() -> None:
+    from reportlab.pdfgen import canvas
+
+    from app.surfaces.moodboard import _truncate_to_width
+
+    c = canvas.Canvas("/tmp/_dummy_truncate2.pdf")
+    assert _truncate_to_width(c, "", "Helvetica", 7, 100) == ""
+    # Width smaller than the ellipsis itself returns just the ellipsis.
+    assert _truncate_to_width(c, "abcdef", "Helvetica", 7, 0.1) == "…"

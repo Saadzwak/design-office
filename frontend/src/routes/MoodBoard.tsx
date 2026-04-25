@@ -136,12 +136,13 @@ export default function MoodBoard() {
     // Iter-30B dev affordance: `/moodboard?fixture=lumen` force-loads
     // the bundled Lumen fixture even on a non-Lumen project, so the
     // mood-board route can be visually iterated against rich content
-    // without paying for a curator run. Intentionally kept in: the
-    // hackathon judges may want to see the page populated quickly,
-    // and the param name is explicit enough not to be triggered by
-    // accident. Documented in docs/MOODBOARD_REFONTE.md §process notes.
+    // without paying for a curator run. Gated on `import.meta.env.DEV`
+    // so it lives only in the Vite dev server — production builds
+    // don't carry the backdoor. (Vite tree-shakes the literal `false`
+    // branch out of the bundle entirely.) Documented in
+    // docs/MOODBOARD_REFONTE.md §process notes.
     const params = new URLSearchParams(window.location.search);
-    const forceFixture = params.get("fixture") === "lumen";
+    const forceFixture = import.meta.env.DEV && params.get("fixture") === "lumen";
     const isLumen =
       forceFixture ||
       (project.project_id || "").toLowerCase().startsWith("lumen") ||

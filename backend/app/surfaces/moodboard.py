@@ -618,6 +618,37 @@ def _draw_section_title(
     c.line(x, y - 2, x + w, y - 2)
 
 
+def _truncate_to_width(
+    c: Any, text: str, font: str, font_size: float, max_w: float
+) -> str:
+    """Truncate `text` to fit within `max_w` points when rendered with
+    the given font/size. Adds an ellipsis ('…') when truncation
+    happens. Iter-30B: replaces the bare `text[:N]` slicing in the
+    PDF grids that produced ugly overflows like
+    'Upholstery — Lumen yellow accent' running past its cell edge.
+    """
+
+    from reportlab.pdfbase.pdfmetrics import stringWidth
+
+    if not text:
+        return ""
+    if stringWidth(text, font, font_size) <= max_w:
+        return text
+    ellipsis = "…"
+    ell_w = stringWidth(ellipsis, font, font_size)
+    if max_w <= ell_w:
+        return ellipsis
+    # Binary search for the longest prefix that fits with the ellipsis.
+    lo, hi = 0, len(text)
+    while lo < hi:
+        mid = (lo + hi + 1) // 2
+        if stringWidth(text[:mid], font, font_size) + ell_w <= max_w:
+            lo = mid
+        else:
+            hi = mid - 1
+    return text[:lo].rstrip() + ellipsis
+
+
 def _contrast_overlay(hex_color: str, *, on_dark: Any, on_light: Any) -> Any:
     """Pick an overlay colour that reads on top of `hex_color`.
 
@@ -744,21 +775,38 @@ def _draw_materials_grid(
             c.rect(cx, cy + cell_h - img_h, cell_w, img_h, fill=1, stroke=0)
 
         # Caption under the photo / swatch.
+        # Iter-30B: width-aware truncation so we never overflow the
+        # cell — proportional Helvetica + tight 4-column A3 grid means
+        # `text[:N]` slicing drifted past the cell edge for long
+        # entries like "Upholstery — Lumen yellow accent".
         c.setFillColor(ink)
         c.setFont("Helvetica-Bold", 8)
         name = str(mat_name or "—")
-        c.drawString(cx, cy + cell_h - (img_h + 4 * mm), name[:40])
+        c.drawString(
+            cx,
+            cy + cell_h - (img_h + 4 * mm),
+            _truncate_to_width(c, name, "Helvetica-Bold", 8, cell_w - 1 * mm),
+        )
         c.setFillColor(ink_muted)
         c.setFont("Helvetica", 7)
         application = str(mat.get("application", ""))
-        c.drawString(
-            cx,
-            cy + cell_h - (img_h + 7 * mm),
-            f"{mat.get('category', '')} · {application}"[:45],
+        category = str(mat.get("category", ""))
+        line2 = (
+            f"{category} · {application}".strip(" ·") if (category or application) else ""
         )
+        if line2:
+            c.drawString(
+                cx,
+                cy + cell_h - (img_h + 7 * mm),
+                _truncate_to_width(c, line2, "Helvetica", 7, cell_w - 1 * mm),
+            )
         sus = str(mat.get("sustainability", ""))
         if sus:
-            c.drawString(cx, cy + cell_h - (img_h + 10 * mm), sus[:45])
+            c.drawString(
+                cx,
+                cy + cell_h - (img_h + 10 * mm),
+                _truncate_to_width(c, sus, "Helvetica", 7, cell_w - 1 * mm),
+            )
     _ = hairline
 
 
@@ -838,21 +886,34 @@ def _draw_furniture_grid(
             except Exception:  # noqa: BLE001
                 pass
 
-        # Caption block (always drawn, below the photo zone)
+        # Caption block (always drawn, below the photo zone). Iter-30B:
+        # width-aware truncation; the inner usable width starts after
+        # the 6mm sand-bar inset on the left and ends 1mm before the
+        # right cell edge.
+        caption_w = cell_w - 7 * mm
         caption_top = cy + cell_h - photo_h - 4 * mm
         c.setFillColor(ink)
         c.setFont("Helvetica-Bold", 9)
-        header = f"{brand} — {name}"
-        c.drawString(cx + 6 * mm, caption_top, header[:42])
+        header_pieces = [p for p in (brand, name) if p]
+        header = " — ".join(header_pieces) if len(header_pieces) == 2 else (header_pieces[0] if header_pieces else "—")
+        c.drawString(
+            cx + 6 * mm,
+            caption_top,
+            _truncate_to_width(c, header, "Helvetica-Bold", 9, caption_w),
+        )
         c.setFillColor(ink_soft)
         c.setFont("Helvetica", 8)
-        c.drawString(cx + 6 * mm, caption_top - 5 * mm, str(f.get("category", ""))[:38])
+        c.drawString(
+            cx + 6 * mm,
+            caption_top - 5 * mm,
+            _truncate_to_width(c, str(f.get("category", "")), "Helvetica", 8, caption_w),
+        )
         c.setFillColor(ink_muted)
         c.setFont("Helvetica-Oblique", 7)
         c.drawString(
             cx + 6 * mm,
             caption_top - 9 * mm,
-            str(f.get("application", ""))[:60],
+            _truncate_to_width(c, str(f.get("application", "")), "Helvetica-Oblique", 7, caption_w),
         )
         # Dimensions
         dims = f.get("dimensions_mm") or {}
@@ -860,4 +921,8 @@ def _draw_furniture_grid(
             dim_str = f"{dims.get('w', '—')} × {dims.get('d', '—')} × {dims.get('h', '—')} mm"
             c.setFillColor(ink_muted)
             c.setFont("Helvetica", 7)
-            c.drawString(cx + 6 * mm, cy + 4 * mm, dim_str)
+            c.drawString(
+                cx + 6 * mm,
+                cy + 4 * mm,
+                _truncate_to_width(c, dim_str, "Helvetica", 7, caption_w),
+            )
