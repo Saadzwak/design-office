@@ -17,6 +17,7 @@ export { default as FloorPlan2D, ZONE_COLORS } from "./FloorPlan2D";
 export type { Zone, ZoneKind } from "./FloorPlan2D";
 export { default as Icon } from "./Icon";
 export type { IconName } from "./Icon";
+export { default as InlineMarkdown } from "./InlineMarkdown";
 export { default as IntegrationBadge } from "./IntegrationBadge";
 export { default as MetricBadge } from "./MetricBadge";
 export { default as Modal } from "./Modal";

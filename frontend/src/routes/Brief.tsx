@@ -10,6 +10,7 @@ import {
   Drawer,
   Eyebrow,
   Icon,
+  InlineMarkdown,
   Pill,
   Placeholder,
   roman,
@@ -33,7 +34,6 @@ import {
 } from "../lib/projectState";
 import {
   parseProgrammeSections,
-  stripInlineMarkdown,
   type ProgrammeSection,
 } from "../lib/adapters/programmeSections";
 import { toast } from "../components/ui/Toast";
@@ -357,9 +357,9 @@ export default function Brief() {
                     >
                       {s.title}
                     </div>
-                    <p className="m-0 text-[14px] leading-snug text-mist-600">
-                      {stripInlineMarkdown(s.tldr)}
-                    </p>
+                    <div className="m-0 text-[14px] leading-snug text-mist-600">
+                      <InlineMarkdown>{s.tldr}</InlineMarkdown>
+                    </div>
                     <div className="mono mt-3.5 text-[11px] text-forest">
                       READ MORE →
                     </div>
@@ -659,7 +659,7 @@ function DrawerContent({
       >
         {section.title}
       </h2>
-      <p
+      <div
         className="m-0 mb-6 font-display"
         style={{
           fontSize: 19,
@@ -667,8 +667,8 @@ function DrawerContent({
           fontVariationSettings: '"opsz" 72, "wght" 400, "SOFT" 100',
         }}
       >
-        {stripInlineMarkdown(section.tldr)}
-      </p>
+        <InlineMarkdown>{section.tldr}</InlineMarkdown>
+      </div>
       {/* Iter-20c (Saad #4) : markdown tables render correctly inside
           `prose` when the parent scrolls on x overflow. Wrap tables in
           a scroll pane so a wide table doesn't break the drawer width. */}

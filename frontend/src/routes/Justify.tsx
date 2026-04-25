@@ -8,6 +8,7 @@ import {
   Drawer,
   Eyebrow,
   Icon,
+  InlineMarkdown,
   Pill,
 } from "../components/ui";
 import { useProjectState } from "../hooks/useProjectState";
@@ -277,7 +278,7 @@ export default function Justify() {
                 {s.title}
               </div>
               <div className="mt-2.5 text-[14px] leading-snug text-mist-600">
-                {s.tldr}
+                <InlineMarkdown>{s.tldr}</InlineMarkdown>
               </div>
               <div className="absolute bottom-4 right-5 flex items-center gap-1.5">
                 <span className="mono text-forest">
@@ -487,7 +488,7 @@ function JustifyDrawerContent({
       >
         {card.title}
       </h2>
-      <p
+      <div
         className="mt-0 font-display"
         style={{
           fontSize: 20,
@@ -495,8 +496,8 @@ function JustifyDrawerContent({
           fontVariationSettings: '"opsz" 72, "wght" 380, "SOFT" 100',
         }}
       >
-        {card.tldr}
-      </p>
+        <InlineMarkdown>{card.tldr}</InlineMarkdown>
+      </div>
 
       {card.body && (
         <div className="prose prose-sm mt-6 max-w-none prose-headings:font-display prose-headings:text-ink prose-p:text-ink-soft prose-strong:text-ink">

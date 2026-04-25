@@ -6,6 +6,7 @@ import {
   Drawer,
   Eyebrow,
   Icon,
+  InlineMarkdown,
   Placeholder,
   Pill,
   type IconName,
@@ -1438,7 +1439,7 @@ function PlantingPanel({
   return (
     <div className="flex flex-col gap-3">
       {strategy && (
-        <p
+        <div
           className="m-0 font-display"
           style={{
             fontSize: 16,
@@ -1447,8 +1448,8 @@ function PlantingPanel({
             fontVariationSettings: '"opsz" 72, "wght" 380, "SOFT" 100',
           }}
         >
-          {strategy}
-        </p>
+          <InlineMarkdown>{strategy}</InlineMarkdown>
+        </div>
       )}
       <div className="flex flex-col gap-2.5">
         {items.map((p, i) => {
@@ -1522,7 +1523,7 @@ function LightPanel({
         {kelvin}
       </div>
       {light.strategy && (
-        <p
+        <div
           className="mt-3 font-display"
           style={{
             fontSize: 16,
@@ -1531,8 +1532,8 @@ function LightPanel({
             fontVariationSettings: '"opsz" 72, "wght" 380, "SOFT" 100',
           }}
         >
-          {light.strategy}
-        </p>
+          <InlineMarkdown>{light.strategy}</InlineMarkdown>
+        </div>
       )}
       {fixtures.length > 0 && (
         <>

@@ -3,6 +3,27 @@
 @tailwind utilities;
 
 /* -------------------------------------------------------------------------- */
+/* @tailwindcss/typography backtick suppression (iter-31 Bug 1)               */
+/*                                                                            */
+/* The plugin injects `content: "`"` on `code::before` and `code::after`     */
+/* by default — fine for raw markdown previews, but in our editorial UI it   */
+/* leaks raw backticks even though `react-markdown` correctly produces       */
+/* `<code>` tags. Override globally so Brief drawer, Justify drawer, and the */
+/* ChatPanel `prose-chat` all stop showing the backticks. The chip styling   */
+/* (bg-mist-100 px-1) still distinguishes inline code visually.              */
+/*                                                                           */
+/* Defined as plain CSS rather than a tailwind.config.ts typography override */
+/* because Vite dev does not always hot-reload config changes; this rule is  */
+/* picked up by every page reload deterministically.                         */
+/* -------------------------------------------------------------------------- */
+.prose code::before,
+.prose code::after,
+.prose-chat code::before,
+.prose-chat code::after {
+  content: none !important;
+}
+
+/* -------------------------------------------------------------------------- */
 /* Design tokens — Organic Modern                                             */
 /* Reconciled with Claude Design handoff (iter-18 étape a).                   */
 /* Every colour is exposed as a CSS custom property so the bundle's inline    */

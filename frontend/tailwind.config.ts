@@ -228,6 +228,27 @@ const config: Config = {
         shimmer: "shimmer 2.2s ease-in-out infinite",
         marquee: "marquee 50s linear infinite",
       },
+      /* @tailwindcss/typography defaults inject literal backtick
+       * characters around inline code via `code::before { content: "`" }`
+       * and `code::after { content: "`" }` pseudo-elements (a Markdown-
+       * preview convention upstream).
+       *
+       * In our editorial UI this looks like raw markdown leaking through
+       * even though `react-markdown` correctly produces `<code>` tags.
+       * Saad explicitly flagged it on the /justify drawer.
+       *
+       * Override globally on the DEFAULT prose class so every page that
+       * uses `prose` (Brief drawer body, Justify drawer body, ChatPanel
+       * via `prose-chat`) benefits — single point of control.
+       */
+      typography: {
+        DEFAULT: {
+          css: {
+            "code::before": { content: "none" },
+            "code::after": { content: "none" },
+          },
+        },
+      },
     },
   },
   plugins: [typography],
