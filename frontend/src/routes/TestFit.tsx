@@ -1078,21 +1078,7 @@ function MicroView({
       )}
 
       {micro.kind === "running" && (
-        <Card>
-          <div className="flex items-center gap-4">
-            <span
-              className="inline-block h-3 w-3 animate-[dot-pulse_1.1s_var(--ease)_infinite] rounded-full"
-              style={{ background: "var(--forest)" }}
-            />
-            <div>
-              <Eyebrow style={{ marginBottom: 4 }}>OPUS · MICRO-ZONING</Eyebrow>
-              <p className="text-[13px] text-mist-600">
-                Detailing the {activeVariant.name} variant, zone by zone…
-                usually 2-3 minutes.
-              </p>
-            </div>
-          </div>
-        </Card>
+        <MicroLoadingGrid variantName={activeVariant.name} />
       )}
 
       {micro.kind === "error" && (
@@ -1193,6 +1179,142 @@ function MicroView({
           />
         )}
       </Drawer>
+    </div>
+  );
+}
+
+/**
+ * Iter-32 (Saad fix 5) — micro-zoning generation loading state.
+ *
+ * Same idea as MacroLoadingGrid : render the eventual layout in
+ * placeholder form so the wait reads as "the result is composing
+ * in this exact spot." Mirrors the done view (1.6fr blueprint
+ * panel + 1fr zone list) so the transition into real content is
+ * just a content swap, not a layout shift.
+ *
+ * Left panel : a calm "blueprint" surface with the variant name,
+ * a forest dot-pulse, and a cycling typewriter narrating what the
+ * micro-zoning agent is doing this instant. We don't fake a 2D
+ * plan — that would lie about progress. We display a quiet
+ * monochrome blueprint motif (a few thin sand strokes) instead.
+ *
+ * Right panel : 6 skeleton zone rows, dimensions matched to the
+ * post-generation list (number badge, icon square, name + meta
+ * lines, status dot). Shimmer comes from the existing `.skeleton`
+ * utility. Default to 6 rows because most micro outputs land in
+ * the 5-8 range; once the response arrives the parent unmounts
+ * this and renders the real list.
+ */
+function MicroLoadingGrid({ variantName }: { variantName: string }) {
+  const messages = [
+    `Drilling into the ${variantName} variant…`,
+    "Computing zone breakdown by typology…",
+    "Pulling material picks from design://material-finishes…",
+    "Validating envelope + circulation widths…",
+    "Running adjacency audit across zone neighbours…",
+    "Sourcing furniture SKUs for each zone…",
+  ];
+
+  return (
+    <div
+      className="grid gap-8"
+      style={{ gridTemplateColumns: "1.6fr 1fr" }}
+    >
+      {/* Blueprint panel — cycling narration over a quiet canvas-alt
+          field. Soft-breathe on the outer card so the trio feels alive
+          without being noisy. */}
+      <div
+        className="relative flex min-h-[460px] flex-col justify-between rounded-xl border border-mist-200 p-7"
+        style={{
+          background: "#FFFDF9",
+          animation: "soft-breathe 4s var(--ease) infinite",
+        }}
+      >
+        {/* Quiet blueprint motif — diagonal sand hairlines under the
+            content. Decorative; no semantic meaning. */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-4 rounded-lg opacity-30"
+          style={{
+            backgroundImage:
+              "repeating-linear-gradient(45deg, transparent 0 36px, var(--sand-soft) 36px 37px)",
+          }}
+        />
+        <div className="relative">
+          <div className="mb-3 flex items-center gap-2.5">
+            <span
+              className="inline-block h-2.5 w-2.5 animate-[dot-pulse_1.1s_var(--ease)_infinite] rounded-full"
+              style={{ background: "var(--forest)" }}
+              aria-hidden
+            />
+            <Eyebrow>MICRO-ZONING · LIVE</Eyebrow>
+          </div>
+          <div
+            className="font-display italic"
+            style={{
+              fontSize: 28,
+              lineHeight: 1.05,
+              color: "var(--ink)",
+              fontVariationSettings: '"opsz" 144, "wght" 400, "SOFT" 100',
+            }}
+          >
+            {variantName}
+          </div>
+          <div className="mt-1 mono text-mist-500">
+            usually 2 – 3 minutes
+          </div>
+        </div>
+        <div className="relative border-t border-mist-100 pt-4">
+          <Eyebrow style={{ marginBottom: 6 }}>OPUS · NARRATING</Eyebrow>
+          <div
+            className="font-mono text-[13px] leading-snug text-mist-700"
+            style={{ minHeight: 40 }}
+          >
+            <CyclingTypewriter
+              messages={messages}
+              speed={28}
+              holdMs={1700}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Skeleton zone rows — dimensions matched to the eventual list.
+          6 rows + a faint header chrome on top. */}
+      <div>
+        <div className="mb-3 flex items-center justify-between">
+          <Eyebrow>ZONES · COMPOSING</Eyebrow>
+          <span className="mono text-mist-400">…</span>
+        </div>
+        <div className="flex flex-col gap-1.5">
+          {[0, 1, 2, 3, 4, 5].map((i) => (
+            <div
+              key={i}
+              className="card !flex !p-3.5 items-center gap-3.5"
+              style={{ animation: `soft-breathe 3s var(--ease) ${i * 0.18}s infinite` }}
+            >
+              <span className="mono w-6 text-[11px] text-mist-300">
+                {String(i + 1).padStart(2, "0")}
+              </span>
+              <span className="skeleton h-7 w-7" />
+              <div className="flex-1 space-y-1.5">
+                <span
+                  className="skeleton block h-3"
+                  style={{ width: `${68 + ((i * 7) % 22)}%` }}
+                />
+                <span
+                  className="skeleton block h-2"
+                  style={{ width: `${30 + ((i * 5) % 18)}%` }}
+                />
+              </div>
+              <span
+                className="inline-block h-2 w-2 rounded-full bg-mist-200"
+                aria-hidden
+              />
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
