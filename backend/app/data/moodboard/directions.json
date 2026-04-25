@@ -1,0 +1,153 @@
+{
+  "$schema": "iter-30B Stage 2 — three distinct mood-board directions per industry.",
+  "$contract": [
+    "Each industry maps to a list of exactly THREE direction objects.",
+    "Each direction REPLACES (not blends with) the curator's atmosphere palette and parti-pris when overlaid on the same selection.",
+    "The curator still picks the materials/furniture/plants/lights ; the direction picks the colour DNA + the design philosophy that recasts those products.",
+    "Directions for the demo industry (tech_startup) are tuned. Other industries fall back to a generic three-direction set if no entry exists ; see _DEFAULT_DIRECTIONS in app.surfaces.visual_moodboard.",
+    "Stable `slug` keys are used as URL/cache discriminators — keep them lowercase ASCII, dash-separated, never rename without a migration."
+  ],
+  "industries": {
+    "tech_startup": [
+      {
+        "slug": "atelier-nord",
+        "name": "Atelier Nord",
+        "tagline": "A workshop on north light. Focus + craft, not a startup grid.",
+        "parti_pris": "Architect-studio aesthetic — long oak workbenches stretched against the north façade, black steel partitions, linen acoustic panels, brass detailing. Editorial calm. Library-quiet during deep work, social only at the central café-townhall. The reference is a 6th-arrondissement architecture practice, not a tech open-plan.",
+        "palette_overlay": [
+          {"name": "Linen canvas", "hex": "#F2ECE0", "role": "hero"},
+          {"name": "Pale oak", "hex": "#CDB28A", "role": "hero"},
+          {"name": "Atelier ink", "hex": "#1F1E1B", "role": "secondary"},
+          {"name": "Studio putty", "hex": "#8A8578", "role": "secondary"},
+          {"name": "Lumen sun", "hex": "#E8C547", "role": "accent"}
+        ],
+        "atmosphere_cue": "north-facing oak workbenches, linen acoustic panels, black steel-frame partitions, café-townhall under daylight, editorial calm, soft shadow play",
+        "lighting_cue": "single-source soft north daylight, no overhead fluorescents, warm 3000 K accents at the café"
+      },
+      {
+        "slug": "studio-tokyo",
+        "name": "Studio Tokyo",
+        "tagline": "Quiet rigour. Raw plaster, charcoal, the warmth of a single timber.",
+        "parti_pris": "Minimal Japanese workshop — washi-paper diffusion screens, hand-troweled lime-plaster walls, tatami-edge proportions, charred-cedar (yakisugi) accents. Indigo as the single coloured note. Almost monastic. Inspired by Tadao Ando's office in Osaka and the Aesop concept stores.",
+        "palette_overlay": [
+          {"name": "Lime plaster", "hex": "#E5DFD3", "role": "hero"},
+          {"name": "Charcoal sumi", "hex": "#2C2A26", "role": "secondary"},
+          {"name": "Yakisugi cedar", "hex": "#3A2D24", "role": "secondary"},
+          {"name": "Washi rice", "hex": "#F1ECDF", "role": "hero"},
+          {"name": "Indigo accent", "hex": "#2A4A66", "role": "accent"}
+        ],
+        "atmosphere_cue": "tatami-edge proportions, washi-paper screens, hand-troweled lime walls, charred-cedar shelving, single indigo banner, monastic silence",
+        "lighting_cue": "diffused light through washi screens, low-hanging single Akari pendant, 2700 K ambient, dawn-quiet"
+      },
+      {
+        "slug": "loft-parisien",
+        "name": "Loft Parisien",
+        "tagline": "A 9th-arrondissement library reframed as an atelier.",
+        "parti_pris": "Haussmannian conversion — herringbone walnut floors, deep emerald moulded panelling, brushed-brass library lamps, cream stucco ceilings, vintage Cassina or Knoll signature pieces. Reference: Pierre Yovanovitch's Paris office or the Maison Sauvage interiors. Refined, slightly aristocratic, warm despite its formality.",
+        "palette_overlay": [
+          {"name": "Cream stucco", "hex": "#EDE6D5", "role": "hero"},
+          {"name": "Walnut burl", "hex": "#5A3E29", "role": "secondary"},
+          {"name": "Emerald panel", "hex": "#2D4A3A", "role": "accent"},
+          {"name": "Brushed brass", "hex": "#A88A4F", "role": "highlight"},
+          {"name": "Atelier ink", "hex": "#231F1A", "role": "secondary"}
+        ],
+        "atmosphere_cue": "herringbone walnut, emerald moulded panels, brushed-brass library lamps, cream stucco mouldings, oxblood leather Cassina chairs, archival prints framed in gold",
+        "lighting_cue": "warm tungsten 2700 K library lamps, brass cone shades, deep cast shadows, candlelight feel for the lounge"
+      }
+    ],
+    "law_firm": [
+      {
+        "slug": "library-deep",
+        "name": "Library Deep",
+        "tagline": "Mahogany, leather, the weight of a hundred volumes.",
+        "parti_pris": "Old-school senior partner aesthetic — Farrow & Ball Card Room Green panelled walls, Dinesen Douglas oak, walnut bookcases, oxblood Chesterfield seating, brass library lamps, antique Persian runner. Heritage without nostalgia.",
+        "palette_overlay": [
+          {"name": "Card Room Green", "hex": "#5C6B5E", "role": "secondary"},
+          {"name": "Walnut deep", "hex": "#4A2F1F", "role": "secondary"},
+          {"name": "Oxblood leather", "hex": "#722F2A", "role": "accent"},
+          {"name": "Cream parchment", "hex": "#EFE7D6", "role": "hero"},
+          {"name": "Library brass", "hex": "#A78A4F", "role": "highlight"}
+        ],
+        "atmosphere_cue": "panelled green walls, walnut bookcases, oxblood Chesterfield, antique Persian rug, leather-bound volumes, brass desk lamps",
+        "lighting_cue": "tungsten library lamps 2700 K, single-bulb cone shades, deep shadows, candlelit feel"
+      },
+      {
+        "slug": "modernist-london",
+        "name": "Modernist London",
+        "tagline": "Restraint. Stone, oak, a single charcoal note.",
+        "parti_pris": "John Pawson restraint — pale Portland stone floors, white-washed oak, charcoal upholstery, no decoration, slow geometry. References David Chipperfield's London chambers.",
+        "palette_overlay": [
+          {"name": "Portland stone", "hex": "#D8D2C5", "role": "hero"},
+          {"name": "White oak", "hex": "#C8B89E", "role": "hero"},
+          {"name": "Charcoal", "hex": "#2A2A28", "role": "secondary"},
+          {"name": "Bronze warmth", "hex": "#7A6347", "role": "accent"},
+          {"name": "Cream", "hex": "#F1ECE3", "role": "hero"}
+        ],
+        "atmosphere_cue": "Portland stone floors, white-washed oak, slow geometry, charcoal upholstered Vitsoe shelving, bronze handles, no surplus",
+        "lighting_cue": "long horizontal cove lighting 3000 K, no point sources, even wash"
+      },
+      {
+        "slug": "atelier-paris-haute",
+        "name": "Atelier Paris Haute",
+        "tagline": "Quiet authority. Stucco, walnut, a single emerald.",
+        "parti_pris": "Same Haussmannian elegance as `loft-parisien` but tuned for the law firm — herringbone walnut, cream stucco, deep emerald moulded panelling, oxblood leather, archival framed prints, Cassina or Pierre Jeanneret signature seating.",
+        "palette_overlay": [
+          {"name": "Cream stucco", "hex": "#EDE6D5", "role": "hero"},
+          {"name": "Walnut burl", "hex": "#5A3E29", "role": "secondary"},
+          {"name": "Emerald panel", "hex": "#2D4A3A", "role": "accent"},
+          {"name": "Brushed brass", "hex": "#A88A4F", "role": "highlight"},
+          {"name": "Oxblood", "hex": "#5E2C28", "role": "secondary"}
+        ],
+        "atmosphere_cue": "herringbone walnut floors, emerald moulded panels, oxblood leather Cassina chairs, archival prints in gold frames, brass library lamps",
+        "lighting_cue": "warm tungsten 2700 K, brass cone shades, library calm"
+      }
+    ],
+    "creative_agency": [
+      {
+        "slug": "berlin-loft",
+        "name": "Berlin Loft",
+        "tagline": "Plaster, plywood, a single acid yellow.",
+        "parti_pris": "Mitte creative-studio rawness — exposed plaster, raw plywood shelving, terracotta-tile floor, mohair bouclé seating, art books stacked everywhere, dieter-rams-era lighting. Acid yellow as the only saturated note.",
+        "palette_overlay": [
+          {"name": "Raw plaster", "hex": "#DFD6C4", "role": "hero"},
+          {"name": "Plywood birch", "hex": "#C7A47A", "role": "secondary"},
+          {"name": "Terracotta tile", "hex": "#A35A3F", "role": "accent"},
+          {"name": "Charcoal", "hex": "#28262A", "role": "secondary"},
+          {"name": "Acid yellow", "hex": "#D8C544", "role": "highlight"}
+        ],
+        "atmosphere_cue": "exposed plaster walls, raw plywood shelving, Mutina Margarita terracotta tile, mohair bouclé seating, lived-in stacks of art books",
+        "lighting_cue": "Anglepoise + Castiglioni Toio, warm 2700 K + 3000 K mixed, raw bulbs visible"
+      },
+      {
+        "slug": "milan-atelier",
+        "name": "Milan Atelier",
+        "tagline": "Travertine, brass, the discipline of an Italian editor.",
+        "parti_pris": "Milanese design-studio polish — travertine surfaces, brushed-brass detailing, oxblood leather Cassina chairs, vintage Sottsass details, deep navy accents, Gio Ponti silhouettes.",
+        "palette_overlay": [
+          {"name": "Travertine cream", "hex": "#E5DCC8", "role": "hero"},
+          {"name": "Brushed brass", "hex": "#A88A4F", "role": "highlight"},
+          {"name": "Sottsass red", "hex": "#A0392C", "role": "accent"},
+          {"name": "Navy ink", "hex": "#1E2738", "role": "secondary"},
+          {"name": "Walnut soft", "hex": "#6B4F35", "role": "secondary"}
+        ],
+        "atmosphere_cue": "travertine table tops, brushed brass legs, oxblood Cassina lounge, deep navy curtains, Gio Ponti chairs, vintage Sottsass ceramic",
+        "lighting_cue": "Flos Arco floor lamps, warm 2700 K, theatrical pools"
+      },
+      {
+        "slug": "tokyo-mono",
+        "name": "Tokyo Mono",
+        "tagline": "Concrete, cedar, the silence between the notes.",
+        "parti_pris": "Same minimalist Japanese workshop as `studio-tokyo` (tech_startup) but tuned for a creative agency — washi screens, charred cedar, raw concrete shear walls, indigo accent, Akari Noguchi pendants.",
+        "palette_overlay": [
+          {"name": "Lime plaster", "hex": "#E5DFD3", "role": "hero"},
+          {"name": "Charcoal sumi", "hex": "#2C2A26", "role": "secondary"},
+          {"name": "Yakisugi cedar", "hex": "#3A2D24", "role": "secondary"},
+          {"name": "Washi rice", "hex": "#F1ECDF", "role": "hero"},
+          {"name": "Indigo accent", "hex": "#2A4A66", "role": "accent"}
+        ],
+        "atmosphere_cue": "raw concrete shear walls, charred cedar shelving, washi-paper screens, Akari Noguchi pendants, single indigo banner",
+        "lighting_cue": "diffused through washi, low-hanging Akari, 2700 K dawn calm"
+      }
+    ]
+  }
+}

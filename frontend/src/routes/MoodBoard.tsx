@@ -12,6 +12,7 @@ import {
 } from "../components/ui";
 import { useProjectState } from "../hooks/useProjectState";
 import {
+  fetchMoodBoardDirections,
   fetchTestFitSample,
   generateMoodBoard,
   generateMoodBoardGallery,
@@ -19,6 +20,7 @@ import {
   generatedImageUrl,
   moodBoardPdfUrl,
   rerenderMoodBoardPdf,
+  type MoodBoardDirection,
   type MoodBoardResponse,
   type VisualMoodBoardGalleryResponse,
   type VisualMoodBoardGalleryTile,
@@ -111,21 +113,34 @@ export default function MoodBoard() {
   const [drawer, setDrawer] = useState<DrillKey | null>(null);
   const [phase, setPhase] = useState<"idle" | "running" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState<string>("");
-  // Iter-20d (Saad #9, #10, #26) : per-tile NanoBanana gallery.
-  // Fetched after `selection` lands. Tiles replace the tinted
-  // Placeholder hatches in the Pinterest collage.
-  const [gallery, setGallery] = useState<VisualMoodBoardGalleryTile[]>([]);
-  const [galleryPhase, setGalleryPhase] = useState<
-    "idle" | "running" | "error"
-  >("idle");
-  // Iter-30B : per-item editorial product photos (one per material,
-  // furniture piece, plant, fixture). Resolved by `item_key` from a
-  // slug computed identically to the backend (see `slugifyItemKey`).
-  const [itemTiles, setItemTiles] = useState<
-    Record<string, VisualMoodBoardItemTile>
+  // Iter-30B Stage 2 — three hardcoded directions per industry. We
+  // key every NanoBanana / PDF artifact by direction slug so the
+  // user can flip between the three views without re-firing the
+  // backend. State maps below are populated lazily as each tab is
+  // opened.
+  const [directions, setDirections] = useState<MoodBoardDirection[]>([]);
+  const [activeDirection, setActiveDirection] = useState<string>("");
+  // Per-direction artefacts (slug → state).
+  const [galleryByDir, setGalleryByDir] = useState<
+    Record<string, VisualMoodBoardGalleryTile[]>
   >({});
-  const [itemTilesPhase, setItemTilesPhase] =
-    useState<"idle" | "running" | "ready" | "error">("idle");
+  const [galleryPhaseByDir, setGalleryPhaseByDir] = useState<
+    Record<string, "idle" | "running" | "error">
+  >({});
+  const [itemTilesByDir, setItemTilesByDir] = useState<
+    Record<string, Record<string, VisualMoodBoardItemTile>>
+  >({});
+  const [itemTilesPhaseByDir, setItemTilesPhaseByDir] = useState<
+    Record<string, "idle" | "running" | "ready" | "error">
+  >({});
+  const [pdfIdByDir, setPdfIdByDir] = useState<Record<string, string>>({});
+
+  // Convenience views for the active direction (legacy variable
+  // names so the JSX further down doesn't churn).
+  const gallery = galleryByDir[activeDirection] ?? [];
+  const galleryPhase = galleryPhaseByDir[activeDirection] ?? "idle";
+  const itemTiles = itemTilesByDir[activeDirection] ?? {};
+  const itemTilesPhase = itemTilesPhaseByDir[activeDirection] ?? "idle";
 
   // Iter-20a (Saad #6, #9) : the Lumen fixture used to preload for
   // every project, making a fresh project look like it already had a
@@ -172,23 +187,54 @@ export default function MoodBoard() {
     }
   }, [project.mood_board, response]);
 
-  const palette = useMemo(
-    () => selection?.atmosphere?.palette ?? [],
-    [selection],
+  // Active-direction palette REPLACES the curator's atmosphere
+  // palette in the displayed swatch strip and labels. Keeps Stage 2
+  // visual identity consistent between gallery (which uses the
+  // overlay) and the printed palette block at the bottom of the page.
+  const activeDirectionObj = useMemo(
+    () => directions.find((d) => d.slug === activeDirection) ?? null,
+    [directions, activeDirection],
   );
+  const palette = useMemo(() => {
+    if (activeDirectionObj?.palette_overlay?.length) {
+      return activeDirectionObj.palette_overlay;
+    }
+    return selection?.atmosphere?.palette ?? [];
+  }, [activeDirectionObj, selection]);
 
-  // Iter-20d : once a selection is known (whether from the preload
-  // fixture or a live curator run), fire the NanoBanana gallery to
-  // replace the Pinterest Placeholder hatches with 4 real images.
-  // Cached on the backend by sha256(prompt + model), so re-visits
-  // don't respend tokens.
-  const runGallery = async () => {
+  // Iter-30B Stage 2 — fetch the 3 directions for the project's
+  // industry once, on mount. Defaults to `tech_startup` if no
+  // industry is set on the project yet.
+  useEffect(() => {
+    const ac = new AbortController();
+    fetchMoodBoardDirections(
+      project.client.industry || "tech_startup",
+      ac.signal,
+    )
+      .then((resp) => {
+        if (resp.directions.length === 0) return;
+        setDirections(resp.directions);
+        setActiveDirection((prev) => prev || resp.directions[0].slug);
+      })
+      .catch(() => null);
+    return () => ac.abort();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [project.client.industry]);
+
+  // Iter-30B Stage 2 — gallery + item-tiles + PDF rerender keyed
+  // by direction. Lazy: fires for a direction only when its tab is
+  // first opened. Idempotent: re-clicking a loaded tab is a no-op.
+  const runGalleryFor = async (directionSlug: string) => {
     if (!selection) return;
-    setGalleryPhase("running");
+    if (galleryPhaseByDir[directionSlug] === "running") return;
+    if ((galleryByDir[directionSlug] ?? []).length > 0) return;
+
+    setGalleryPhaseByDir((p) => ({ ...p, [directionSlug]: "running" }));
     try {
-      let variant = project.testfit?.variants?.find(
-        (v) => v.style === project.testfit?.retained_style,
-      ) ?? project.testfit?.variants?.[0];
+      let variant =
+        project.testfit?.variants?.find(
+          (v) => v.style === project.testfit?.retained_style,
+        ) ?? project.testfit?.variants?.[0];
       if (!variant) {
         const sample = await fetchTestFitSample();
         variant =
@@ -203,26 +249,25 @@ export default function MoodBoard() {
           variant,
           mood_board_selection: selection as Record<string, unknown>,
           aspect_ratio: "3:2",
+          direction: directionSlug,
         });
-      setGallery(resp.tiles);
-      setGalleryPhase("idle");
+      setGalleryByDir((g) => ({ ...g, [directionSlug]: resp.tiles }));
+      setGalleryPhaseByDir((p) => ({ ...p, [directionSlug]: "idle" }));
 
-      // iter-30B : fire the per-item editorial photo batch in
-      // parallel with the PDF re-render. When it completes, fire a
-      // SECOND PDF rerender that combines gallery_tile_ids +
-      // item_tile_ids — the A3 PDF then embeds real product photos
-      // in every material / furniture cell instead of the colour-
-      // swatch fallback. Failure is non-fatal: the collage falls
-      // back to <Placeholder> tiles for unresolved items, like before.
+      // Per-item tiles + final PDF rerender for this direction.
       void (async () => {
-        setItemTilesPhase("running");
+        setItemTilesPhaseByDir((p) => ({
+          ...p,
+          [directionSlug]: "running",
+        }));
         try {
           const items = await generateMoodBoardItemTiles({
             client_name: project.client.name,
             industry: project.client.industry,
-            variant,
+            variant: variant!,
             mood_board_selection: selection as Record<string, unknown>,
             aspect_ratio: "4:3",
+            direction: directionSlug,
           });
           const byKey: Record<string, VisualMoodBoardItemTile> = {};
           const itemIdsForPdf: Record<string, string> = {};
@@ -230,110 +275,130 @@ export default function MoodBoard() {
             byKey[t.item_key] = t;
             itemIdsForPdf[t.item_key] = t.visual_image_id;
           }
-          setItemTiles(byKey);
-          setItemTilesPhase("ready");
+          setItemTilesByDir((m) => ({ ...m, [directionSlug]: byKey }));
+          setItemTilesPhaseByDir((p) => ({
+            ...p,
+            [directionSlug]: "ready",
+          }));
 
-          // Second-pass PDF rerender: now that we have ALL imagery
-          // (4 hero gallery + N item tiles), regenerate the A3 PDF
-          // with everything embedded.
+          // Final PDF rerender for THIS direction — palette overlay,
+          // gallery tiles, and per-item product photos all baked in.
           try {
             const galleryIds: Record<string, string> = {};
-            for (const t of resp.tiles) galleryIds[t.label] = t.visual_image_id;
+            for (const t of resp.tiles)
+              galleryIds[t.label] = t.visual_image_id;
             const rerender2 = await rerenderMoodBoardPdf({
               client: {
                 name: project.client.name,
                 industry: project.client.industry,
                 logo_data_url: project.client.logo_data_url ?? null,
               },
-              variant,
+              variant: variant!,
               selection: selection as Record<string, unknown>,
               gallery_tile_ids: galleryIds,
               item_tile_ids: itemIdsForPdf,
+              direction: directionSlug,
             });
             if (rerender2.pdf_id) {
-              const hexes = (selection.atmosphere?.palette ?? [])
-                .map((p) => p.hex)
-                .filter((s): s is string => typeof s === "string");
-              setMoodBoard({
-                pdf_id: rerender2.pdf_id,
-                palette: hexes,
-                selection: selection as Record<string, unknown>,
-              });
-              setResponse((prev) =>
-                prev ? { ...prev, pdf_id: rerender2.pdf_id } : prev,
-              );
+              setPdfIdByDir((m) => ({
+                ...m,
+                [directionSlug]: rerender2.pdf_id,
+              }));
+              // Mirror the active direction's PDF into project state
+              // so chrome download buttons keep working in legacy
+              // call sites.
+              if (directionSlug === activeDirection) {
+                const hexes = (
+                  activeDirectionObj?.palette_overlay ??
+                  selection.atmosphere?.palette ??
+                  []
+                )
+                  .map((p) => p.hex)
+                  .filter((s): s is string => typeof s === "string");
+                setMoodBoard({
+                  pdf_id: rerender2.pdf_id,
+                  palette: hexes,
+                  selection: selection as Record<string, unknown>,
+                });
+                setResponse((prev) =>
+                  prev ? { ...prev, pdf_id: rerender2.pdf_id } : prev,
+                );
+              }
             }
           } catch (rerenderErr) {
             // eslint-disable-next-line no-console
             console.warn(
-              "Mood-board PDF re-render (with items) failed",
+              `Mood-board PDF rerender failed for ${directionSlug}`,
               rerenderErr,
             );
           }
         } catch (err) {
           // eslint-disable-next-line no-console
-          console.warn("Mood-board item-tiles failed", err);
-          setItemTilesPhase("error");
+          console.warn(
+            `Mood-board item-tiles failed for ${directionSlug}`,
+            err,
+          );
+          setItemTilesPhaseByDir((p) => ({
+            ...p,
+            [directionSlug]: "error",
+          }));
         }
       })();
-
-      // iter-20e (Saad #10) : once the tiles are cached, upgrade the
-      // A3 PDF so the atmosphere hero uses a real NanoBanana photo
-      // instead of the flat palette wash. Fire-and-forget — the page
-      // keeps working with the old pdf_id if the re-render fails.
-      try {
-        const tile_ids: Record<string, string> = {};
-        for (const t of resp.tiles) {
-          tile_ids[t.label] = t.visual_image_id;
-        }
-        const rerender = await rerenderMoodBoardPdf({
-          client: {
-            name: project.client.name,
-            industry: project.client.industry,
-            logo_data_url: project.client.logo_data_url ?? null,
-          },
-          variant,
-          selection: selection as Record<string, unknown>,
-          gallery_tile_ids: tile_ids,
-        });
-        if (rerender.pdf_id) {
-          const hexes = (selection.atmosphere?.palette ?? [])
-            .map((p) => p.hex)
-            .filter((s): s is string => typeof s === "string");
-          setMoodBoard({
-            pdf_id: rerender.pdf_id,
-            palette: hexes,
-            selection: selection as Record<string, unknown>,
-          });
-          setResponse((prev) =>
-            prev ? { ...prev, pdf_id: rerender.pdf_id } : prev,
-          );
-        }
-      } catch (rerenderErr) {
-        // eslint-disable-next-line no-console
-        console.warn("Mood-board PDF re-render failed", rerenderErr);
-      }
     } catch (err) {
-      // Non-fatal : the page still renders Placeholder tiles. Log so
-      // Engineering view users can see what happened if they check
-      // the console.
+      // Non-fatal: the page still renders Placeholder tiles for
+      // this direction. Engineering can see the failure in the
+      // console; users can pick another tab.
       // eslint-disable-next-line no-console
-      console.warn("Mood-board gallery failed", err);
-      setGalleryPhase("error");
+      console.warn(`Mood-board gallery failed for ${directionSlug}`, err);
+      setGalleryPhaseByDir((p) => ({ ...p, [directionSlug]: "error" }));
     }
   };
 
   useEffect(() => {
-    // Auto-fire when a selection lands AND we haven't fetched yet.
-    if (selection && gallery.length === 0 && galleryPhase === "idle") {
-      runGallery();
+    // Auto-fire the active direction's gallery when both the
+    // selection and the directions list are ready, OR when the
+    // user switches tabs to a direction not yet loaded. Lazy by
+    // design: untouched tabs cost nothing.
+    if (
+      selection &&
+      activeDirection &&
+      (galleryByDir[activeDirection] ?? []).length === 0 &&
+      (galleryPhaseByDir[activeDirection] ?? "idle") === "idle"
+    ) {
+      runGalleryFor(activeDirection);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selection]);
+  }, [selection, activeDirection]);
+
+  // When the user switches tabs, mirror that direction's PDF (if
+  // already rendered) into projectState so the download buttons
+  // and the legacy `response.pdf_id` path keep producing the
+  // direction-correct file.
+  useEffect(() => {
+    const pdfId = pdfIdByDir[activeDirection];
+    if (!pdfId || !selection) return;
+    const hexes = (
+      activeDirectionObj?.palette_overlay ??
+      selection.atmosphere?.palette ??
+      []
+    )
+      .map((p) => p.hex)
+      .filter((s): s is string => typeof s === "string");
+    setMoodBoard({
+      pdf_id: pdfId,
+      palette: hexes,
+      selection: selection as Record<string, unknown>,
+    });
+    setResponse((prev) => (prev ? { ...prev, pdf_id: pdfId } : prev));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeDirection, pdfIdByDir]);
 
   const tiles = useMemo(() => buildTiles(selection), [selection]);
+  // Iter-30B Stage 2 — the active direction's tagline takes
+  // precedence over the curator's. Each tab shows its own pull-quote.
   const tagline =
-    selection?.header?.tagline ??
+    activeDirectionObj?.tagline ||
+    selection?.header?.tagline ||
     "An atelier of focus on the north light, a bright social forge on the south.";
 
   const run = async () => {
@@ -412,6 +477,74 @@ export default function MoodBoard() {
           <Pill>{selection?.materials?.length ?? 0} materials</Pill>
           <Pill>{selection?.furniture?.length ?? 0} signature pieces</Pill>
         </div>
+
+        {/* Iter-30B Stage 2 — three direction tabs. Each tab shows
+            the direction name + a tiny dot in its dominant accent
+            colour (last palette entry, falling back to the first).
+            Switching tabs lazily fires gallery + items + rerender
+            for that direction; already-loaded tabs are instant. */}
+        {directions.length > 0 && selection && (
+          <div className="mt-7 flex flex-wrap items-center gap-2">
+            <span className="mono text-[10px] uppercase tracking-[0.18em] text-mist-500">
+              Direction
+            </span>
+            {directions.map((d) => {
+              const isActive = d.slug === activeDirection;
+              const dot =
+                d.palette_overlay.find((p) => p.role === "accent")?.hex ??
+                d.palette_overlay.find((p) => p.role === "highlight")?.hex ??
+                d.palette_overlay[d.palette_overlay.length - 1]?.hex ??
+                d.palette_overlay[0]?.hex ??
+                "#2F4A3F";
+              const phaseLabel = (() => {
+                const gp = galleryPhaseByDir[d.slug] ?? "idle";
+                const ip = itemTilesPhaseByDir[d.slug] ?? "idle";
+                if (gp === "running" || ip === "running") return "loading…";
+                if (gp === "error" || ip === "error") return "error";
+                if (ip === "ready") return "ready";
+                return "";
+              })();
+              return (
+                <button
+                  key={d.slug}
+                  type="button"
+                  onClick={() => setActiveDirection(d.slug)}
+                  className="group inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[12px] transition-all"
+                  style={{
+                    borderColor: isActive ? "var(--ink)" : "var(--hairline)",
+                    background: isActive
+                      ? "var(--canvas-alt)"
+                      : "var(--raised, white)",
+                    color: isActive ? "var(--ink)" : "var(--mist-600)",
+                    fontWeight: isActive ? 500 : 400,
+                  }}
+                  title={d.tagline}
+                >
+                  <span
+                    aria-hidden
+                    className="inline-block h-2.5 w-2.5 rounded-full"
+                    style={{ background: dot, flex: "0 0 auto" }}
+                  />
+                  <span
+                    className="font-display"
+                    style={{
+                      fontVariationSettings:
+                        '"opsz" 72, "wght" 460, "SOFT" 60',
+                      fontSize: 13,
+                    }}
+                  >
+                    {d.name}
+                  </span>
+                  {phaseLabel && (
+                    <span className="mono text-[9px] uppercase tracking-[0.14em] text-mist-500">
+                      · {phaseLabel}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        )}
       </header>
 
       {/* Iter-20a (Saad #9) : explicit Generate CTA when there's no
@@ -661,14 +794,28 @@ export default function MoodBoard() {
 
       {/* CTAs */}
       <div className="flex flex-wrap gap-3">
-        {response?.pdf_id ? (
+        {/* Iter-30B Stage 2 — prefer the active direction's PDF id
+            over the legacy `response.pdf_id` so each tab downloads
+            its own A3. Falls back to the legacy path when no
+            direction has rendered yet. */}
+        {(pdfIdByDir[activeDirection] || response?.pdf_id) ? (
           <a
-            href={moodBoardPdfUrl(response.pdf_id)}
+            href={moodBoardPdfUrl(
+              pdfIdByDir[activeDirection] || (response?.pdf_id ?? ""),
+            )}
             target="_blank"
             rel="noreferrer"
             className="btn-ghost"
+            title={
+              activeDirectionObj
+                ? `Download A3 — ${activeDirectionObj.name}`
+                : "Download A3 PDF"
+            }
           >
-            <Icon name="download" size={12} /> Download A3 PDF
+            <Icon name="download" size={12} />{" "}
+            {activeDirectionObj
+              ? `Download A3 — ${activeDirectionObj.name}`
+              : "Download A3 PDF"}
           </a>
         ) : (
           <button

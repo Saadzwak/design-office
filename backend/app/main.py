@@ -48,6 +48,7 @@ from app.surfaces.visual_moodboard import (
     VisualMoodBoardResponse,
     compile_default_surface as compile_visual_moodboard_surface,
     generated_image_path as visual_moodboard_path_for,
+    list_directions_for as list_moodboard_directions_for,
 )
 from app.surfaces.zone_overlay import (
     ZoneOverlayRequest,
@@ -508,6 +509,7 @@ def moodboard_rerender_pdf(
         project_reference=payload.project_reference,
         gallery_tile_paths=resolved or None,
         item_tile_paths=resolved_items or None,
+        direction=payload.direction,
     )
     return MoodBoardRerenderResponse(pdf_id=pdf_id)
 
@@ -537,6 +539,18 @@ def moodboard_generate_visual(payload: VisualMoodBoardRequest) -> VisualMoodBoar
         return surface.generate(payload)
     except NanoBananaError as exc:
         raise HTTPException(status_code=502, detail=str(exc))
+
+
+@app.get("/api/moodboard/directions")
+def moodboard_directions(industry: str = "tech_startup") -> dict:
+    """Iter-30B Stage 2 — return the three hardcoded mood-board
+    directions for an industry. The frontend renders these as a tab
+    bar above the Pinterest collage; each tab fires gallery +
+    item-tiles + rerender with `direction=<slug>` so the same
+    curator selection reads as three visually distinct mood boards.
+    """
+
+    return {"industry": industry, "directions": list_moodboard_directions_for(industry)}
 
 
 @app.post(

@@ -86,17 +86,27 @@ class MoodBoardRerenderRequest(BaseModel):
     selection + a NanoBanana gallery. Lets the frontend upgrade the PDF
     once the tiles land, without re-running the (expensive) curator.
 
-    Iter-30B : also accepts `item_tile_ids` — one cache id per
+    Iter-30B Stage 1 : also accepts `item_tile_ids` — one cache id per
     individual material / furniture / plant / fixture tile generated
     by `/api/moodboard/generate-item-tiles`. Lets the A3 PDF embed
     real product photographs in each cell of the materials and
     furniture grids, instead of the colour-swatch + text fallback.
+
+    Iter-30B Stage 2 : also accepts `direction` — the slug of one of
+    the three hardcoded mood-board directions for the project's
+    industry. The direction's palette overlay REPLACES the curator's
+    palette in the printed PALETTE swatch strip and the direction's
+    tagline replaces the curator's tagline in the editorial header,
+    so the same curator selection produces three visually distinct
+    A3 PDFs across the three directions. pdf_ids naturally split via
+    the `gallery_sig + item_sig` hash plus the new direction slug.
     """
 
     client: ClientInfo
     variant: VariantOutput
     selection: dict[str, Any]
     project_reference: str | None = None
+    direction: str | None = None
     gallery_tile_ids: dict[str, str] = Field(
         default_factory=dict,
         description=(
@@ -246,6 +256,7 @@ def _render_moodboard_pdf(
     project_reference: str | None,
     gallery_tile_paths: dict[str, str] | None = None,
     item_tile_paths: dict[str, str] | None = None,
+    direction: str | None = None,
 ) -> str:
     """Lay out the six mandatory sections from design://mood-board-method on
     a single A3 landscape page. Returns the pdf_id (hash) the endpoint uses
@@ -257,15 +268,41 @@ def _render_moodboard_pdf(
     the flat palette wash. Fallback is the legacy block-colour layout,
     so the function stays safe in offline / test contexts.
 
-    Iter-30B : `item_tile_paths` keys are canonical `item_key` slugs
-    (`mat:european-oak:oiled`, `fur:vitra-eames-aluminum-group`,
+    Iter-30B Stage 1 : `item_tile_paths` keys are canonical `item_key`
+    slugs (`mat:european-oak:oiled`, `fur:vitra-eames-aluminum-group`,
     `pla:ficus-lyrata`, `lig:artemide-tolomeo`) → absolute PNG paths.
     The materials and furniture grids embed these real product photos
     in each cell when present, replacing the flat-colour swatch and
     bare-frame fallbacks. Slug logic is mirrored in
     `app.surfaces.visual_moodboard._slug` and the frontend
     `slugifyItemKey()`.
+
+    Iter-30B Stage 2 : `direction` is the slug of one of the three
+    hardcoded mood-board directions for `client.industry`. When set,
+    the printed PALETTE strip uses the direction's palette overlay
+    (replacing the curator's atmosphere palette) and the editorial
+    tagline uses the direction's tagline. The `direction` slug is
+    folded into the `pdf_id` hash so each direction produces a
+    distinct PDF on disk.
     """
+
+    # Resolve direction overlay once (cheap JSON read + dict lookup)
+    # so we can apply it to both the palette swatch strip and the
+    # tagline. Done early so the pdf_id hash includes the direction.
+    from app.surfaces.visual_moodboard import _resolve_direction
+
+    resolved_direction = _resolve_direction(client.industry, direction)
+    if resolved_direction:
+        # Build a *copy* of the selection dict with the direction's
+        # palette + tagline applied — never mutate the caller's dict.
+        selection = dict(selection or {})
+        atmosphere = dict(selection.get("atmosphere") or {})
+        atmosphere["palette"] = list(resolved_direction.get("palette_overlay") or [])
+        selection["atmosphere"] = atmosphere
+        header = dict(selection.get("header") or {})
+        if resolved_direction.get("tagline"):
+            header["tagline"] = str(resolved_direction["tagline"])
+        selection["header"] = header
 
     from reportlab.lib.colors import HexColor
     from reportlab.lib.pagesizes import A3, landscape
@@ -283,8 +320,9 @@ def _render_moodboard_pdf(
     item_sig = ",".join(
         f"{k}:{Path(v).name}" for k, v in sorted((item_tile_paths or {}).items())
     )
+    direction_sig = direction or ""
     pdf_id = hashlib.sha1(
-        f"moodboard:{client.name}:{variant.style.value}:{json.dumps(selection, sort_keys=True)[:500]}:{gallery_sig}:{item_sig}".encode(
+        f"moodboard:{client.name}:{variant.style.value}:{json.dumps(selection, sort_keys=True)[:500]}:{gallery_sig}:{item_sig}:{direction_sig}".encode(
             "utf-8"
         )
     ).hexdigest()[:16]
@@ -579,6 +617,7 @@ def render_pdf_from_selection(
     project_reference: str | None = None,
     gallery_tile_paths: dict[str, str] | None = None,
     item_tile_paths: dict[str, str] | None = None,
+    direction: str | None = None,
 ) -> str:
     """Public wrapper around `_render_moodboard_pdf`.
 
@@ -588,9 +627,15 @@ def render_pdf_from_selection(
     photographs in the ATMOSPHERE block instead of the block-colour
     wash. Returns the fresh `pdf_id` (stable hash of inputs).
 
-    Iter-30B : `item_tile_paths` adds per-item product photographs to
-    the materials and furniture grids. Keys are `item_key` slugs
+    Iter-30B Stage 1 : `item_tile_paths` adds per-item product photographs
+    to the materials and furniture grids. Keys are `item_key` slugs
     (`mat:european-oak:oiled`, `fur:vitra-eames-aluminum-group` …).
+
+    Iter-30B Stage 2 : `direction` is the slug of one of the three
+    hardcoded mood-board directions for the project's industry. The
+    direction's palette overlay replaces the curator's palette in the
+    printed swatch strip and tagline, producing a distinct PDF per
+    direction.
     """
 
     return _render_moodboard_pdf(
@@ -600,6 +645,7 @@ def render_pdf_from_selection(
         project_reference=project_reference,
         gallery_tile_paths=gallery_tile_paths,
         item_tile_paths=item_tile_paths,
+        direction=direction,
     )
 
 

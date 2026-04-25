@@ -333,7 +333,38 @@ export type VisualMoodBoardRequest = {
   macro_zoning_summary?: string | null;
   micro_zoning_summary?: string | null;
   aspect_ratio?: "3:2" | "16:9" | "4:3" | "1:1";
+  /** Iter-30B Stage 2 — direction slug (`atelier-nord` /
+   *  `studio-tokyo` / `loft-parisien` for tech_startup, etc.).
+   *  Drives the palette overlay + parti-pris that recasts the same
+   *  curator selection as three visually distinct mood boards. */
+  direction?: string | null;
 };
+
+// Iter-30B Stage 2 — three hardcoded mood-board directions per
+// industry. Frontend tab bar reads these via `fetchMoodBoardDirections`.
+export type MoodBoardDirection = {
+  slug: string;
+  name: string;
+  tagline: string;
+  palette_overlay: Array<{ name: string; hex: string; role?: string }>;
+};
+
+export type MoodBoardDirectionsResponse = {
+  industry: string;
+  directions: MoodBoardDirection[];
+};
+
+export async function fetchMoodBoardDirections(
+  industry: string,
+  signal?: AbortSignal,
+): Promise<MoodBoardDirectionsResponse> {
+  const r = await fetch(
+    `/api/moodboard/directions?industry=${encodeURIComponent(industry)}`,
+    { signal },
+  );
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
 
 export async function generateMoodBoardGallery(
   req: VisualMoodBoardRequest,
@@ -395,10 +426,13 @@ export type MoodBoardRerenderRequest = {
   selection: Record<string, unknown>;
   project_reference?: string | null;
   gallery_tile_ids: Record<string, string>;
-  /** Iter-30B — per-item NanoBanana cache ids keyed by `item_key`
-   *  slug (`mat:european-oak:oiled`, `fur:vitra-eames-…`, etc).
+  /** Iter-30B Stage 1 — per-item NanoBanana cache ids keyed by
+   *  `item_key` slug (`mat:european-oak:oiled`, `fur:vitra-eames-…`).
    *  Embedded into the materials / furniture grids in the A3 PDF. */
   item_tile_ids?: Record<string, string>;
+  /** Iter-30B Stage 2 — direction slug. PDF palette + tagline use
+   *  the direction overlay so each direction yields a distinct PDF. */
+  direction?: string | null;
 };
 
 export type MoodBoardRerenderResponse = { pdf_id: string };

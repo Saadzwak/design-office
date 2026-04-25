@@ -128,6 +128,17 @@ class VisualMoodBoardRequest(BaseModel):
     micro_zoning_summary: str | None = None
     aspect_ratio: Literal["3:2", "16:9", "4:3", "1:1"] = "3:2"
     brand_keywords: list[str] = Field(default_factory=list)
+    # Iter-30B Stage 2 — `direction` is the slug of one of the three
+    # hardcoded mood-board directions for the project's industry
+    # (e.g. tech_startup → atelier-nord | studio-tokyo | loft-parisien).
+    # When set, the direction's palette REPLACES the curator's palette
+    # in every NanoBanana prompt, and the parti_pris narrative is
+    # injected as the `atmosphere_cue` overlay. Same curator selection
+    # rendered through three distinct directions = three visually
+    # different mood boards (Vitra chair photographed under three
+    # different ambient palettes). Backwards-compatible: when None,
+    # the legacy single-direction flow runs untouched.
+    direction: str | None = None
 
 
 class VisualMoodBoardResponse(BaseModel):
@@ -138,6 +149,137 @@ class VisualMoodBoardResponse(BaseModel):
     prompt: str
     aspect_ratio: str
     bytes_size: int
+
+
+# ──────────────────────────────────── direction overlays (iter-30B/2) ─
+
+_DIRECTIONS_PATH = (
+    Path(__file__).resolve().parent.parent / "data" / "moodboard" / "directions.json"
+)
+
+# Default 3-direction set used when an industry has no specific entry
+# in `directions.json`. Keeps the schema simple and the demo
+# defensive against industries we haven't tuned yet.
+_DEFAULT_DIRECTIONS: list[dict[str, Any]] = [
+    {
+        "slug": "calm-warm",
+        "name": "Calm & Warm",
+        "tagline": "Oak, linen, brass. Editorial calm.",
+        "parti_pris": "Organic Modern editorial — warm oak floors, linen curtains, brass detailing, ivory canvas walls, single forest-green accent. Library-quiet. Reference: Kinfolk magazine offices.",
+        "palette_overlay": [
+            {"name": "Linen ivory", "hex": "#F2ECE0", "role": "hero"},
+            {"name": "Pale oak", "hex": "#CDB28A", "role": "hero"},
+            {"name": "Forest green", "hex": "#2F4A3F", "role": "accent"},
+            {"name": "Ink soft", "hex": "#2A2E28", "role": "secondary"},
+            {"name": "Brushed brass", "hex": "#A88A4F", "role": "highlight"},
+        ],
+        "atmosphere_cue": "warm oak, linen, brass, forest-green accent, editorial calm",
+        "lighting_cue": "soft north daylight, warm 3000 K accents",
+    },
+    {
+        "slug": "minimal-mono",
+        "name": "Minimal Mono",
+        "tagline": "Plaster, charcoal, the silence between objects.",
+        "parti_pris": "Minimal Japanese-inflected workshop — hand-troweled lime plaster walls, charcoal accents, charred-cedar shelving, indigo as the single coloured note. Reference: Tadao Ando + Aesop.",
+        "palette_overlay": [
+            {"name": "Lime plaster", "hex": "#E5DFD3", "role": "hero"},
+            {"name": "Charcoal sumi", "hex": "#2C2A26", "role": "secondary"},
+            {"name": "Yakisugi cedar", "hex": "#3A2D24", "role": "secondary"},
+            {"name": "Washi rice", "hex": "#F1ECDF", "role": "hero"},
+            {"name": "Indigo accent", "hex": "#2A4A66", "role": "accent"},
+        ],
+        "atmosphere_cue": "lime plaster, charred cedar, washi screens, indigo banner, monastic silence",
+        "lighting_cue": "diffused through washi, 2700 K Akari pendants",
+    },
+    {
+        "slug": "library-paris",
+        "name": "Library Paris",
+        "tagline": "Walnut, emerald, brass. Quiet authority.",
+        "parti_pris": "Haussmannian library reframed — herringbone walnut floors, emerald moulded panels, brushed-brass library lamps, cream stucco. Reference: Pierre Yovanovitch.",
+        "palette_overlay": [
+            {"name": "Cream stucco", "hex": "#EDE6D5", "role": "hero"},
+            {"name": "Walnut burl", "hex": "#5A3E29", "role": "secondary"},
+            {"name": "Emerald panel", "hex": "#2D4A3A", "role": "accent"},
+            {"name": "Brushed brass", "hex": "#A88A4F", "role": "highlight"},
+            {"name": "Ink atelier", "hex": "#231F1A", "role": "secondary"},
+        ],
+        "atmosphere_cue": "herringbone walnut, emerald panels, brass library lamps, oxblood Cassina chairs",
+        "lighting_cue": "tungsten library lamps 2700 K, brass cone shades, deep cast shadows",
+    },
+]
+
+
+def _load_directions_for(industry: str) -> list[dict[str, Any]]:
+    """Read `data/moodboard/directions.json` and return the 3 directions
+    for the given industry, falling back to `_DEFAULT_DIRECTIONS` when
+    the industry has no tuned entry. Always returns exactly three
+    direction dicts so the frontend tab UI is deterministic.
+    """
+
+    import json as _json
+
+    if not _DIRECTIONS_PATH.exists():
+        return _DEFAULT_DIRECTIONS
+    try:
+        data = _json.loads(_DIRECTIONS_PATH.read_text(encoding="utf-8"))
+    except Exception:  # noqa: BLE001 — defensive ; never crash the surface
+        return _DEFAULT_DIRECTIONS
+    industries = data.get("industries") or {}
+    found = industries.get(industry)
+    if isinstance(found, list) and len(found) >= 3:
+        return found[:3]
+    return _DEFAULT_DIRECTIONS
+
+
+def list_directions_for(industry: str) -> list[dict[str, Any]]:
+    """Public surface for the frontend — exposes the 3 directions
+    (slug, name, tagline, palette_overlay) so the tab UI can render
+    them without re-implementing the JSON read on the JS side.
+    Strips the heavier `parti_pris` / `atmosphere_cue` / `lighting_cue`
+    that only matter inside the prompt assembly.
+    """
+
+    out: list[dict[str, Any]] = []
+    for d in _load_directions_for(industry):
+        out.append(
+            {
+                "slug": str(d.get("slug", "")),
+                "name": str(d.get("name", "")),
+                "tagline": str(d.get("tagline", "")),
+                "palette_overlay": list(d.get("palette_overlay", [])),
+            }
+        )
+    return out
+
+
+def _resolve_direction(
+    industry: str, slug: str | None
+) -> dict[str, Any] | None:
+    """Look up the full direction dict (palette + parti_pris + cues)
+    for `(industry, slug)`. Returns None when no slug is requested —
+    the caller then falls back to the legacy single-direction flow.
+    """
+
+    if not slug:
+        return None
+    for d in _load_directions_for(industry):
+        if str(d.get("slug")) == slug:
+            return d
+    # Unknown slug → fall through to legacy. Don't raise: the frontend
+    # may have stale state, and the worst case is a default render.
+    return None
+
+
+def _palette_hexes_from_direction(direction: dict[str, Any] | None) -> list[str]:
+    if not direction:
+        return []
+    pal = direction.get("palette_overlay") or []
+    out: list[str] = []
+    for entry in pal:
+        hx = (entry or {}).get("hex") if isinstance(entry, dict) else None
+        if isinstance(hx, str) and hx.startswith("#"):
+            out.append(hx)
+    return out[:6]
 
 
 def _palette_hex_from_selection(selection: dict[str, Any] | None) -> list[str]:
@@ -253,7 +395,24 @@ def compose_prompt(req: VisualMoodBoardRequest) -> str:
         str(req.variant.style.value if hasattr(req.variant.style, "value") else req.variant.style),
         "",
     )
-    palette_hexes = _palette_hex_from_selection(req.mood_board_selection)
+    # Iter-30B Stage 2 — direction overlay REPLACES the curator palette
+    # and augments the atmosphere line with a parti-pris cue. When no
+    # direction is supplied the legacy single-direction flow runs
+    # untouched (palette comes from the curator selection).
+    direction = _resolve_direction(req.industry, req.direction)
+    direction_palette = _palette_hexes_from_direction(direction)
+    palette_hexes = direction_palette or _palette_hex_from_selection(
+        req.mood_board_selection
+    )
+    if direction:
+        atmosphere_cue = str(direction.get("atmosphere_cue") or "").strip()
+        parti_pris = str(direction.get("parti_pris") or "").strip()
+        if atmosphere_cue:
+            atmosphere = (
+                f"{atmosphere_cue} — {atmosphere}" if atmosphere else atmosphere_cue
+            )
+        if parti_pris:
+            atmosphere = f"{atmosphere}. PARTI PRIS: {parti_pris}"
     materials = _material_strings_from_selection(req.mood_board_selection)
     furniture = _furniture_strings_from_selection(req.mood_board_selection)
     planting = _planting_strings_from_selection(req.mood_board_selection)
@@ -342,13 +501,37 @@ def _gallery_prompts(
     THIS project, not a generic mood board.
     """
 
-    palette = _palette_hex_from_selection(req.mood_board_selection)
+    # Iter-30B Stage 2 — direction overlay REPLACES the curator
+    # palette. The four gallery tiles are the strongest signal of a
+    # direction's identity (atmosphere hero is the "what does this
+    # office *feel* like" image), so the overlay is most impactful
+    # here.
+    direction = _resolve_direction(req.industry, req.direction)
+    direction_palette = _palette_hexes_from_direction(direction)
+    palette = direction_palette or _palette_hex_from_selection(
+        req.mood_board_selection
+    )
     materials = _material_strings_from_selection(req.mood_board_selection)
     furniture = _furniture_strings_from_selection(req.mood_board_selection)
     planting = _planting_strings_from_selection(req.mood_board_selection)
     light = _light_sentence_from_selection(req.mood_board_selection)
-    tagline = _tagline_from_selection(req.mood_board_selection)
+    tagline = (
+        str(direction.get("tagline") or "") if direction else ""
+    ) or _tagline_from_selection(req.mood_board_selection)
     industry = req.industry.replace("_", " ")
+    parti_pris_bit = (
+        f"PARTI PRIS: {str(direction.get('parti_pris') or '').strip()[:400]} "
+        if direction
+        else ""
+    )
+    atmosphere_cue_bit = (
+        f"ATMOSPHERE: {str(direction.get('atmosphere_cue') or '').strip()[:240]}. "
+        if direction
+        else ""
+    )
+    direction_lighting = (
+        str(direction.get("lighting_cue") or "").strip() if direction else ""
+    )
 
     palette_str = (
         ", ".join(palette)
@@ -361,7 +544,8 @@ def _gallery_prompts(
     )
 
     tagline_bit = f'Feeling: "{tagline}". ' if tagline else ""
-    light_bit = f"Lighting: {light[:180]}. " if light else ""
+    effective_light = direction_lighting or (light[:180] if light else "")
+    light_bit = f"Lighting: {effective_light[:200]}. " if effective_light else ""
     materials_str = "; ".join(materials[:6]) or (
         "oak, linen, brass, plaster, acoustic felt"
     )
@@ -376,14 +560,18 @@ def _gallery_prompts(
     atmosphere_prompt = (
         f"Hero atmosphere shot of a {industry} office interior for "
         f'{req.client_name} — "{req.variant.title}". '
+        f"{atmosphere_cue_bit}"
+        f"{parti_pris_bit}"
         f"{tagline_bit}"
         f"Wide establishing composition, deep perspective, daylight, "
         f"real architectural space — not a rendering. "
         f"Palette (exact hexes, hold the line): {palette_str}. "
+        f"{light_bit}"
         f"{style_footer}"
     )
     materials_prompt = (
         f"Material tableau — laid flat on an architect's studio table. "
+        f"{atmosphere_cue_bit}"
         f"Swatches and samples of: {materials_str}. "
         f"Palette reference: {palette_str}. "
         f"Overhead three-quarter angle, warm cast shadow, fine labels "
@@ -392,12 +580,14 @@ def _gallery_prompts(
     furniture_prompt = (
         f"Editorial still-life of the signature furniture pieces for "
         f"{req.client_name}: {furniture_str}. "
+        f"{atmosphere_cue_bit}"
         f"Studio backdrop in {hero_background}, single-source daylight. "
         f"{style_footer}"
     )
     biophilic_prompt = (
         f"Biophilic corner of the space — real plants in the frame: "
         f"{planting_str}. "
+        f"{atmosphere_cue_bit}"
         f"{light_bit}"
         f"Wood + plaster + greenery composition, quiet morning light. "
         f"Palette: {palette_str}. {style_footer}"
@@ -513,7 +703,32 @@ def _light_item_key(item: dict[str, Any]) -> str:
     return f"lig:{'-'.join(parts)}" if parts else ""
 
 
-def _material_prompt(item: dict[str, Any], palette_str: str) -> str:
+def _direction_cue_str(direction: dict[str, Any] | None) -> str:
+    """Iter-30B Stage 2 — `Direction: <slug> — <atmosphere_cue>` line
+    that gets baked into every per-item prompt. This is what makes
+    the same Vitra chair photograph differently for `atelier-nord`
+    vs `studio-tokyo` — the cue appears verbatim in the prompt and
+    the cue plus the (different) palette together push NanoBanana
+    toward the requested mood. Returns empty when no direction is in
+    play (legacy single-direction flow).
+    """
+
+    if not direction:
+        return ""
+    slug = str(direction.get("slug") or "").strip()
+    cue = str(direction.get("atmosphere_cue") or "").strip()
+    name = str(direction.get("name") or "").strip()
+    label = name or slug
+    if not (label and cue):
+        return ""
+    return f"Direction — {label}: {cue[:200]}. "
+
+
+def _material_prompt(
+    item: dict[str, Any],
+    palette_str: str,
+    direction: dict[str, Any] | None = None,
+) -> str:
     # Schema field is `material` (curator output) but fixtures and some
     # legacy paths use `name`. Same for `note`/`sustainability`/etc.
     mat = (item.get("material") or item.get("name") or "").strip()
@@ -534,6 +749,7 @@ def _material_prompt(item: dict[str, Any], palette_str: str) -> str:
     if note:
         context_bits.append(note[:140])
     context = ". ".join(context_bits)
+    direction_cue = _direction_cue_str(direction)
     return (
         f"Close-up material sample of {head}. "
         f"Single rectangular swatch laid flat on a neutral linen-toned "
@@ -541,12 +757,17 @@ def _material_prompt(item: dict[str, Any], palette_str: str) -> str:
         f"but no readable text. Show authentic surface texture: grain, "
         f"weave, brush marks, or polish — whatever is true to {mat or head}. "
         f"{context} "
+        f"{direction_cue}"
         f"Project palette context (for ambient cast tones): {palette_str}. "
         f"{ITEM_STYLE_FOOTER}"
     )
 
 
-def _furniture_prompt(item: dict[str, Any], palette_str: str) -> str:
+def _furniture_prompt(
+    item: dict[str, Any],
+    palette_str: str,
+    direction: dict[str, Any] | None = None,
+) -> str:
     brand = (item.get("brand") or "").strip()
     name = (item.get("name") or item.get("model") or "").strip()
     typ = (
@@ -562,6 +783,7 @@ def _furniture_prompt(item: dict[str, Any], palette_str: str) -> str:
     head = " ".join(head_pieces) or "design furniture piece"
     typ_bit = f", a {typ}" if typ else ""
     note_bit = f" {note[:160]}" if note else ""
+    direction_cue = _direction_cue_str(direction)
     return (
         f"Studio product photograph of {head}{typ_bit}. "
         f"3/4 angle, isolated against a soft warm-grey plaster backdrop, "
@@ -569,28 +791,39 @@ def _furniture_prompt(item: dict[str, Any], palette_str: str) -> str:
         f"Material truth: faithful to the real {head} — correct "
         f"silhouette, finish, upholstery, proportions. No stylisation, "
         f"no fantasy variations.{note_bit} "
+        f"{direction_cue}"
         f"Ambient palette: {palette_str}. "
         f"{ITEM_STYLE_FOOTER}"
     )
 
 
-def _plant_prompt(item: dict[str, Any], palette_str: str) -> str:
+def _plant_prompt(
+    item: dict[str, Any],
+    palette_str: str,
+    direction: dict[str, Any] | None = None,
+) -> str:
     name = (item.get("name") or item.get("latin") or "").strip()
     light = (item.get("light") or "").strip()
     care = (item.get("care") or "").strip()
     light_bit = f" Lighting matches its habitat: {light}." if light else ""
     care_bit = f" {care[:120]}" if care else ""
+    direction_cue = _direction_cue_str(direction)
     return (
         f"Editorial photograph of a single living {name} in a textured "
         f"unglazed terracotta pot. Set against a warm linen or plaster "
         f"backdrop, soft north daylight, sharp foliage detail, intimate "
         f"composition with breathing room around the plant.{light_bit}{care_bit} "
+        f"{direction_cue}"
         f"Ambient palette: {palette_str}. "
         f"{ITEM_STYLE_FOOTER}"
     )
 
 
-def _light_prompt(item: dict[str, Any], palette_str: str) -> str:
+def _light_prompt(
+    item: dict[str, Any],
+    palette_str: str,
+    direction: dict[str, Any] | None = None,
+) -> str:
     brand = (item.get("brand") or "").strip()
     model = (item.get("model") or "").strip()
     category = (item.get("category") or "").strip()
@@ -598,12 +831,14 @@ def _light_prompt(item: dict[str, Any], palette_str: str) -> str:
     head = f"{brand} {model}".strip() or category or "pendant lamp"
     cat_bit = f", a {category}" if category else ""
     app_bit = f" Use case in space: {application}." if application else ""
+    direction_cue = _direction_cue_str(direction)
     return (
         f"Editorial product photograph of {head}{cat_bit}. "
         f"Isolated against a neutral warm plaster wall, the lamp itself "
         f"powered on softly so the shade or bulb glows, soft three-quarter "
         f"daylight from the side. Faithful to the real {brand} {model} — "
         f"correct silhouette, finish, proportions.{app_bit} "
+        f"{direction_cue}"
         f"Ambient palette: {palette_str}. "
         f"{ITEM_STYLE_FOOTER}"
     )
@@ -622,7 +857,13 @@ def _item_tile_specs(
     """
 
     sel = req.mood_board_selection or {}
-    palette_hexes = _palette_hex_from_selection(sel)
+    # Iter-30B Stage 2 — direction overlay REPLACES the curator
+    # palette in every per-item prompt. Same Vitra chair, three
+    # different ambient palettes ⇒ three distinct cache keys ⇒ three
+    # visually distinct photographs.
+    direction = _resolve_direction(req.industry, req.direction)
+    direction_palette = _palette_hexes_from_direction(direction)
+    palette_hexes = direction_palette or _palette_hex_from_selection(sel)
     palette_str = _palette_str(palette_hexes)
 
     specs: list[tuple[str, str, str, str]] = []
@@ -647,7 +888,7 @@ def _item_tile_specs(
                 "material",
                 _material_item_key(m),
                 label,
-                _material_prompt(m, palette_str),
+                _material_prompt(m, palette_str, direction),
             )
 
     furniture = sel.get("furniture") if isinstance(sel, dict) else None
@@ -662,7 +903,7 @@ def _item_tile_specs(
                 "furniture",
                 _furniture_item_key(f),
                 label,
-                _furniture_prompt(f, palette_str),
+                _furniture_prompt(f, palette_str, direction),
             )
 
     planting = sel.get("planting") if isinstance(sel, dict) else None
@@ -676,7 +917,7 @@ def _item_tile_specs(
                         "plant",
                         _plant_item_key(sp),
                         label,
-                        _plant_prompt(sp, palette_str),
+                        _plant_prompt(sp, palette_str, direction),
                     )
 
     light = sel.get("light") if isinstance(sel, dict) else None
@@ -693,7 +934,7 @@ def _item_tile_specs(
                     "light",
                     _light_item_key(fx),
                     label,
-                    _light_prompt(fx, palette_str),
+                    _light_prompt(fx, palette_str, direction),
                 )
 
     return specs
