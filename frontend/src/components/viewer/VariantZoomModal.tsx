@@ -19,6 +19,7 @@
  */
 
 import { useEffect } from "react";
+import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 
 import type { DesignVariant } from "../../lib/adapters/variantAdapter";
@@ -67,7 +68,19 @@ export default function VariantZoomModal({
     Object.values(angleSources).filter((v) => typeof v === "string" && v).length >= 2;
   const showViewer = isActive && hasMultiAngle;
 
-  return (
+  // Iter-32 (Saad fix 1) : portaled to `document.body` for the same
+  // reason as the canonical `Drawer` + `Modal` (iter-31 fix). The
+  // product's `<main>` carries `animate-fade-rise` whose final
+  // keyframe leaves a `transform: translateY(0)` value that turns
+  // `<main>` into the containing block for descendant
+  // `position: fixed` elements. Without portal, the scrim's
+  // `inset-0` resolves against `<main>` (top=149px in 720vp) and
+  // the modal panel sits partially below the viewport with no way
+  // to scroll. Portal escapes the transformed ancestor so
+  // `inset-0` is viewport-relative again.
+  if (typeof document === "undefined") return null;
+
+  const node = (
     <AnimatePresence>
       {variant ? (
         <motion.div
@@ -97,17 +110,16 @@ export default function VariantZoomModal({
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
-            className="relative flex flex-col overflow-hidden rounded-xl border border-mist-200 shadow-xl"
+            className="relative flex flex-col rounded-xl border border-mist-200 shadow-xl"
             style={{
               width: "65vw",
               maxWidth: 900,
-              maxHeight: "70vh",
-              padding: 32,
+              maxHeight: "85vh",
               background: "#FAF7F2",
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Close button */}
+            {/* Close button — sticky to the panel, not the scroller */}
             <button
               type="button"
               onClick={onClose}
@@ -120,73 +132,89 @@ export default function VariantZoomModal({
               </span>
             </button>
 
-            {/* Variant name header */}
-            <div className="mb-4 pr-10">
-              <span
-                className="font-display italic"
+            {/* Inner scroller. Iter-32: panel is now flex-col with the
+                content wrapped in a single `min-h-0 flex-1
+                overflow-y-auto` div so when the 6-angle
+                PseudoThreeDViewer + image dock + metrics exceed the
+                85vh max-height, the content scrolls inside the panel
+                instead of vanishing below the viewport. */}
+            <div
+              className="flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden"
+              style={{ padding: 32 }}
+            >
+              {/* Variant name header */}
+              <div className="mb-4 pr-10">
+                <span
+                  className="font-display italic"
+                  style={{
+                    fontSize: 26,
+                    fontWeight: 500,
+                    color: "var(--forest)",
+                    fontVariationSettings: '"opsz" 96, "wght" 500, "SOFT" 100',
+                  }}
+                >
+                  {variant.name}
+                </span>
+              </div>
+
+              {/* Render area — letterboxed canvas backdrop so non-
+                  16:9 images don't touch the panel edges. The
+                  PseudoThreeDViewer dock + caption can grow tall
+                  with 6 angles, so we let it size naturally and
+                  rely on the parent scroller. */}
+              <div
+                className="relative rounded-lg border border-mist-100"
                 style={{
-                  fontSize: 26,
-                  fontWeight: 500,
-                  color: "var(--forest)",
-                  fontVariationSettings: '"opsz" 96, "wght" 500, "SOFT" 100',
+                  background: "var(--canvas-alt, #F5F2EB)",
+                  minHeight: 0,
                 }}
               >
-                {variant.name}
-              </span>
-            </div>
+                {showViewer ? (
+                  <PseudoThreeDViewer
+                    sources={angleSources}
+                    caption={`${variant.name} · live render`}
+                  />
+                ) : imgUrl ? (
+                  <img
+                    src={imgUrl}
+                    alt={`${variant.name} SketchUp iso render`}
+                    className="block w-full object-contain"
+                    style={{ maxHeight: "60vh" }}
+                  />
+                ) : (
+                  <div className="flex items-center justify-center py-12">
+                    <span className="mono text-[11px] tracking-[0.14em] text-mist-500">
+                      No render available
+                    </span>
+                  </div>
+                )}
+              </div>
 
-            {/* Render area — letterboxed canvas backdrop so non-
-                16:9 images don't touch the panel edges. */}
-            <div
-              className="relative flex-1 overflow-hidden rounded-lg border border-mist-100"
-              style={{
-                background: "var(--canvas-alt, #F5F2EB)",
-                minHeight: 0,
-              }}
-            >
-              {showViewer ? (
-                <PseudoThreeDViewer
-                  sources={angleSources}
-                  caption={`${variant.name} · live render`}
-                />
-              ) : imgUrl ? (
-                <img
-                  src={imgUrl}
-                  alt={`${variant.name} SketchUp iso render`}
-                  className="h-full w-full object-contain"
-                  style={{ maxHeight: "50vh" }}
-                />
-              ) : (
-                <div className="flex h-full items-center justify-center py-12">
-                  <span className="mono text-[11px] tracking-[0.14em] text-mist-500">
-                    No render available
-                  </span>
-                </div>
-              )}
-            </div>
-
-            {/* Metrics */}
-            <div className="mt-4 flex gap-6 border-t border-mist-100 pt-3 font-mono text-[12px] tracking-tight text-ink">
-              <span>
-                <span className="text-mist-500">Desks </span>
-                {variant.metrics.desks}
-              </span>
-              <span>
-                <span className="text-mist-500">m²/FTE </span>
-                {variant.metrics.density}
-              </span>
-              <span>
-                <span className="text-mist-500">Flex </span>
-                {variant.metrics.flex}
-              </span>
-              <span>
-                <span className="text-mist-500">Adj. </span>
-                {variant.metrics.adjacency}
-              </span>
+              {/* Metrics */}
+              <div className="mt-4 flex flex-wrap gap-6 border-t border-mist-100 pt-3 font-mono text-[12px] tracking-tight text-ink">
+                <span>
+                  <span className="text-mist-500">Desks </span>
+                  {variant.metrics.desks}
+                </span>
+                <span>
+                  <span className="text-mist-500">m²/FTE </span>
+                  {variant.metrics.density}
+                </span>
+                <span>
+                  <span className="text-mist-500">Flex </span>
+                  {variant.metrics.flex}
+                </span>
+                <span>
+                  <span className="text-mist-500">Adj. </span>
+                  {variant.metrics.adjacency}
+                </span>
+              </div>
             </div>
           </motion.div>
         </motion.div>
       ) : null}
     </AnimatePresence>
   );
+
+  return createPortal(node, document.body);
 }
