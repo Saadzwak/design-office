@@ -196,6 +196,17 @@ export type VariantOutput = {
   >;
   /** iter-17 B : optional adjacency audit (null on pre-iter-17 fixtures). */
   adjacency_audit?: AdjacencyAudit | null;
+  /** iter-26 P2 : axis-aligned bbox collisions between zones. Detection
+   *  only ; auto-reposition deferred. Each entry shaped like a warning
+   *  the variant card can surface verbatim. */
+  geometric_overlaps?: Array<{
+    kind: "geometric_overlap";
+    zones: string[];
+    kinds: string[];
+    overlap_m2: number;
+    areas_m2: number[];
+    description: string;
+  }>;
 };
 
 export type ReviewerVerdict = {

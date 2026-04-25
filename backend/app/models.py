@@ -254,6 +254,14 @@ class VariantOutput(BaseModel):
     # iter-17 B : adjacency audit is optional so older fixtures
     # deserialize unchanged. Newly generated variants include it.
     adjacency_audit: AdjacencyAudit | None = None
+    # iter-26 P2 (Saad, 2026-04-25) : axis-aligned bbox collisions
+    # between zones (meeting_room / collab_zone / biophilic_zone /
+    # workstation_cluster). Detection only ; auto-reposition was
+    # deferred to iter-27+ to avoid invalidating the reviewer +
+    # adjacency scores that already ran. Each entry is shaped like a
+    # warning (kind / zones / overlap_m2 / description) — the variant
+    # card UI surfaces them next to adjacency violations.
+    geometric_overlaps: list[dict] = Field(default_factory=list)
 
 
 # ──────────────────────────── Structured micro-zoning ──────────────────────

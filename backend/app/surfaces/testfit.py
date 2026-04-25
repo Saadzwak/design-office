@@ -622,6 +622,16 @@ class TestFitSurface:
                     flush=True,
                 )
 
+            # iter-26 P2 — axis-aligned bbox collision detection across
+            # the LLM-emitted zones. Detection only ; we surface warnings
+            # the architect can either accept or fix via iterate. Source
+            # is variant_obj["zones"] (raw LLM output) ; using the trace
+            # would conflate hero / human / phone-booth decor with the
+            # area zones we actually want to validate.
+            from app.agents.zone_overlap_validator import detect_overlaps
+
+            geometric_overlaps = detect_overlaps(variant_obj.get("zones") or [])
+
             metrics = VariantMetrics(**variant_obj.get("metrics", {}))
             variants.append(
                 VariantOutput(
@@ -633,6 +643,7 @@ class TestFitSurface:
                     screenshot_paths=screenshot_paths,
                     sketchup_shot_url=sketchup_shot_url,
                     sketchup_shot_urls=sketchup_shot_urls,
+                    geometric_overlaps=list(geometric_overlaps),
                 )
             )
 

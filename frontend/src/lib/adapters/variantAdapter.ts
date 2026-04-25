@@ -70,7 +70,13 @@ export type DesignVariant = {
     flex: string; // "0.76"
     adjacency: string; // "92%"
   };
-  warnings: Array<{ text: string; kind: "adjacency" | "reviewer" }>;
+  warnings: Array<{
+    text: string;
+    /** iter-26 P2 : geometric_overlap shows up in red on the card,
+     *  next to (but distinct from) adjacency / reviewer notes so the
+     *  architect can spot collisions at a glance. */
+    kind: "adjacency" | "reviewer" | "geometric_overlap";
+  }>;
   zones: Array<NormalisedZone & { label: string; kind: ZoneKind }>;
   /** iter-21e — existing rooms + interior walls, normalised into 88×62.
    *  Empty when Vision saw no interior partitioning. */
@@ -207,6 +213,17 @@ export function variantToDesign(
   }
   if (verdict && verdict.issues?.length && warnings.length < 2) {
     warnings.push({ text: verdict.issues[0], kind: "reviewer" });
+  }
+  // iter-26 P2 — surface geometric_overlap collisions. Up to 2 to
+  // keep the card readable ; the rest stay in v.raw.geometric_overlaps
+  // for the future zoom modal / iterate UI.
+  const overlaps = (variant as { geometric_overlaps?: Array<{ description?: string }> })
+    .geometric_overlaps;
+  if (overlaps && overlaps.length > 0 && warnings.length < 2) {
+    for (const o of overlaps.slice(0, 2 - warnings.length)) {
+      const text = o.description ?? "Zone collision detected";
+      warnings.push({ text, kind: "geometric_overlap" });
+    }
   }
 
   const pitch = variant.narrative?.split(/\n|\./)[0]?.trim()
