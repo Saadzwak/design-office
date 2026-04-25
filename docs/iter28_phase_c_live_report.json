@@ -1,0 +1,116 @@
+[
+  {
+    "label": "Bâtiment A (strict=True)",
+    "envelope_mm": [
+      0.0,
+      0.0,
+      36000.0,
+      52970.0
+    ],
+    "variants": [
+      {
+        "title": "La Place Centrale — Bâtiment A",
+        "style": "VariantStyle.VILLAGEOIS",
+        "trace_len": 41,
+        "audited_entities": 25,
+        "non_clean_entities": [],
+        "envelope_violations_emitted": 0,
+        "envelope_violations": []
+      },
+      {
+        "title": "Atelier façade lumineuse — Bâtiment A",
+        "style": "VariantStyle.ATELIER",
+        "trace_len": 43,
+        "audited_entities": 27,
+        "non_clean_entities": [],
+        "envelope_violations_emitted": 0,
+        "envelope_violations": []
+      },
+      {
+        "title": "Bâtiment A — Plateau reconfigurable, tout réservable",
+        "style": "VariantStyle.HYBRIDE_FLEX",
+        "trace_len": 39,
+        "audited_entities": 23,
+        "non_clean_entities": [],
+        "envelope_violations_emitted": 0,
+        "envelope_violations": []
+      }
+    ]
+  },
+  {
+    "label": "Domaine du Park (strict=True)",
+    "envelope_mm": [
+      0.0,
+      0.0,
+      19400.0,
+      28545.0
+    ],
+    "variants": [
+      {
+        "title": "La place du Domaine — quartiers autour du cœur",
+        "style": "VariantStyle.VILLAGEOIS",
+        "trace_len": 42,
+        "audited_entities": 28,
+        "non_clean_entities": [],
+        "envelope_violations_emitted": 0,
+        "envelope_violations": []
+      },
+      {
+        "title": "Atelier façade : postes en lumière, réunions au cœur",
+        "style": "VariantStyle.ATELIER",
+        "trace_len": 43,
+        "audited_entities": 29,
+        "non_clean_entities": [],
+        "envelope_violations_emitted": 0,
+        "envelope_violations": []
+      },
+      {
+        "title": "Studio reconfigurable — Domaine du Park",
+        "style": "VariantStyle.HYBRIDE_FLEX",
+        "trace_len": 45,
+        "audited_entities": 31,
+        "non_clean_entities": [],
+        "envelope_violations_emitted": 0,
+        "envelope_violations": []
+      }
+    ]
+  },
+  {
+    "label": "Lumen fixture (strict=False)",
+    "envelope_mm": [
+      0.0,
+      0.0,
+      60000.0,
+      40000.0
+    ],
+    "variants": [
+      {
+        "title": "La place centrale — quartiers tech autour du cœur collab",
+        "style": "VariantStyle.VILLAGEOIS",
+        "trace_len": 89,
+        "audited_entities": 27,
+        "non_clean_entities": [],
+        "envelope_violations_emitted": 0,
+        "envelope_violations": []
+      },
+      {
+        "title": "Atelier lumineux — postes en façade, réunions en cœur",
+        "style": "VariantStyle.ATELIER",
+        "trace_len": 91,
+        "audited_entities": 29,
+        "non_clean_entities": [],
+        "envelope_violations_emitted": 0,
+        "envelope_violations": []
+      },
+      {
+        "title": "Studio Flex — Tout se réserve, tout se reconfigure",
+        "style": "VariantStyle.HYBRIDE_FLEX",
+        "trace_len": 85,
+        "audited_entities": 23,
+        "non_clean_entities": [],
+        "envelope_violations_emitted": 0,
+        "envelope_violations": []
+      }
+    ]
+  }
+]

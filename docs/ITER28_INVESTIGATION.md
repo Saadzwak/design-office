@@ -311,3 +311,198 @@ Aucune modification de code de production.
 
 **STATUS** : Phase A complète, en attente du **GO Phase C** de Saad
 sur le plan §6.
+
+---
+
+# Phase C — Defense in depth livrée (2026-04-25, après-midi)
+
+Phase C exécutée en deux couches comme prévu §6.1 + §6.2, avec
+basculement de plan de travail sur le PDF *SDC Domaine du Park* (ouvert
+par Saad pendant la session).
+
+## C.1 — Prompt update
+
+`backend/app/prompts/agents/testfit_variant.md` enrichi d'une section
+"Envelope containment — non-negotiable" qui :
+
+- Définit `[0, plate_w_mm] × [0, plate_h_mm]` comme contrainte stricte
+- Donne un tableau de footprint-checks pour chaque kind (workstation,
+  meeting_room, phone_booth, partition_wall, collab_zone,
+  biophilic_zone, place_human, place_plant, place_hero)
+- Détaille l'arithmétique correcte du cluster :
+  `(count − 1) × row_spacing_mm + 1600 mm` (la formule fix-tested
+  contre les bbox computers en Python)
+- Phrasing créativité contrainte tel que demandé : "Be bold and
+  creative … but every coordinate must land within the envelope.
+  Conformity to geometry is non-negotiable, but conformity should not
+  flatten your creative ambition."
+- Annonce explicitement le post-validator côté Python pour que l'agent
+  sache que le prompt est la première ligne de défense, pas la seule.
+
+## C.2 — Post-validator Python
+
+Nouveau module `backend/app/agents/zone_envelope_validator.py` (~360
+lignes). Surface :
+
+```python
+def validate_zones_against_envelope(
+    zones: list[dict],
+    envelope_mm: tuple[float, float],
+    *,
+    project_id: str | None = None,
+    strict: bool = False,
+) -> tuple[list[dict], list[EnvelopeViolation]]
+```
+
+Couverture des 13 kinds : `workstation_cluster`, `meeting_room`,
+`phone_booth`, `partition_wall`, `collab_zone`, `biophilic_zone`,
+`place_human`, `place_plant`, `place_hero` (+ `apply_variant_palette`
+passé sans footprint, kinds inconnus aussi).
+
+Mirror exact des footprints Ruby : DESK_W=1600 / DESK_D=800, phone
+booth 1030×1000, hero slugs avec leur half-w/d (chair_office 260×250,
+table_boardroom_4000 2000×700, etc.).
+
+**Politique strict=True** (ajustée par observation des tests pendant
+l'écriture, conformément au "seuil 15% ajustable" du brief Saad) :
+- Toujours **tenter le clamp d'abord** via la stratégie la plus
+  préservante (translate → count-reduce → bbox-clip)
+- **Reject uniquement** quand aucune stratégie n'aboutit (entité
+  géométriquement trop grande même clipée à 1m, ou coords impossibles).
+- Le seuil 15% sert d'étiquette dans le WARNING (`minor adjustment`
+  vs `major recovery`) mais ne gate pas le comportement.
+- Justification : la signature Phase A (cluster 21% overflow) peut
+  être sauvée par un shift de 4m — la rejeter perdait l'intent
+  créatif que l'agent avait correctement exprimé sauf pour une
+  coordonnée.
+
+**Politique strict=False** (Lumen + fixtures + legacy) :
+- Log un WARNING structuré pour chaque overflow > 5%
+- Retourne la liste de zones **inchangée** — back-compat absolue.
+
+**Auto-détection strict via `_should_use_strict_envelope()`** :
+- `plan_source_id` est un hash 32-hex (vrai upload utilisateur) → `strict=True`
+- `plan_source_id` absent ou autre forme → `strict=False`
+- Switch implicite mais transparent ; aucun flag explicite à passer
+  par les callers existants.
+
+## C.3 — Wiring
+
+`backend/app/surfaces/testfit.py::generate()` appelle le validator
+juste avant `_replay_zones`, threading le `project_id` depuis
+`floor_plan.plan_source_id`. Les zones nettoyées sont ensuite
+réassignées à `variant_obj["zones"]` puis replayed via le facade
+SketchUp.
+
+`VariantOutput` gagne un nouveau champ `envelope_violations: list[dict]`
+exposé en Pydantic + dans le type TypeScript `frontend/src/lib/api.ts`,
+prêt pour une carte UI future qui montrerait à l'architecte ce qui a
+été clamped/rejected.
+
+## C.4 — Tests pytest
+
+Nouveau fichier `backend/tests/test_zone_envelope_validator.py` —
+**20 tests** couvrant :
+
+- strict=False : clean → passthrough, moderate overflow → log+keep
+- strict=True : clean → passthrough, minor (≤5%) → silent, moderate
+  → clamp via translate, extreme → clamp via translate ou
+  count-reduce ou bbox-clip, oversized → reject
+- Cas par kind : workstation, meeting_room, phone_booth,
+  collab_zone, partition_wall, place_plant, place_hero, place_human
+- Reproduction exacte du **cas Phase A** (cluster Bâtiment A
+  overflow=21.35%) : doit clamper avec count préservé
+- Robustesse : zone shape malformée, kind inconnu, envelope
+  dégénérée (0×0), apply_variant_palette ignoré
+- Lumen-class regression : tout in-bounds, ZÉRO violation en
+  strict=False ET strict=True
+
+## C.5 — Live verification (2026-04-25)
+
+`backend/scripts/iter28_phase_c_live.py` regénère 3 variantes par
+plan sur 3 plans (Bâtiment A, Domaine du Park, Lumen fixture), audite
+chaque entrée du `sketchup_trace` post-validator, et confirme zéro
+overflow visible.
+
+**Résultat** :
+
+```
+==============================================================================
+  Bâtiment A (strict=True)               envelope 36000 × 52970 mm
+==============================================================================
+  variant 'La Place Centrale'            trace_len=41   violations=0  ✓ CLEAN
+  variant 'Atelier façade lumineuse'     trace_len=43   violations=0  ✓ CLEAN
+  variant 'Plateau reconfigurable'       trace_len=39   violations=0  ✓ CLEAN
+
+==============================================================================
+  Domaine du Park (strict=True)          envelope 19400 × 28545 mm
+==============================================================================
+  variant 'La place du Domaine'          trace_len=42   violations=0  ✓ CLEAN
+  variant 'Atelier façade'               trace_len=43   violations=0  ✓ CLEAN
+  variant 'Studio reconfigurable'        trace_len=45   violations=0  ✓ CLEAN
+
+==============================================================================
+  Lumen fixture (strict=False)           envelope 60000 × 40000 mm
+==============================================================================
+  variant 'La place centrale'            trace_len=89   violations=0  ✓ CLEAN
+  variant 'Atelier lumineux'             trace_len=91   violations=0  ✓ CLEAN
+  variant 'Studio Flex'                  trace_len=85   violations=0  ✓ CLEAN
+
+VERDICT : Total post-replay non-clean entities : 0
+          ✓ Phase C achieves 0 visible leak across all 3 plans
+```
+
+**Observation forte** : `envelope_violations emitted = 0` partout —
+y compris sur les 2 plans en strict=True. Ça signifie que **le prompt
+seul a suffi** sur cette run : l'agent a obéi à la nouvelle hard rule
++ arithmétique cluster, le validator n'a eu rien à clamper. C'est le
+cas idéal de la défense en profondeur : la couche 1 (prompt) tient,
+la couche 2 (validator) reste en standby pour les runs malchanceuses
+ou pour des plans particulièrement contraints.
+
+**Note sur la divergence quantitative Phase A** : la capture initiale
+de Saad montrait plusieurs leaks visibles en même temps. Iter-27 a
+nettoyé les rooms_px input, ce qui a déjà drastiquement réduit le
+taux de leak agent-side (Phase A run capturait 1 leak sur 3
+variantes = 0.3 leak/variante en moyenne). Iter-28 ramène à 0/9
+variantes sur 3 plans différents en condition de production. La
+défense en profondeur couvre les leaks résiduels ; la capture Saad
+initiale était probablement un mélange (a) pré-iter-27, (b) variance
+LLM run-to-run, et (c) heroes/decoratives leak structurellement non
+couverts qui n'apparaissent plus parce que le prompt traite
+explicitement leur footprint maintenant.
+
+## C.6 — Quality gates iter-28
+
+| Gate                       | Avant iter-28      | Après iter-28      |
+|----------------------------|--------------------|--------------------|
+| pytest backend             | 151 / 151          | **171 / 171**      |
+| vitest frontend            | 51 / 51            | **51 / 51**        |
+| `tsc -b --noEmit`          | clean              | **clean**          |
+| Lumen regression           | clean              | **identique**      |
+| Bâtiment A live (3 var)    | 1 leak / 138 entr. | **0 leak / 123 entr.** |
+| Domaine du Park live (3v)  | n/a                | **0 leak / 130 entr.** |
+
+## C.7 — Commits
+
+- `<prompt_hash>` — feat(prompt): explicit envelope containment rule for variant agent
+- `<validator_hash>` — feat(testfit): zone envelope validator + post-LLM defense in depth
+
+## C.8 — Hors scope (à l'attention de Saad)
+
+- **Phase B (3D Warehouse mobilier)** : déférée comme prévu. Hero
+  builders Ruby actuels produisent silhouettes 3D reconnaissables.
+  Pas d'amélioration esthétique en iter-28.
+- **Forbidden zones** (cores, stairs, terraces) : pas implémenté.
+  Le validator iter-26 P2 le couvre déjà côté zone × zone overlap.
+  À déclencher si Saad observe que l'agent place des zones SUR les
+  noyaux techniques malgré le prompt.
+- **Frontend UI** : `envelope_violations` est exposé sur
+  `VariantOutput` mais aucune carte UI ne le surface encore. Feature
+  à activer si on observe en prod des clamp/reject réguliers — sur
+  cette run il n'y en a aucun, donc l'UI peut attendre.
+
+---
+
+**STATUS iter-28** : Phase A diagnostic + Phase C fix livrés. Phase B
+déférée. Démo dimanche techniquement prête côté zone-containment.

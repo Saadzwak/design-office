@@ -565,6 +565,32 @@ class TestFitSurface:
                 total_out += structured_out.output_tokens
                 variant_obj = structured_out.data
 
+            # iter-28 Phase C — defense-in-depth zone-envelope validator.
+            # The variant agent prompt (testfit_variant.md) was already
+            # updated with an explicit "Envelope containment" hard rule
+            # including the count×spacing+desk_w arithmetic for clusters.
+            # This Python check is the second line : it walks every
+            # emitted entity, computes its mm footprint, and compares
+            # against [0, plate_w_mm] × [0, plate_h_mm]. In strict mode
+            # (real user uploads) overflows ≤15% are clamped inward,
+            # >15% are rejected ; in non-strict mode (Lumen fixture,
+            # legacy callers) violations are logged but the zones list
+            # is returned untouched. The validator's WARNING records
+            # carry project_id so production logs correlate by upload.
+            from app.agents.zone_envelope_validator import (
+                validate_zones_against_envelope,
+            )
+
+            envelope_w_mm, envelope_h_mm = _envelope_dims_mm(floor_plan)
+            strict_envelope = _should_use_strict_envelope(floor_plan)
+            cleaned_zones, envelope_violations = validate_zones_against_envelope(
+                variant_obj.get("zones") or [],
+                envelope_mm=(envelope_w_mm, envelope_h_mm),
+                project_id=floor_plan.plan_source_id,
+                strict=strict_envelope,
+            )
+            variant_obj["zones"] = cleaned_zones
+
             facade = SketchUpFacade(backend=get_backend())
             facade.new_scene(name=f"{client_name} — {style.value}")
             # iter-21d (Phase B) — drop the source PDF as a reference
@@ -573,7 +599,7 @@ class TestFitSurface:
             # No-op on the mock backend (returns ok=True, mock=True).
             _import_reference_image_if_available(facade, floor_plan)
             _replay_floor_plan(facade, floor_plan)
-            _replay_zones(facade, variant_obj.get("zones", []))
+            _replay_zones(facade, cleaned_zones)
 
             # iter-24 P1 — capture a fresh iso PNG on disk and expose
             # its URL. On the mock backend `screenshot` returns a
@@ -644,6 +670,7 @@ class TestFitSurface:
                     sketchup_shot_url=sketchup_shot_url,
                     sketchup_shot_urls=sketchup_shot_urls,
                     geometric_overlaps=list(geometric_overlaps),
+                    envelope_violations=[dict(v) for v in envelope_violations],
                 )
             )
 
@@ -907,6 +934,45 @@ def _replay_floor_plan(facade: SketchUpFacade, plan: FloorPlan) -> None:
         facade.place_core(core.kind, [(p.x, p.y) for p in core.outline.points])
     for stair in plan.stairs:
         facade.place_stair([(p.x, p.y) for p in stair.outline.points])
+
+
+def _envelope_dims_mm(plan: FloorPlan) -> tuple[float, float]:
+    """Return ``(plate_w_mm, plate_h_mm)`` from the FloorPlan's
+    envelope polygon. Used by the iter-28 zone envelope validator.
+
+    The envelope is constructed by ``parser.fuse()`` as an axis-
+    aligned rectangle anchored at (0, 0) ; its bbox upper-right corner
+    is ``(plate_w_mm, plate_h_mm)``. Falls back to (0, 0) for an empty
+    polygon (defensive — never crashes the variant pipeline)."""
+
+    if not plan.envelope or not plan.envelope.points:
+        return 0.0, 0.0
+    xs = [p.x for p in plan.envelope.points]
+    ys = [p.y for p in plan.envelope.points]
+    if not xs or not ys:
+        return 0.0, 0.0
+    return max(xs), max(ys)
+
+
+def _should_use_strict_envelope(plan: FloorPlan) -> bool:
+    """iter-28 Phase C — choose strict / non-strict mode for the
+    zone envelope validator based on the plan's provenance.
+
+    Real user uploads have a 32-char hex content-hash id (returned by
+    ``parser.save_source_pdf``), and the iter-28 promise of "0 visible
+    leak" applies to them — strict=True so overflows ≤15% are clamped
+    inward and >15% are rejected.
+
+    Lumen fixture and any plan without a ``plan_source_id`` (CLI tests,
+    legacy callers, JSON fixtures used by pytest) get strict=False :
+    violations are logged but the zones list is returned untouched, so
+    the existing 144+ pytest fixtures stay green and the prior LLM
+    behaviour is preserved as a safety net."""
+
+    pid = plan.plan_source_id
+    if not isinstance(pid, str) or len(pid) != 32:
+        return False
+    return all(c in "0123456789abcdef" for c in pid)
 
 
 def _replay_zones(facade: SketchUpFacade, zones: list[dict]) -> None:

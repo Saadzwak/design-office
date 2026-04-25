@@ -262,6 +262,14 @@ class VariantOutput(BaseModel):
     # warning (kind / zones / overlap_m2 / description) — the variant
     # card UI surfaces them next to adjacency violations.
     geometric_overlaps: list[dict] = Field(default_factory=list)
+    # iter-28 Phase C (Saad, 2026-04-25) : per-entity overflows of the
+    # plate envelope detected by zone_envelope_validator. In strict=False
+    # mode these are log-only diagnostics ; in strict=True (real user
+    # uploads) the zones list has already been clamped / pruned by the
+    # time the variant reaches the frontend, but the violations are
+    # surfaced so the architect understands what was auto-fixed.
+    # Empty list when no overflow.
+    envelope_violations: list[dict] = Field(default_factory=list)
 
 
 # ──────────────────────────── Structured micro-zoning ──────────────────────

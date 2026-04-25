@@ -207,6 +207,23 @@ export type VariantOutput = {
     areas_m2: number[];
     description: string;
   }>;
+  /** iter-28 Phase C : per-entity overflows of the plate envelope
+   *  detected by the Python zone_envelope_validator. In strict mode
+   *  (real user uploads) the cleaned zones list has already been
+   *  clamped / pruned ; the violations are surfaced so the architect
+   *  understands which entities were auto-fixed and how. Empty array
+   *  when no overflow. */
+  envelope_violations?: Array<{
+    project_id: string | null;
+    entity_index: number;
+    kind: string;
+    label: string | null;
+    bbox_mm_before: number[];
+    bbox_mm_after: number[] | null;
+    overflow_ratio: number;
+    action: "log_only" | "clamp" | "reject";
+    reason: string;
+  }>;
 };
 
 export type ReviewerVerdict = {
