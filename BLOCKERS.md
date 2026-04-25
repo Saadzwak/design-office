@@ -25,6 +25,41 @@ No handoff artefact is required on this side. When the Claude Design handoff lan
 
 ---
 
+## 🔴 CRITICAL — fal.ai balance exhausted (iter-30B)
+
+### B-30B-1. Top up fal.ai balance for NanoBanana Pro
+
+- **Symptom** : `HTTP 403 — User is locked. Reason: Exhausted balance.
+  Top up your balance at fal.ai/dashboard/billing.`
+- **Hit during** : iter-30B in-process verification of per-item
+  editorial product photographs (`generate-item-tiles`).
+- **What still works without a top-up** :
+  - All previously cached NanoBanana tiles (41 PNGs in
+    `backend/app/data/generated_images/`) keep serving from cache.
+  - The Lumen fixture has **all 21 item-tile prompts cached** plus
+    3 of 4 hero gallery tiles, so the fixture path renders the
+    full mood board without spending more credit.
+  - The A3 PDF rerender embeds those cached photos correctly
+    (verified: `4ea742a85567ae80.pdf` carries 14 embedded images
+    on a 420 × 297 mm page).
+- **What is blocked** : fresh non-Lumen projects, prompt iteration
+  on the per-item photographs (Stage 3 of iter-30B), and any
+  "Generate mood board" run that emits new material/furniture/
+  plant/light combinations not yet in the cache.
+- **Action for Saad** : top up at
+  <https://fal.ai/dashboard/billing>. Estimated burn rate from the
+  iter-30B test session: ~25 NanoBanana calls (gallery × 4 +
+  item tiles × 21) per fresh mood board, at ~0.04 USD per
+  Pro-tier call → ~1 USD per fresh mood board. Three variants ×
+  three fresh projects → ~9 USD covers the demo.
+- **Workaround in code** : `generate_item_tiles` already isolates
+  per-item failures into `skipped_errors` rather than aborting
+  the batch, and the frontend collage falls back to
+  `<Placeholder>` for any tile that fails. So an empty balance
+  degrades gracefully — no surface crashes.
+
+---
+
 ## 🔴 CRITICAL — security
 
 ### B0. Rotate the leaked Anthropic API key (post-hackathon)

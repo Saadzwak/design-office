@@ -349,6 +349,42 @@ export async function generateMoodBoardGallery(
   return r.json();
 }
 
+// iter-30B — per-item editorial product photos (one NanoBanana
+// shot per material / furniture piece / plant / fixture). Replaces
+// the hatched <Placeholder tag="MATERIAL"/"PIECE"> tiles in the
+// Pinterest collage with real magazine-grade product photography.
+
+export type VisualMoodBoardItemTile = {
+  category: "material" | "furniture" | "plant" | "light";
+  item_key: string;
+  label: string;
+  visual_image_id: string;
+  path_rel: string;
+  cache_hit: boolean;
+  prompt: string;
+};
+
+export type VisualMoodBoardItemTilesResponse = {
+  tiles: VisualMoodBoardItemTile[];
+  total_bytes: number;
+  cache_hits: number;
+  skipped_errors: string[];
+};
+
+export async function generateMoodBoardItemTiles(
+  req: VisualMoodBoardRequest,
+  signal?: AbortSignal,
+): Promise<VisualMoodBoardItemTilesResponse> {
+  const r = await fetch("/api/moodboard/generate-item-tiles", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(req),
+    signal,
+  });
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+
 // iter-20e (Saad #10) — re-render the A3 PDF once gallery tiles land,
 // embedding the atmosphere photograph in the hero block. The backend
 // resolves ids to absolute paths server-side; the frontend only sends
@@ -359,6 +395,10 @@ export type MoodBoardRerenderRequest = {
   selection: Record<string, unknown>;
   project_reference?: string | null;
   gallery_tile_ids: Record<string, string>;
+  /** Iter-30B — per-item NanoBanana cache ids keyed by `item_key`
+   *  slug (`mat:european-oak:oiled`, `fur:vitra-eames-…`, etc).
+   *  Embedded into the materials / furniture grids in the A3 PDF. */
+  item_tile_ids?: Record<string, string>;
 };
 
 export type MoodBoardRerenderResponse = { pdf_id: string };

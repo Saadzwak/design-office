@@ -96,14 +96,37 @@ class NanoBananaClient:
             raise NanoBananaError(
                 "FAL_KEY is not set — visual generation is unavailable."
             )
-        default_cache = (
-            Path(__file__).resolve().parent.parent / "data" / "generated_images"
-        )
-        self.cache_dir = Path(
-            cache_dir
-            or os.environ.get("NANOBANANA_CACHE_DIR")
-            or default_cache
-        )
+        # Path layout:
+        #   `__file__`        = <repo>/backend/app/services/nanobanana_client.py
+        #   `backend_root`    = <repo>/backend/app/
+        #   `repo_root`       = <repo>/
+        # Default cache is `<repo>/backend/app/data/generated_images/`.
+        backend_root = Path(__file__).resolve().parent.parent
+        repo_root = backend_root.parent.parent
+        default_cache = backend_root / "data" / "generated_images"
+        # Iter-30B fix: a relative `NANOBANANA_CACHE_DIR` env override
+        # used to resolve against `os.getcwd()`, which produced a doubled
+        # `backend/backend/` path when uvicorn was launched from `cd
+        # backend/`. We now resolve any relative override against the
+        # repo root, which is the same regardless of how the server is
+        # started. Absolute overrides are preserved verbatim.
+        env_override = os.environ.get("NANOBANANA_CACHE_DIR")
+        if cache_dir is not None:
+            self.cache_dir = Path(cache_dir)
+        elif env_override:
+            override = Path(env_override)
+            self.cache_dir = (
+                override if override.is_absolute() else repo_root / override
+            )
+        else:
+            self.cache_dir = default_cache
+        # Final safety net: if the resolved path contains a doubled
+        # `backend/backend/` segment (legacy bug surface) and the
+        # canonical location is populated, prefer the canonical one
+        # so we don't orphan existing cache files.
+        resolved_str = str(self.cache_dir).replace("\\", "/")
+        if "backend/backend" in resolved_str and default_cache.exists():
+            self.cache_dir = default_cache
         self.cache_dir.mkdir(parents=True, exist_ok=True)
         self.timeout_s = timeout_s
         self.poll_interval_s = poll_interval_s

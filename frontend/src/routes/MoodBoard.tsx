@@ -15,12 +15,14 @@ import {
   fetchTestFitSample,
   generateMoodBoard,
   generateMoodBoardGallery,
+  generateMoodBoardItemTiles,
   generatedImageUrl,
   moodBoardPdfUrl,
   rerenderMoodBoardPdf,
   type MoodBoardResponse,
   type VisualMoodBoardGalleryResponse,
   type VisualMoodBoardGalleryTile,
+  type VisualMoodBoardItemTile,
 } from "../lib/api";
 import { INDUSTRY_LABEL, setMoodBoard } from "../lib/projectState";
 
@@ -116,6 +118,14 @@ export default function MoodBoard() {
   const [galleryPhase, setGalleryPhase] = useState<
     "idle" | "running" | "error"
   >("idle");
+  // Iter-30B : per-item editorial product photos (one per material,
+  // furniture piece, plant, fixture). Resolved by `item_key` from a
+  // slug computed identically to the backend (see `slugifyItemKey`).
+  const [itemTiles, setItemTiles] = useState<
+    Record<string, VisualMoodBoardItemTile>
+  >({});
+  const [itemTilesPhase, setItemTilesPhase] =
+    useState<"idle" | "running" | "ready" | "error">("idle");
 
   // Iter-20a (Saad #6, #9) : the Lumen fixture used to preload for
   // every project, making a fresh project look like it already had a
@@ -123,7 +133,17 @@ export default function MoodBoard() {
   // gets the fixture preload ; every other project hits the "Generate
   // mood board" empty state.
   useEffect(() => {
+    // Iter-30B dev affordance: `/moodboard?fixture=lumen` force-loads
+    // the bundled Lumen fixture even on a non-Lumen project, so the
+    // mood-board route can be visually iterated against rich content
+    // without paying for a curator run. Intentionally kept in: the
+    // hackathon judges may want to see the page populated quickly,
+    // and the param name is explicit enough not to be triggered by
+    // accident. Documented in docs/MOODBOARD_REFONTE.md §process notes.
+    const params = new URLSearchParams(window.location.search);
+    const forceFixture = params.get("fixture") === "lumen";
     const isLumen =
+      forceFixture ||
       (project.project_id || "").toLowerCase().startsWith("lumen") ||
       (project.client.name || "").toLowerCase() === "lumen";
     if (!isLumen) return;
@@ -185,6 +205,76 @@ export default function MoodBoard() {
         });
       setGallery(resp.tiles);
       setGalleryPhase("idle");
+
+      // iter-30B : fire the per-item editorial photo batch in
+      // parallel with the PDF re-render. When it completes, fire a
+      // SECOND PDF rerender that combines gallery_tile_ids +
+      // item_tile_ids — the A3 PDF then embeds real product photos
+      // in every material / furniture cell instead of the colour-
+      // swatch fallback. Failure is non-fatal: the collage falls
+      // back to <Placeholder> tiles for unresolved items, like before.
+      void (async () => {
+        setItemTilesPhase("running");
+        try {
+          const items = await generateMoodBoardItemTiles({
+            client_name: project.client.name,
+            industry: project.client.industry,
+            variant,
+            mood_board_selection: selection as Record<string, unknown>,
+            aspect_ratio: "4:3",
+          });
+          const byKey: Record<string, VisualMoodBoardItemTile> = {};
+          const itemIdsForPdf: Record<string, string> = {};
+          for (const t of items.tiles) {
+            byKey[t.item_key] = t;
+            itemIdsForPdf[t.item_key] = t.visual_image_id;
+          }
+          setItemTiles(byKey);
+          setItemTilesPhase("ready");
+
+          // Second-pass PDF rerender: now that we have ALL imagery
+          // (4 hero gallery + N item tiles), regenerate the A3 PDF
+          // with everything embedded.
+          try {
+            const galleryIds: Record<string, string> = {};
+            for (const t of resp.tiles) galleryIds[t.label] = t.visual_image_id;
+            const rerender2 = await rerenderMoodBoardPdf({
+              client: {
+                name: project.client.name,
+                industry: project.client.industry,
+                logo_data_url: project.client.logo_data_url ?? null,
+              },
+              variant,
+              selection: selection as Record<string, unknown>,
+              gallery_tile_ids: galleryIds,
+              item_tile_ids: itemIdsForPdf,
+            });
+            if (rerender2.pdf_id) {
+              const hexes = (selection.atmosphere?.palette ?? [])
+                .map((p) => p.hex)
+                .filter((s): s is string => typeof s === "string");
+              setMoodBoard({
+                pdf_id: rerender2.pdf_id,
+                palette: hexes,
+                selection: selection as Record<string, unknown>,
+              });
+              setResponse((prev) =>
+                prev ? { ...prev, pdf_id: rerender2.pdf_id } : prev,
+              );
+            }
+          } catch (rerenderErr) {
+            // eslint-disable-next-line no-console
+            console.warn(
+              "Mood-board PDF re-render (with items) failed",
+              rerenderErr,
+            );
+          }
+        } catch (err) {
+          // eslint-disable-next-line no-console
+          console.warn("Mood-board item-tiles failed", err);
+          setItemTilesPhase("error");
+        }
+      })();
 
       // iter-20e (Saad #10) : once the tiles are cached, upgrade the
       // A3 PDF so the atmosphere hero uses a real NanoBanana photo
@@ -440,22 +530,47 @@ export default function MoodBoard() {
               </div>
             </div>
           )}
-          {tiles.map((t, i) => (
-            <div
-              key={`p-${i}`}
-              className="shadow-soft"
-              style={{
-                breakInside: "avoid",
-                marginBottom: 14,
-                transform: `rotate(${((i + gallery.length) % 3 - 1) * 0.4}deg)`,
-                background: "white",
-                padding: 6,
-                borderRadius: 4,
-              }}
-            >
-              <Placeholder tag={t.tag} tint={t.tint} ratio={t.ratio} />
-            </div>
-          ))}
+          {tiles.map((t, i) => {
+            const resolved = t.itemKey ? itemTiles[t.itemKey] : undefined;
+            const stillLoading =
+              !resolved && itemTilesPhase === "running" && !!t.itemKey;
+            return (
+              <div
+                key={`p-${i}`}
+                className="shadow-soft group"
+                style={{
+                  breakInside: "avoid",
+                  marginBottom: 14,
+                  transform: `rotate(${((i + gallery.length) % 3 - 1) * 0.4}deg)`,
+                  background: "white",
+                  padding: 6,
+                  borderRadius: 4,
+                  transition: "transform 250ms cubic-bezier(0.22, 1, 0.36, 1)",
+                  opacity: stillLoading ? 0.55 : 1,
+                }}
+              >
+                {resolved ? (
+                  <>
+                    <img
+                      src={generatedImageUrl(resolved.visual_image_id)}
+                      alt={resolved.label}
+                      className="block w-full rounded animate-fade-rise"
+                      style={{
+                        aspectRatio: t.ratio.replace("/", " / "),
+                        objectFit: "cover",
+                      }}
+                      loading="lazy"
+                    />
+                    <div className="mono mt-1.5 text-center text-[9px] uppercase tracking-[0.12em] text-mist-500">
+                      {resolved.label}
+                    </div>
+                  </>
+                ) : (
+                  <Placeholder tag={t.tag} tint={t.tint} ratio={t.ratio} />
+                )}
+              </div>
+            );
+          })}
         </div>
 
         {/* Drill topic cards */}
@@ -589,12 +704,46 @@ export default function MoodBoard() {
 
 // ─────────────────────────────────────── helpers ──
 
-function buildTiles(selection: Selection | null): Array<{
+/**
+ * Slugify identical to backend `_slug()` in
+ * `app/surfaces/visual_moodboard.py` — ASCII `[a-z0-9]` + hyphens.
+ *
+ * Iter-30B note: this is **intentionally ASCII-restricted** to match
+ * the backend exactly. Python's `str.isalnum()` accepts Unicode
+ * letters (`é`, `ñ`, `ç`…) but JS `/[a-z0-9]/` does not — we picked
+ * the JS-compatible subset so accented client / brand names produce
+ * the same key on both sides and the `itemKey → image` lookup
+ * cannot silently miss. If you ever change one, change the other.
+ */
+function slugifyItemKey(s: string): string {
+  if (!s) return "";
+  let last = "-";
+  let out = "";
+  for (const ch of s.toLowerCase()) {
+    if (/[a-z0-9]/.test(ch)) {
+      out += ch;
+      last = ch;
+    } else if (last !== "-") {
+      out += "-";
+      last = "-";
+    }
+  }
+  return out.replace(/^-+|-+$/g, "");
+}
+
+type CollageTile = {
   tag: string;
   tint: string;
   ratio: string;
-}> {
+  /** Canonical item_key matching the backend — used for image lookup. */
+  itemKey?: string;
+  category?: "material" | "furniture" | "plant" | "light";
+};
+
+function buildTiles(selection: Selection | null): CollageTile[] {
   if (!selection) {
+    // Fallback fixture tiles (no selection yet) — no item_key, the
+    // collage just shows hatched <Placeholder> for the empty state.
     return [
       { tag: "NORTH LIGHT", tint: "#B89068", ratio: "4/5" },
       { tag: "OAK JOINERY", tint: "#8B6B44", ratio: "1/1" },
@@ -608,26 +757,102 @@ function buildTiles(selection: Selection | null): Array<{
       { tag: "TERRACE", tint: "#6B8F7F", ratio: "4/5" },
     ];
   }
-  const tiles: Array<{ tag: string; tint: string; ratio: string }> = [];
+  const tiles: CollageTile[] = [];
   const ratios = ["4/5", "1/1", "3/4", "1/1", "4/5", "3/4", "4/3", "1/1", "3/4", "4/5"];
-  // Prefer materials with a swatch_hex — they form the richest tiles.
+  // Materials first (they carry the richest swatches).
   for (const m of selection.materials ?? []) {
-    if (tiles.length >= 7) break;
+    if (tiles.length >= 12) break;
+    // Backend key shape: `mat:${slug(material)}:${slug(finish)}`,
+    // trailing colon trimmed if finish empty. Replicate exactly.
+    // Note: the curator schema field is `material` (LLM) but the
+    // frontend Selection type calls it `name` for legacy fixtures —
+    // use whichever is present.
+    const matName = (m as { material?: string }).material ?? m.name ?? "";
+    const finish = (m as { finish?: string }).finish ?? "";
+    const key = `mat:${slugifyItemKey(matName)}${finish ? `:${slugifyItemKey(finish)}` : ""}`;
     tiles.push({
-      tag: (m.name ?? "MATERIAL").toUpperCase(),
+      tag: (matName || m.name || "MATERIAL").toUpperCase(),
       tint: m.swatch_hex ?? "#A89775",
       ratio: ratios[tiles.length % ratios.length],
+      itemKey: key,
+      category: "material",
     });
   }
+  // Furniture next.
   for (const f of selection.furniture ?? []) {
-    if (tiles.length >= 10) break;
+    if (tiles.length >= 16) break;
+    const pid = (f as { product_id?: string }).product_id;
+    const brand = f.brand ?? "";
+    const name = f.name ?? "";
+    let key: string;
+    if (pid) {
+      key = `fur:${slugifyItemKey(pid)}`;
+    } else {
+      const parts = [slugifyItemKey(brand), slugifyItemKey(name)].filter(
+        Boolean,
+      );
+      key = parts.length ? `fur:${parts.join("-")}` : "";
+    }
     tiles.push({
-      tag: (f.name ?? "PIECE").toUpperCase(),
+      tag: (name || "PIECE").toUpperCase(),
       tint: "#2A2E28",
       ratio: ratios[tiles.length % ratios.length],
+      itemKey: key || undefined,
+      category: "furniture",
     });
   }
-  return tiles.slice(0, 10);
+  // Light fixtures + plants seeded after, so the collage stays full
+  // and visually varied even when the curator emits a thin selection.
+  const lightFixtures = (() => {
+    const lt = selection.light;
+    if (!lt) return [] as Array<{ brand?: string; model?: string; name?: string }>;
+    const fx = (lt as { fixtures?: unknown }).fixtures;
+    if (!Array.isArray(fx)) return [];
+    return fx.filter((x): x is { brand?: string; model?: string; name?: string } =>
+      typeof x === "object" && x !== null,
+    );
+  })();
+  for (const fx of lightFixtures) {
+    if (tiles.length >= 18) break;
+    const brand = fx.brand ?? "";
+    const model = fx.model ?? fx.name ?? "";
+    const parts = [slugifyItemKey(brand), slugifyItemKey(model)].filter(
+      Boolean,
+    );
+    const key = parts.length ? `lig:${parts.join("-")}` : "";
+    tiles.push({
+      tag: `${brand} ${model}`.trim().toUpperCase() || "PENDANT",
+      tint: "#3C5D50",
+      ratio: ratios[tiles.length % ratios.length],
+      itemKey: key || undefined,
+      category: "light",
+    });
+  }
+  const plantSpecies = (() => {
+    const p = selection.planting;
+    if (!p) return [] as Array<{ name?: string; latin?: string }>;
+    const sp = (p as { species?: unknown }).species;
+    if (!Array.isArray(sp)) return [];
+    return sp.flatMap((s) => {
+      if (typeof s === "string") return [{ name: s }];
+      if (s && typeof s === "object")
+        return [s as { name?: string; latin?: string }];
+      return [];
+    });
+  })();
+  for (const sp of plantSpecies) {
+    if (tiles.length >= 20) break;
+    const nm = sp.name ?? sp.latin ?? "";
+    if (!nm) continue;
+    tiles.push({
+      tag: nm.toUpperCase(),
+      tint: "#6B8F7F",
+      ratio: ratios[tiles.length % ratios.length],
+      itemKey: `pla:${slugifyItemKey(nm)}`,
+      category: "plant",
+    });
+  }
+  return tiles.slice(0, 14);
 }
 
 function summariseTopic(k: DrillKey, s: Selection | null): string {

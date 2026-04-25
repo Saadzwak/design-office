@@ -43,6 +43,7 @@ from app.surfaces.moodboard import (
 )
 from app.surfaces.visual_moodboard import (
     VisualMoodBoardGalleryResponse,
+    VisualMoodBoardItemTilesResponse,
     VisualMoodBoardRequest,
     VisualMoodBoardResponse,
     compile_default_surface as compile_visual_moodboard_surface,
@@ -488,12 +489,25 @@ def moodboard_rerender_pdf(
         if p is not None:
             resolved[label] = str(p)
 
+    # Iter-30B : resolve per-item NanoBanana ids (one per material /
+    # furniture / plant / fixture). Keys are canonical `item_key`
+    # slugs that the PDF renderer matches in the materials and
+    # furniture grids.
+    resolved_items: dict[str, str] = {}
+    for item_key, image_id in payload.item_tile_ids.items():
+        if not isinstance(image_id, str) or not isinstance(item_key, str):
+            continue
+        p = visual_moodboard_path_for(image_id)
+        if p is not None:
+            resolved_items[item_key] = str(p)
+
     pdf_id = moodboard_render_pdf_from_selection(
         client=payload.client,
         variant=payload.variant,
         selection=payload.selection,
         project_reference=payload.project_reference,
         gallery_tile_paths=resolved or None,
+        item_tile_paths=resolved_items or None,
     )
     return MoodBoardRerenderResponse(pdf_id=pdf_id)
 
@@ -545,6 +559,34 @@ def moodboard_generate_gallery(
         raise HTTPException(status_code=503, detail=str(exc))
     try:
         return surface.generate_gallery(payload)
+    except NanoBananaError as exc:
+        raise HTTPException(status_code=502, detail=str(exc))
+
+
+@app.post(
+    "/api/moodboard/generate-item-tiles",
+    response_model=VisualMoodBoardItemTilesResponse,
+)
+def moodboard_generate_item_tiles(
+    payload: VisualMoodBoardRequest,
+) -> VisualMoodBoardItemTilesResponse:
+    """Iter-30B : generate ONE editorial product photograph per item in
+    the curator selection (per material, per furniture piece, per
+    plant, per fixture). These replace the hatched <Placeholder> tiles
+    in the Pinterest collage with real magazine-grade product shots,
+    and are embedded in the A3 PDF.
+
+    Cache-aware: NanoBanana keys by (model, prompt, aspect_ratio) sha256
+    so reruns of the same selection cost nothing. Per-item failures are
+    isolated — a single timeout never aborts the batch.
+    """
+
+    try:
+        surface = compile_visual_moodboard_surface()
+    except NanoBananaError as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
+    try:
+        return surface.generate_item_tiles(payload)
     except NanoBananaError as exc:
         raise HTTPException(status_code=502, detail=str(exc))
 
