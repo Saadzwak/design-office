@@ -56,6 +56,28 @@ module DesignOffice
       nil
     end
 
+    # iter-27 P1 — guarantee upward extrusion regardless of face winding.
+    #
+    # SketchUp's auto-merge can flip a freshly-built face's normal to -Z
+    # if it touches a co-planar edge, so `face.pushpull(+h)` ends up
+    # extruding DOWNWARD into negative Z. The reference plan PNG sits at
+    # z = -10 mm (see `import_plan_pdf`), so a downward extrusion drops
+    # geometry under the plan — invisible from the iso renders, and the
+    # plan appears to slice through the model when seen from the side.
+    #
+    # `_safe_pushpull_up` checks the normal first, calls `face.reverse!`
+    # to flip the winding if needed, then pushpulls. After this call,
+    # the geometry is guaranteed to live in z ∈ [0, h_mm]. The unsigned
+    # h_mm convention matches the call sites we replaced (they all pass
+    # mm-magnitudes, never negative numbers).
+    def _safe_pushpull_up(face, h_mm)
+      return nil unless face && face.valid?
+      face.reverse! if face.normal.z < 0
+      face.pushpull(mm(h_mm))
+    rescue StandardError
+      nil
+    end
+
     def colour(rgb)
       Sketchup::Color.new(*rgb)
     end
@@ -91,7 +113,7 @@ module DesignOffice
         center = Geom::Point3d.new(mm(x_mm), mm(y_mm), 0)
         circle = ents.add_circle(center, Z_AXIS, mm(radius_mm.to_f), 16)
         face = ents.add_face(circle)
-        face.pushpull(mm(2800)) if face && face.valid?
+        _safe_pushpull_up(face, 2800)
         'ok'
       end
     end
@@ -104,7 +126,7 @@ module DesignOffice
         face = rectangle_face(ents, xs.min, ys.min, xs.max, ys.max)
         if face && face.valid?
           face.material = colour([70, 70, 70])
-          face.pushpull(mm(2800))
+          _safe_pushpull_up(face, 2800)
         end
         kind
       end
@@ -118,7 +140,7 @@ module DesignOffice
         face = rectangle_face(ents, xs.min, ys.min, xs.max, ys.max)
         if face && face.valid?
           face.material = colour([170, 170, 170])
-          face.pushpull(mm(400))
+          _safe_pushpull_up(face, 400)
         end
         ents.add_line(
           Geom::Point3d.new(mm(xs.min), mm(ys.min), mm(400)),
@@ -152,7 +174,7 @@ module DesignOffice
           face = rectangle_face(ents, x0, y0, x0 + width, y0 + depth)
           if face && face.valid?
             face.material = colour([240, 240, 230])
-            face.pushpull(mm(DEFAULT_DESK_H_MM))
+            _safe_pushpull_up(face, DEFAULT_DESK_H_MM)
           end
         end
         count
@@ -173,7 +195,7 @@ module DesignOffice
         xs = [x0, x1].minmax
         ys = [y0, y1].minmax
         # Outer pushpull the floor tint by wall height to get a volume — minimal but legible.
-        floor.pushpull(mm(WALL_HEIGHT_MM)) if floor && floor.valid?
+        _safe_pushpull_up(floor, WALL_HEIGHT_MM)
         name
       end
     end
@@ -189,7 +211,7 @@ module DesignOffice
         face = rectangle_face(ents, x_mm, y_mm, x_mm + w, y_mm + d)
         if face && face.valid?
           face.material = colour([60, 60, 70])
-          face.pushpull(mm(h))
+          _safe_pushpull_up(face, h)
         end
         product_id
       end
@@ -220,7 +242,7 @@ module DesignOffice
           face = ents.add_face(pts)
           if face && face.valid?
             face.material = kind.to_s == 'glazed' ? colour([200, 220, 240]) : colour([210, 200, 180])
-            face.pushpull(mm(WALL_HEIGHT_MM))
+            _safe_pushpull_up(face, WALL_HEIGHT_MM)
           end
           kind
         end
@@ -256,7 +278,7 @@ module DesignOffice
         face = ents.add_face(circle)
         if face && face.valid?
           face.material = colour([110, 170, 110])
-          face.pushpull(mm(1200))
+          _safe_pushpull_up(face, 1200)
         end
         'ok'
       end
@@ -713,7 +735,7 @@ module DesignOffice
       face = rectangle_face(group.entities,
                             x_mm - w / 2.0, y_mm - d / 2.0,
                             x_mm + w / 2.0, y_mm + d / 2.0)
-      face.pushpull(mm(h)) if face
+      _safe_pushpull_up(face, h)
       _apply_color_override(group, color_rgb) if color_rgb
       { ok: true, kind: 'fallback_box', slug: slug, fallback_size_mm: fallback_size_mm }
     end
@@ -801,9 +823,12 @@ module DesignOffice
       # Seat pad
       seat_w = 520
       seat_d = 500
-      rectangle_face(group.entities,
-                     x_mm - seat_w / 2, y_mm - seat_d / 2,
-                     x_mm + seat_w / 2, y_mm + seat_d / 2, 450)&.pushpull(mm(60))
+      _safe_pushpull_up(
+        rectangle_face(group.entities,
+                       x_mm - seat_w / 2, y_mm - seat_d / 2,
+                       x_mm + seat_w / 2, y_mm + seat_d / 2, 450),
+        60
+      )
       # Backrest (behind, 800 mm up)
       back_w = 480
       back_h = 500
@@ -823,9 +848,12 @@ module DesignOffice
       # Wider, lower lounge form
       seat_w = 780
       seat_d = 760
-      rectangle_face(group.entities,
-                     x_mm - seat_w / 2, y_mm - seat_d / 2,
-                     x_mm + seat_w / 2, y_mm + seat_d / 2, 0)&.pushpull(mm(420))
+      _safe_pushpull_up(
+        rectangle_face(group.entities,
+                       x_mm - seat_w / 2, y_mm - seat_d / 2,
+                       x_mm + seat_w / 2, y_mm + seat_d / 2, 0),
+        420
+      )
       # Back cushion
       back_w = 760
       back_h = 440
@@ -844,14 +872,20 @@ module DesignOffice
       d = 800
       top_h = 40
       # Top
-      rectangle_face(group.entities,
-                     x_mm - w / 2, y_mm - d / 2,
-                     x_mm + w / 2, y_mm + d / 2, 720)&.pushpull(mm(top_h))
+      _safe_pushpull_up(
+        rectangle_face(group.entities,
+                       x_mm - w / 2, y_mm - d / 2,
+                       x_mm + w / 2, y_mm + d / 2, 720),
+        top_h
+      )
       # Two trestle legs
       [[x_mm - w / 2 + 100, y_mm], [x_mm + w / 2 - 100, y_mm]].each do |lx, ly|
-        rectangle_face(group.entities,
-                       lx - 40, ly - d / 2 + 40,
-                       lx + 40, ly + d / 2 - 40, 0)&.pushpull(mm(720))
+        _safe_pushpull_up(
+          rectangle_face(group.entities,
+                         lx - 40, ly - d / 2 + 40,
+                         lx + 40, ly + d / 2 - 40, 0),
+          720
+        )
       end
       _paint_entity(group, mat)
       group.name = 'desk_bench_1600'
@@ -861,9 +895,12 @@ module DesignOffice
     def _build_table(ents, x_mm, y_mm, color_rgb, length_mm: 4000, width_mm: 1400)
       group = ents.add_group
       mat = _material_for(color_rgb)
-      rectangle_face(group.entities,
-                     x_mm - length_mm / 2, y_mm - width_mm / 2,
-                     x_mm + length_mm / 2, y_mm + width_mm / 2, 720)&.pushpull(mm(50))
+      _safe_pushpull_up(
+        rectangle_face(group.entities,
+                       x_mm - length_mm / 2, y_mm - width_mm / 2,
+                       x_mm + length_mm / 2, y_mm + width_mm / 2, 720),
+        50
+      )
       # 4 legs
       inset = 400
       [[-length_mm / 2 + inset, -width_mm / 2 + inset],
@@ -884,9 +921,12 @@ module DesignOffice
       w = 1000
       d = 1000
       h = 2400
-      rectangle_face(group.entities,
-                     x_mm - w / 2, y_mm - d / 2,
-                     x_mm + w / 2, y_mm + d / 2, 0)&.pushpull(mm(h))
+      _safe_pushpull_up(
+        rectangle_face(group.entities,
+                       x_mm - w / 2, y_mm - d / 2,
+                       x_mm + w / 2, y_mm + d / 2, 0),
+        h
+      )
       _paint_entity(group, mat)
       group.name = 'framery_booth'
       group
@@ -909,7 +949,7 @@ module DesignOffice
       centre = Geom::Point3d.new(mm(x_mm), mm(y_mm), mm(z_bot_mm))
       circle = entities.add_circle(centre, Geom::Vector3d.new(0, 0, 1), mm(radius_mm), 24)
       face = entities.add_face(circle)
-      face.pushpull(mm(height_mm)) if face
+      _safe_pushpull_up(face, height_mm)
       _paint_entity_face_list(circle, mat) if mat
     rescue StandardError
       nil
