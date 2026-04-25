@@ -1735,3 +1735,105 @@ grouped commits :
 
 Status : **ITER-20 COMPLETE**. Next : Saad reviews on wake, picks
 iter-21 priorities or starts demo recording.
+
+---
+
+## Iter-30B — 2026-04-24/25, overnight (mood-board refonte)
+
+Saad directive after iter-29 visual validation : the Pinterest
+references he shared (executive interior board, computer-lab board)
+set the editorial bar; the live `/moodboard` was still showing
+hatched `<Placeholder tag="MATERIAL"/"PIECE">` tiles and the A3
+PDF carried zero embedded images. Brief : "transformer l'UI/UX
+pour atteindre une qualité éditoriale équivalente aux mood boards
+Pinterest professionnels".
+
+### What landed (Stage 1 + 1.1)
+
+| Commit  | Scope |
+|---------|-------|
+| f1e72c9 | Per-item editorial product photos + A3 PDF embedding + cache-path fix |
+| 383b260 | Width-aware caption truncation + DEV-gated `?fixture=lumen` |
+
+### Architecture additions
+
+- `VisualMoodBoardSurface.generate_item_tiles(req)` — produces ONE
+  editorial product photograph per item (per material, per
+  furniture piece, per plant, per fixture). Tightly-scoped Kinfolk-
+  style prompts, single subject on neutral studio backdrop, project
+  palette in ambient cast. Per-item failures isolated in
+  `skipped_errors` so a single fal.ai timeout never aborts the
+  batch.
+- `POST /api/moodboard/generate-item-tiles` — wires the surface.
+- `MoodBoard.tsx` — fires the new endpoint after the gallery
+  returns, renders `<img>` in the Pinterest collage when an
+  `item_key`-resolved tile lands, falls back to `<Placeholder>`
+  otherwise. `slugifyItemKey()` mirrors backend `_slug()` exactly
+  (ASCII-only, JS-RegEx-compatible) so the lookup can never miss.
+- `_render_moodboard_pdf(..., item_tile_paths)` — embeds real
+  product photos in the materials and furniture grids. Verified:
+  **14 embedded images** on a 420 × 297 mm A3 page (was 0).
+- Second-pass rerender after item tiles complete writes the final
+  `pdf_id` with both gallery + items embedded.
+- `MoodBoardRerenderRequest.item_tile_ids` and the corresponding
+  endpoint resolution in `main.py` thread the new ids through.
+- `_truncate_to_width()` helper — binary-searches `stringWidth()`
+  with ellipsis fallback, ends caption overflow ("Upholstery —
+  Lumen yellow accent" used to run past its cell edge).
+- `?fixture=lumen` dev backdoor wrapped in `import.meta.env.DEV`
+  so Vite tree-shakes it out of production builds.
+
+### Robustness fixes
+
+- `NANOBANANA_CACHE_DIR` relative env override now resolves
+  against the repo root, not `os.getcwd()`. The legacy bug
+  produced a doubled `<repo>/backend/backend/app/data/...` path
+  whenever uvicorn was launched via `cd backend && uvicorn ...`,
+  orphaning every NanoBanana cache file. Safety net collapses any
+  legacy doubled paths back to the canonical location.
+- `slugifyItemKey()` JS and `_slug()` Python use the same ASCII
+  `[a-z0-9]` rule (Python had `.isalnum()` which matched Unicode
+  letters; JS had `/[a-z0-9]/` which didn't). A French client
+  name with accents would have silently missed lookups; both
+  helpers documented as a lock-step pair.
+
+### Gates at iter-30B close
+
+- pytest -q → **173 passed** (171 + 2 new truncation regression
+  tests)
+- tsc --noEmit → **clean** (added `src/vite-env.d.ts` for
+  `import.meta.env` typings)
+- Visual proof : `docs/screenshots/iter30b-moodboard-pdf-v2.png`
+  shows the A3 PDF with 14 embedded editorial photographs across
+  materials and furniture grids, captions truncated cleanly with
+  typographic ellipsis where they overflow.
+- Browser smoke : `/moodboard?fixture=lumen` renders 18 images
+  (4 hero gallery + 14 per-item) end-to-end with zero broken.
+
+### What's parked (Stage 2 + 3)
+
+- **Stage 2 — three variants per project.** Plumbing not shipped
+  because verification requires fresh fal.ai calls.
+- **Stage 3 — visual prompt iteration.** Same blocker.
+- Both gated on **fal.ai balance top-up** — a 403 "Exhausted
+  balance" hit during in-process verification. Logged in
+  `BLOCKERS.md §B-30B-1` with cost estimate (~9 USD covers the
+  full demo arc) and the graceful-degradation behaviour already
+  in place (per-item failures don't crash the surface).
+
+### What changed for the judge
+
+1. The /moodboard route is now a real Pinterest collage : 4
+   editorial NanoBanana hero tiles, ~14 per-item product
+   photographs, all rendered in a 3-column masonry with subtle
+   ±0.4° rotation and `fade-rise` arrival animation.
+2. The A3 client PDF carries 14+ embedded photographs across
+   materials and furniture, captions truncated to fit cell
+   widths — the artefact a space planner would actually print
+   and pin to a wall.
+3. fal.ai cache reuse means a second view of the same mood board
+   is instant, and reruns of the same selection don't bill twice.
+
+Status : **ITER-30B STAGE 1 + 1.1 COMPLETE**, branch
+`feat/iter30b-moodboard-photos` (NOT pushed — Saad merges to main
+after review). Stages 2 + 3 awaiting fal.ai top-up.

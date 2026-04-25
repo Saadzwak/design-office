@@ -85,6 +85,12 @@ class MoodBoardRerenderRequest(BaseModel):
     """Iter-20e (Saad #10) : re-render the A3 PDF from an already-curated
     selection + a NanoBanana gallery. Lets the frontend upgrade the PDF
     once the tiles land, without re-running the (expensive) curator.
+
+    Iter-30B : also accepts `item_tile_ids` — one cache id per
+    individual material / furniture / plant / fixture tile generated
+    by `/api/moodboard/generate-item-tiles`. Lets the A3 PDF embed
+    real product photographs in each cell of the materials and
+    furniture grids, instead of the colour-swatch + text fallback.
     """
 
     client: ClientInfo
@@ -97,6 +103,17 @@ class MoodBoardRerenderRequest(BaseModel):
             "Keys: atmosphere|materials|furniture|biophilic → NanoBanana "
             "cache ids (32 hex chars). Resolved server-side to absolute "
             "image paths so the PDF can embed them."
+        ),
+    )
+    item_tile_ids: dict[str, str] = Field(
+        default_factory=dict,
+        description=(
+            "Per-item NanoBanana cache ids, keyed by the canonical "
+            "`item_key` slug (`mat:european-oak:oiled`, "
+            "`fur:vitra-eames-aluminum-group`, `pla:ficus-lyrata`, "
+            "`lig:artemide-tolomeo`). Resolved server-side and embedded "
+            "into the materials / furniture / planting / light grids "
+            "of the A3 PDF."
         ),
     )
 
@@ -228,6 +245,7 @@ def _render_moodboard_pdf(
     selection: dict[str, Any],
     project_reference: str | None,
     gallery_tile_paths: dict[str, str] | None = None,
+    item_tile_paths: dict[str, str] | None = None,
 ) -> str:
     """Lay out the six mandatory sections from design://mood-board-method on
     a single A3 landscape page. Returns the pdf_id (hash) the endpoint uses
@@ -238,6 +256,15 @@ def _render_moodboard_pdf(
     image path), the renderer uses the real NanoBanana tiles instead of
     the flat palette wash. Fallback is the legacy block-colour layout,
     so the function stays safe in offline / test contexts.
+
+    Iter-30B : `item_tile_paths` keys are canonical `item_key` slugs
+    (`mat:european-oak:oiled`, `fur:vitra-eames-aluminum-group`,
+    `pla:ficus-lyrata`, `lig:artemide-tolomeo`) → absolute PNG paths.
+    The materials and furniture grids embed these real product photos
+    in each cell when present, replacing the flat-colour swatch and
+    bare-frame fallbacks. Slug logic is mirrored in
+    `app.surfaces.visual_moodboard._slug` and the frontend
+    `slugifyItemKey()`.
     """
 
     from reportlab.lib.colors import HexColor
@@ -248,11 +275,16 @@ def _render_moodboard_pdf(
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     # iter-20e : include the gallery signature in the hash so a richer
     # PDF (same selection, new tiles) gets a distinct pdf_id.
+    # iter-30B : also include the item-tile signature so the PDF
+    # upgrades when per-item product photographs land.
     gallery_sig = ",".join(
         f"{k}:{Path(v).name}" for k, v in sorted((gallery_tile_paths or {}).items())
     )
+    item_sig = ",".join(
+        f"{k}:{Path(v).name}" for k, v in sorted((item_tile_paths or {}).items())
+    )
     pdf_id = hashlib.sha1(
-        f"moodboard:{client.name}:{variant.style.value}:{json.dumps(selection, sort_keys=True)[:500]}:{gallery_sig}".encode(
+        f"moodboard:{client.name}:{variant.style.value}:{json.dumps(selection, sort_keys=True)[:500]}:{gallery_sig}:{item_sig}".encode(
             "utf-8"
         )
     ).hexdigest()[:16]
@@ -452,13 +484,13 @@ def _render_moodboard_pdf(
     mat_left = margin
     _draw_section_title(c, "MATERIALS", mat_left, row2_top, col_w, INK)
     materials = selection.get("materials", [])[:8]
-    _draw_materials_grid(c, materials, mat_left, row2_top - 8 * mm, col_w, row2_h - 8 * mm, INK, INK_MUTED, HAIRLINE)
+    _draw_materials_grid(c, materials, mat_left, row2_top - 8 * mm, col_w, row2_h - 8 * mm, INK, INK_MUTED, HAIRLINE, item_tile_paths)
 
     # Furniture — 6/12 columns
     fur_left = margin + col_w + gutter
     _draw_section_title(c, "FURNITURE", fur_left, row2_top, col_w, INK)
     furniture = selection.get("furniture", [])[:6]
-    _draw_furniture_grid(c, furniture, fur_left, row2_top - 8 * mm, col_w, row2_h - 8 * mm, INK, INK_SOFT, INK_MUTED, HAIRLINE, SAND)
+    _draw_furniture_grid(c, furniture, fur_left, row2_top - 8 * mm, col_w, row2_h - 8 * mm, INK, INK_SOFT, INK_MUTED, HAIRLINE, SAND, item_tile_paths)
 
     # ---- Row 3 — Planting + Light stacked at the bottom ------------------
     row3_h = usable_h - header_h - gutter - row1_h - gutter - row2_h - gutter
@@ -546,6 +578,7 @@ def render_pdf_from_selection(
     selection: dict[str, Any],
     project_reference: str | None = None,
     gallery_tile_paths: dict[str, str] | None = None,
+    item_tile_paths: dict[str, str] | None = None,
 ) -> str:
     """Public wrapper around `_render_moodboard_pdf`.
 
@@ -554,6 +587,10 @@ def render_pdf_from_selection(
     image ids back to the server so the A3 PDF regenerates with real
     photographs in the ATMOSPHERE block instead of the block-colour
     wash. Returns the fresh `pdf_id` (stable hash of inputs).
+
+    Iter-30B : `item_tile_paths` adds per-item product photographs to
+    the materials and furniture grids. Keys are `item_key` slugs
+    (`mat:european-oak:oiled`, `fur:vitra-eames-aluminum-group` …).
     """
 
     return _render_moodboard_pdf(
@@ -562,6 +599,7 @@ def render_pdf_from_selection(
         selection=selection,
         project_reference=project_reference,
         gallery_tile_paths=gallery_tile_paths,
+        item_tile_paths=item_tile_paths,
     )
 
 
@@ -578,6 +616,37 @@ def _draw_section_title(
     c.drawString(x, y + 2, title)
     c.setLineWidth(0.4)
     c.line(x, y - 2, x + w, y - 2)
+
+
+def _truncate_to_width(
+    c: Any, text: str, font: str, font_size: float, max_w: float
+) -> str:
+    """Truncate `text` to fit within `max_w` points when rendered with
+    the given font/size. Adds an ellipsis ('…') when truncation
+    happens. Iter-30B: replaces the bare `text[:N]` slicing in the
+    PDF grids that produced ugly overflows like
+    'Upholstery — Lumen yellow accent' running past its cell edge.
+    """
+
+    from reportlab.pdfbase.pdfmetrics import stringWidth
+
+    if not text:
+        return ""
+    if stringWidth(text, font, font_size) <= max_w:
+        return text
+    ellipsis = "…"
+    ell_w = stringWidth(ellipsis, font, font_size)
+    if max_w <= ell_w:
+        return ellipsis
+    # Binary search for the longest prefix that fits with the ellipsis.
+    lo, hi = 0, len(text)
+    while lo < hi:
+        mid = (lo + hi + 1) // 2
+        if stringWidth(text[:mid], font, font_size) + ell_w <= max_w:
+            lo = mid
+        else:
+            hi = mid - 1
+    return text[:lo].rstrip() + ellipsis
 
 
 def _contrast_overlay(hex_color: str, *, on_dark: Any, on_light: Any) -> Any:
@@ -639,9 +708,20 @@ def _draw_materials_grid(
     ink: Any,
     ink_muted: Any,
     hairline: Any,
+    item_tile_paths: dict[str, str] | None = None,
 ) -> None:
+    """Iter-30B : when `item_tile_paths` includes a path keyed by the
+    canonical material slug (`mat:<slug(name)>:<slug(finish)>`), embed
+    the real NanoBanana product photograph inside each cell instead of
+    falling back to the colour swatch. Slug rules mirror
+    `app.surfaces.visual_moodboard._slug` and the frontend
+    `slugifyItemKey()` — keep them in lock-step.
+    """
+
     from reportlab.lib.colors import HexColor
     from reportlab.lib.units import mm
+
+    from app.surfaces.visual_moodboard import _slug
 
     if not materials:
         c.setFillColor(ink_muted)
@@ -652,30 +732,81 @@ def _draw_materials_grid(
     rows = max(1, (len(materials) + cols - 1) // cols)
     cell_w = (w - (cols - 1) * 4 * mm) / cols
     cell_h = (h - (rows - 1) * 4 * mm) / rows
+    img_h = 22 * mm
     for i, mat in enumerate(materials):
         r = i // cols
         cc = i % cols
         cx = x + cc * (cell_w + 4 * mm)
         cy = y_top - (r + 1) * cell_h - r * 4 * mm
-        # Swatch block
-        swatch_hex = mat.get("swatch_hex") or "#C9B79C"
-        try:
-            c.setFillColor(HexColor(swatch_hex))
-        except Exception:  # noqa: BLE001
-            c.setFillColor(HexColor("#C9B79C"))
-        c.rect(cx, cy + cell_h - 22 * mm, cell_w, 22 * mm, fill=1, stroke=0)
-        # Text below swatch
+
+        # Resolve a per-item NanoBanana photograph if we have one.
+        # Schema (curator) uses `material`, fixtures use `name` — try both.
+        mat_name = mat.get("material") or mat.get("name") or ""
+        finish = mat.get("finish") or ""
+        slug_mat = _slug(mat_name)
+        slug_finish = _slug(finish)
+        item_key = (
+            f"mat:{slug_mat}:{slug_finish}" if slug_finish else f"mat:{slug_mat}"
+        )
+        photo_path = (item_tile_paths or {}).get(item_key)
+        photo_drawn = False
+        if photo_path and Path(photo_path).exists():
+            try:
+                c.drawImage(
+                    photo_path,
+                    cx,
+                    cy + cell_h - img_h,
+                    cell_w,
+                    img_h,
+                    preserveAspectRatio=True,
+                    anchor="c",
+                    mask="auto",
+                )
+                photo_drawn = True
+            except Exception:  # noqa: BLE001
+                photo_drawn = False
+        if not photo_drawn:
+            # Fallback: flat colour swatch, like the legacy renderer.
+            swatch_hex = mat.get("swatch_hex") or "#C9B79C"
+            try:
+                c.setFillColor(HexColor(swatch_hex))
+            except Exception:  # noqa: BLE001
+                c.setFillColor(HexColor("#C9B79C"))
+            c.rect(cx, cy + cell_h - img_h, cell_w, img_h, fill=1, stroke=0)
+
+        # Caption under the photo / swatch.
+        # Iter-30B: width-aware truncation so we never overflow the
+        # cell — proportional Helvetica + tight 4-column A3 grid means
+        # `text[:N]` slicing drifted past the cell edge for long
+        # entries like "Upholstery — Lumen yellow accent".
         c.setFillColor(ink)
         c.setFont("Helvetica-Bold", 8)
-        name = str(mat.get("name", "—"))
-        c.drawString(cx, cy + cell_h - 26 * mm, name[:40])
+        name = str(mat_name or "—")
+        c.drawString(
+            cx,
+            cy + cell_h - (img_h + 4 * mm),
+            _truncate_to_width(c, name, "Helvetica-Bold", 8, cell_w - 1 * mm),
+        )
         c.setFillColor(ink_muted)
         c.setFont("Helvetica", 7)
         application = str(mat.get("application", ""))
-        c.drawString(cx, cy + cell_h - 29 * mm, f"{mat.get('category', '')} · {application}"[:45])
+        category = str(mat.get("category", ""))
+        line2 = (
+            f"{category} · {application}".strip(" ·") if (category or application) else ""
+        )
+        if line2:
+            c.drawString(
+                cx,
+                cy + cell_h - (img_h + 7 * mm),
+                _truncate_to_width(c, line2, "Helvetica", 7, cell_w - 1 * mm),
+            )
         sus = str(mat.get("sustainability", ""))
         if sus:
-            c.drawString(cx, cy + cell_h - 32 * mm, sus[:45])
+            c.drawString(
+                cx,
+                cy + cell_h - (img_h + 10 * mm),
+                _truncate_to_width(c, sus, "Helvetica", 7, cell_w - 1 * mm),
+            )
     _ = hairline
 
 
@@ -691,8 +822,20 @@ def _draw_furniture_grid(
     ink_muted: Any,
     hairline: Any,
     sand: Any,
+    item_tile_paths: dict[str, str] | None = None,
 ) -> None:
+    """Iter-30B : when `item_tile_paths` includes a path keyed by the
+    canonical furniture slug (`fur:<slug(product_id)>` or
+    `fur:<slug(brand)>-<slug(name)>`), embed the real NanoBanana
+    product photograph as the cell hero instead of the bare hairline
+    frame. Caption (brand + model + category + application) sits
+    underneath the photo. Slug rules mirror
+    `app.surfaces.visual_moodboard._furniture_item_key`.
+    """
+
     from reportlab.lib.units import mm
+
+    from app.surfaces.visual_moodboard import _slug
 
     if not furniture:
         c.setFillColor(ink_muted)
@@ -714,22 +857,72 @@ def _draw_furniture_grid(
         c.setStrokeColor(hairline)
         c.setLineWidth(0.4)
         c.rect(cx, cy, cell_w, cell_h, fill=0, stroke=1)
-        # Brand + model
+
+        # Resolve the per-item furniture photograph if available.
+        pid = f.get("product_id") or ""
+        brand = f.get("brand") or ""
+        name = f.get("name") or f.get("model") or ""
+        if pid:
+            item_key = f"fur:{_slug(pid)}"
+        else:
+            parts = [p for p in (_slug(brand), _slug(name)) if p]
+            item_key = f"fur:{'-'.join(parts)}" if parts else ""
+        photo_path = (item_tile_paths or {}).get(item_key) if item_key else None
+        photo_h = cell_h * 0.55
+        if photo_path and Path(photo_path).exists():
+            try:
+                # Inset the photo from the sand accent bar, leaving the
+                # caption block for the lower 45% of the cell.
+                c.drawImage(
+                    photo_path,
+                    cx + 4 * mm,
+                    cy + cell_h - photo_h - 1 * mm,
+                    cell_w - 5 * mm,
+                    photo_h,
+                    preserveAspectRatio=True,
+                    anchor="c",
+                    mask="auto",
+                )
+            except Exception:  # noqa: BLE001
+                pass
+
+        # Caption block (always drawn, below the photo zone). Iter-30B:
+        # width-aware truncation; the inner usable width starts after
+        # the 6mm sand-bar inset on the left and ends 1mm before the
+        # right cell edge.
+        caption_w = cell_w - 7 * mm
+        caption_top = cy + cell_h - photo_h - 4 * mm
         c.setFillColor(ink)
         c.setFont("Helvetica-Bold", 9)
-        header = f"{f.get('brand', '')} — {f.get('model', '')}"
-        c.drawString(cx + 6 * mm, cy + cell_h - 6 * mm, header[:42])
-        # Category + application
+        header_pieces = [p for p in (brand, name) if p]
+        header = " — ".join(header_pieces) if len(header_pieces) == 2 else (header_pieces[0] if header_pieces else "—")
+        c.drawString(
+            cx + 6 * mm,
+            caption_top,
+            _truncate_to_width(c, header, "Helvetica-Bold", 9, caption_w),
+        )
         c.setFillColor(ink_soft)
         c.setFont("Helvetica", 8)
-        c.drawString(cx + 6 * mm, cy + cell_h - 11 * mm, str(f.get("category", ""))[:38])
+        c.drawString(
+            cx + 6 * mm,
+            caption_top - 5 * mm,
+            _truncate_to_width(c, str(f.get("category", "")), "Helvetica", 8, caption_w),
+        )
         c.setFillColor(ink_muted)
         c.setFont("Helvetica-Oblique", 7)
-        c.drawString(cx + 6 * mm, cy + cell_h - 15 * mm, str(f.get("application", ""))[:60])
+        c.drawString(
+            cx + 6 * mm,
+            caption_top - 9 * mm,
+            _truncate_to_width(c, str(f.get("application", "")), "Helvetica-Oblique", 7, caption_w),
+        )
         # Dimensions
         dims = f.get("dimensions_mm") or {}
         if dims:
             dim_str = f"{dims.get('w', '—')} × {dims.get('d', '—')} × {dims.get('h', '—')} mm"
             c.setFillColor(ink_muted)
             c.setFont("Helvetica", 7)
-            c.drawString(cx + 6 * mm, cy + 4 * mm, dim_str)
+            c.drawString(
+                cx + 6 * mm,
+                cy + 4 * mm,
+                _truncate_to_width(c, dim_str, "Helvetica", 7, caption_w),
+            )

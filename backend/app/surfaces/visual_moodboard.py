@@ -426,6 +426,296 @@ class VisualMoodBoardGalleryResponse(BaseModel):
     cache_hits: int = 0
 
 
+# ──────────────────────────────────────── per-item tiles (iter-30B) ──
+# The 4-tile gallery (atmosphere/materials/furniture/biophilic) gives
+# the *overall* mood-board hero collage. Iter-30B adds a SECOND layer
+# of imagery: one editorial photograph per item in the selection
+# (each material, each piece of furniture, each plant, each fixture).
+# These replace the hatched <Placeholder> tiles in the frontend
+# Pinterest collage and are embedded in the A3 PDF so the document
+# finally carries real product photography instead of swatches.
+#
+# Prompts are tightly scoped to a single object on a neutral
+# studio backdrop, in the project's palette. NanoBanana cache keys
+# stay stable across reruns — same item + same palette = same image.
+
+ITEM_STYLE_FOOTER = (
+    "Editorial product photography, Kinfolk / Wallpaper* / Dwell magazine "
+    "aesthetic, single-source soft north daylight, gentle warm cast "
+    "shadow, 50mm lens equivalent, sharp focus, subtle paper or linen "
+    "texture, neutral matte studio backdrop. No text. No captions. "
+    "No watermarks. No logos. No graphics. No floating UI elements. "
+    "No collage glitches. One subject only — clean centred composition."
+)
+
+
+def _slug(s: str) -> str:
+    """Lowercase ASCII slug — keep [a-z0-9] + hyphens only.
+
+    Iter-30B: this is intentionally ASCII-restricted (not `.isalnum()`)
+    so it stays in lock-step with the frontend `slugifyItemKey()`
+    helper in `frontend/src/routes/MoodBoard.tsx`. Python's
+    `.isalnum()` accepts Unicode letters (`é`, `ñ`, `ç` …) but the
+    JS regex `/[a-z0-9]/` does not — divergence would silently miss
+    item-key lookups for any client / brand name with accents.
+    Both helpers normalise non-alnum to a single `-` and strip
+    leading/trailing dashes.
+    """
+
+    if not s:
+        return ""
+    out: list[str] = []
+    last_dash = False
+    for ch in s.lower():
+        if ("a" <= ch <= "z") or ("0" <= ch <= "9"):
+            out.append(ch)
+            last_dash = False
+        elif not last_dash:
+            out.append("-")
+            last_dash = True
+    return "".join(out).strip("-")
+
+
+def _palette_str(palette_hexes: list[str]) -> str:
+    return (
+        ", ".join(palette_hexes[:5])
+        if palette_hexes
+        else "warm ivory, forest green, sand, terracotta accent"
+    )
+
+
+def _material_item_key(item: dict[str, Any]) -> str:
+    mat = item.get("material") or item.get("name") or ""
+    finish = item.get("finish") or ""
+    return f"mat:{_slug(mat)}:{_slug(finish)}".rstrip(":")
+
+
+def _furniture_item_key(item: dict[str, Any]) -> str:
+    brand = item.get("brand") or ""
+    name = item.get("name") or item.get("model") or ""
+    pid = item.get("product_id") or ""
+    if pid:
+        return f"fur:{_slug(pid)}"
+    parts = [p for p in (_slug(brand), _slug(name)) if p]
+    return f"fur:{'-'.join(parts)}" if parts else ""
+
+
+def _plant_item_key(item: dict[str, Any]) -> str:
+    name = item.get("name") or item.get("latin") or ""
+    slug = _slug(name)
+    return f"pla:{slug}" if slug else ""
+
+
+def _light_item_key(item: dict[str, Any]) -> str:
+    brand = item.get("brand") or ""
+    model = item.get("model") or ""
+    parts = [p for p in (_slug(brand), _slug(model)) if p]
+    return f"lig:{'-'.join(parts)}" if parts else ""
+
+
+def _material_prompt(item: dict[str, Any], palette_str: str) -> str:
+    # Schema field is `material` (curator output) but fixtures and some
+    # legacy paths use `name`. Same for `note`/`sustainability`/etc.
+    mat = (item.get("material") or item.get("name") or "").strip()
+    finish = (item.get("finish") or "").strip()
+    application = (item.get("application") or "").strip()
+    note = (item.get("note") or item.get("sustainability") or "").strip()
+    brand = (item.get("brand") or "").strip()
+    product_ref = (item.get("product_ref") or "").strip()
+    head_pieces = [p for p in (brand, mat) if p]
+    head = " ".join(head_pieces) or "material sample"
+    if finish:
+        head = f"{head} — {finish}"
+    context_bits = []
+    if product_ref:
+        context_bits.append(f"reference: {product_ref}")
+    if application:
+        context_bits.append(f"used as {application}")
+    if note:
+        context_bits.append(note[:140])
+    context = ". ".join(context_bits)
+    return (
+        f"Close-up material sample of {head}. "
+        f"Single rectangular swatch laid flat on a neutral linen-toned "
+        f"surface, 3/4 overhead angle, fine pencil-line label optional "
+        f"but no readable text. Show authentic surface texture: grain, "
+        f"weave, brush marks, or polish — whatever is true to {mat or head}. "
+        f"{context} "
+        f"Project palette context (for ambient cast tones): {palette_str}. "
+        f"{ITEM_STYLE_FOOTER}"
+    )
+
+
+def _furniture_prompt(item: dict[str, Any], palette_str: str) -> str:
+    brand = (item.get("brand") or "").strip()
+    name = (item.get("name") or item.get("model") or "").strip()
+    typ = (
+        item.get("type") or item.get("category") or item.get("quantity_hint") or ""
+    ).strip()
+    note = (
+        item.get("note")
+        or item.get("dimensions")
+        or item.get("product_ref")
+        or ""
+    ).strip()
+    head_pieces = [p for p in (brand, name) if p]
+    head = " ".join(head_pieces) or "design furniture piece"
+    typ_bit = f", a {typ}" if typ else ""
+    note_bit = f" {note[:160]}" if note else ""
+    return (
+        f"Studio product photograph of {head}{typ_bit}. "
+        f"3/4 angle, isolated against a soft warm-grey plaster backdrop, "
+        f"cast shadow falling left, single-source north daylight. "
+        f"Material truth: faithful to the real {head} — correct "
+        f"silhouette, finish, upholstery, proportions. No stylisation, "
+        f"no fantasy variations.{note_bit} "
+        f"Ambient palette: {palette_str}. "
+        f"{ITEM_STYLE_FOOTER}"
+    )
+
+
+def _plant_prompt(item: dict[str, Any], palette_str: str) -> str:
+    name = (item.get("name") or item.get("latin") or "").strip()
+    light = (item.get("light") or "").strip()
+    care = (item.get("care") or "").strip()
+    light_bit = f" Lighting matches its habitat: {light}." if light else ""
+    care_bit = f" {care[:120]}" if care else ""
+    return (
+        f"Editorial photograph of a single living {name} in a textured "
+        f"unglazed terracotta pot. Set against a warm linen or plaster "
+        f"backdrop, soft north daylight, sharp foliage detail, intimate "
+        f"composition with breathing room around the plant.{light_bit}{care_bit} "
+        f"Ambient palette: {palette_str}. "
+        f"{ITEM_STYLE_FOOTER}"
+    )
+
+
+def _light_prompt(item: dict[str, Any], palette_str: str) -> str:
+    brand = (item.get("brand") or "").strip()
+    model = (item.get("model") or "").strip()
+    category = (item.get("category") or "").strip()
+    application = (item.get("application") or "").strip()
+    head = f"{brand} {model}".strip() or category or "pendant lamp"
+    cat_bit = f", a {category}" if category else ""
+    app_bit = f" Use case in space: {application}." if application else ""
+    return (
+        f"Editorial product photograph of {head}{cat_bit}. "
+        f"Isolated against a neutral warm plaster wall, the lamp itself "
+        f"powered on softly so the shade or bulb glows, soft three-quarter "
+        f"daylight from the side. Faithful to the real {brand} {model} — "
+        f"correct silhouette, finish, proportions.{app_bit} "
+        f"Ambient palette: {palette_str}. "
+        f"{ITEM_STYLE_FOOTER}"
+    )
+
+
+def _item_tile_specs(
+    req: VisualMoodBoardRequest,
+) -> list[tuple[str, str, str, str]]:
+    """Walk the curator selection and yield one tile spec per item.
+
+    Returns `[(category, item_key, label, prompt)]` where:
+    - `category` ∈ {"material", "furniture", "plant", "light"}
+    - `item_key` is a stable canonical key for frontend lookup
+    - `label` is the human-readable caption
+    - `prompt` is the NanoBanana text-to-image prompt
+    """
+
+    sel = req.mood_board_selection or {}
+    palette_hexes = _palette_hex_from_selection(sel)
+    palette_str = _palette_str(palette_hexes)
+
+    specs: list[tuple[str, str, str, str]] = []
+    seen: set[str] = set()
+
+    def _push(cat: str, key: str, label: str, prompt: str) -> None:
+        if not key or key in seen:
+            return
+        seen.add(key)
+        specs.append((cat, key, label, prompt))
+
+    materials = sel.get("materials") if isinstance(sel, dict) else None
+    if isinstance(materials, list):
+        for m in materials[:8]:
+            if not isinstance(m, dict):
+                continue
+            mat_name = m.get("material") or m.get("name") or ""
+            label = " · ".join(
+                s for s in [mat_name, m.get("finish")] if s
+            ) or "Material"
+            _push(
+                "material",
+                _material_item_key(m),
+                label,
+                _material_prompt(m, palette_str),
+            )
+
+    furniture = sel.get("furniture") if isinstance(sel, dict) else None
+    if isinstance(furniture, list):
+        for f in furniture[:8]:
+            if not isinstance(f, dict):
+                continue
+            label = " ".join(
+                s for s in [f.get("brand"), f.get("name") or f.get("model")] if s
+            ) or "Piece"
+            _push(
+                "furniture",
+                _furniture_item_key(f),
+                label,
+                _furniture_prompt(f, palette_str),
+            )
+
+    planting = sel.get("planting") if isinstance(sel, dict) else None
+    if isinstance(planting, dict):
+        species = planting.get("species") or []
+        if isinstance(species, list):
+            for sp in species[:6]:
+                if isinstance(sp, dict):
+                    label = sp.get("name") or sp.get("latin") or "Plant"
+                    _push(
+                        "plant",
+                        _plant_item_key(sp),
+                        label,
+                        _plant_prompt(sp, palette_str),
+                    )
+
+    light = sel.get("light") if isinstance(sel, dict) else None
+    if isinstance(light, dict):
+        fixtures = light.get("fixtures") or []
+        if isinstance(fixtures, list):
+            for fx in fixtures[:5]:
+                if not isinstance(fx, dict):
+                    continue
+                label = " ".join(
+                    s for s in [fx.get("brand"), fx.get("model")] if s
+                ) or fx.get("category") or "Fixture"
+                _push(
+                    "light",
+                    _light_item_key(fx),
+                    label,
+                    _light_prompt(fx, palette_str),
+                )
+
+    return specs
+
+
+class ItemTile(BaseModel):
+    category: Literal["material", "furniture", "plant", "light"]
+    item_key: str
+    label: str
+    visual_image_id: str
+    path_rel: str
+    cache_hit: bool
+    prompt: str
+
+
+class VisualMoodBoardItemTilesResponse(BaseModel):
+    tiles: list[ItemTile]
+    total_bytes: int = 0
+    cache_hits: int = 0
+    skipped_errors: list[str] = Field(default_factory=list)
+
+
 @dataclass
 class VisualMoodBoardSurface:
     client: NanoBananaClient
@@ -478,6 +768,75 @@ class VisualMoodBoardSurface:
             hero=None,  # first tile is already the atmosphere hero
             total_bytes=total_bytes,
             cache_hits=cache_hits,
+        )
+
+    def generate_item_tiles(
+        self, req: VisualMoodBoardRequest
+    ) -> VisualMoodBoardItemTilesResponse:
+        """Iter-30B : produce ONE editorial product photograph per item
+        in the curator selection (per material, per furniture piece,
+        per plant, per light fixture).
+
+        These replace the hatched <Placeholder tag="MATERIAL"/"PIECE">
+        tiles in the frontend Pinterest collage and are embedded in the
+        A3 PDF. NanoBanana caches each image by (model, prompt,
+        aspect_ratio) sha256, so reruns of the same selection cost
+        nothing.
+
+        We use a 4:5 (portrait) aspect ratio for the tiles — closer to
+        editorial product photo crops than the wide 3:2 hero. The
+        frontend's `columnCount: 3` masonry layout handles the mixed
+        ratios naturally.
+
+        Errors per individual item are caught and reported in
+        `skipped_errors` rather than aborting the whole batch — a
+        single fal.ai timeout shouldn't kill 11 other tiles.
+        """
+
+        repo_root = BACKEND_ROOT.parent.parent
+        tiles: list[ItemTile] = []
+        total_bytes = 0
+        cache_hits = 0
+        skipped: list[str] = []
+        item_aspect: Literal["3:2", "16:9", "4:3", "1:1"] = "4:3"
+
+        for category, item_key, label, prompt in _item_tile_specs(req):
+            try:
+                image: GeneratedImage = self.client.text_to_image(
+                    prompt=prompt,
+                    aspect_ratio=item_aspect,
+                    num_images=1,
+                    output_format="png",
+                )
+            except NanoBananaError as exc:
+                skipped.append(f"{item_key}: {exc}")
+                continue
+
+            try:
+                path_rel = str(image.path.relative_to(repo_root))
+            except ValueError:
+                path_rel = str(image.path)
+
+            tiles.append(
+                ItemTile(
+                    category=category,  # type: ignore[arg-type]
+                    item_key=item_key,
+                    label=label,
+                    visual_image_id=image.cache_key,
+                    path_rel=path_rel,
+                    cache_hit=image.from_cache,
+                    prompt=image.prompt,
+                )
+            )
+            total_bytes += image.bytes_size
+            if image.from_cache:
+                cache_hits += 1
+
+        return VisualMoodBoardItemTilesResponse(
+            tiles=tiles,
+            total_bytes=total_bytes,
+            cache_hits=cache_hits,
+            skipped_errors=skipped,
         )
 
     def generate(
