@@ -312,3 +312,218 @@ def test_fuse_rejects_absurd_vision_dimensions() -> None:
     # Must have fallen back to MM_PER_PT (=500) → 100 pt × 500 = 50 000 mm.
     xs = [p.x for p in plan.envelope.points]
     assert max(xs) == pytest.approx(100 * MM_PER_PT, rel=0.01)
+
+
+# ---------------------------------------------------------------------------
+# iter-27 P2 L1 + L2 — clamp + out-of-envelope rejection
+# ---------------------------------------------------------------------------
+
+
+def test_rescale_px_clamps_negative_and_overflow_inputs() -> None:
+    """iter-27 P2 L1 — _rescale_px_to_mm must clamp x/y to [0,img_w] ×
+    [0,img_h] before the linear rescale. Without the clamp, a y_px of
+    8000 on a 1822-pixel image produced y_mm ≈ -17 000 mm, which
+    poisoned downstream variant generation with negative-coordinate
+    rooms."""
+
+    from app.pdf.parser import _rescale_px_to_mm
+
+    img_size = (1000, 1000)
+    plate = (10_000.0, 10_000.0)
+
+    # In-bounds anchor : behaviour unchanged.
+    x_mm, y_mm = _rescale_px_to_mm(500, 500, img_size, plate)
+    assert abs(x_mm - 5000.0) < 1e-6
+    assert abs(y_mm - 5000.0) < 1e-6  # 1 - 500/1000 = 0.5 → 5000 mm
+
+    # Negative pixel input → clamped to 0.
+    x_mm, y_mm = _rescale_px_to_mm(-2000, -500, img_size, plate)
+    assert x_mm == 0.0
+    assert y_mm == 10_000.0  # 1 - 0/1000 = 1 → top of plate
+
+    # Over-the-top pixel input → clamped to image bound.
+    x_mm, y_mm = _rescale_px_to_mm(8000, 8000, img_size, plate)
+    assert x_mm == 10_000.0
+    assert y_mm == 0.0  # 1 - 1000/1000 = 0 → bottom of plate
+
+    # Boundary inputs are passthrough.
+    assert _rescale_px_to_mm(0, 0, img_size, plate) == (0.0, 10_000.0)
+    assert _rescale_px_to_mm(1000, 1000, img_size, plate) == (10_000.0, 0.0)
+
+
+def test_rescale_px_handles_zero_image_dimension() -> None:
+    """A degenerate image size must not raise ZeroDivisionError."""
+
+    from app.pdf.parser import _rescale_px_to_mm
+
+    x_mm, y_mm = _rescale_px_to_mm(100, 100, (0, 0), (1000.0, 1000.0))
+    assert x_mm == 0.0
+    assert y_mm == 0.0
+
+
+def test_extract_rooms_rejects_out_of_envelope_room_with_warning(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """iter-27 P2 L2 — a room whose pixel bbox extends > 5 % outside
+    the image envelope must be dropped AND emit a structured WARNING
+    with project_id, room_index, room_label, and bbox info. The
+    Bâtiment A bug had Vision emitting rooms_px points with y_px far
+    past the page bottom ; this guard catches that class."""
+
+    import logging
+
+    # Image is 1000 × 1000 ; this room's bbox is x ∈ [800, 1200],
+    # y ∈ [200, 400]. Half its X range is past the right edge → 50%
+    # overflow, well above the 5 % threshold.
+    vision = {
+        "rooms_px": [
+            {
+                "points_px": [[800, 200], [1200, 200], [1200, 400], [800, 400]],
+                "label": "Out of bounds",
+                "kind": "room",
+            }
+        ]
+    }
+    caplog.set_level(logging.WARNING, logger="design_office.pdf.parser")
+    rooms = _extract_rooms_from_vision(
+        vision, IMG, PLATE, project_id="abc123def456"
+    )
+    assert rooms == []
+    # Structured log was emitted with the right correlatable fields.
+    matching = [
+        rec for rec in caplog.records
+        if rec.message == "vision_room_rejected_out_of_envelope"
+    ]
+    assert len(matching) == 1
+    rec = matching[0]
+    assert rec.levelno == logging.WARNING
+    assert getattr(rec, "project_id", None) == "abc123def456"
+    assert getattr(rec, "room_index", None) == 0
+    assert getattr(rec, "room_label", None) == "Out of bounds"
+    assert getattr(rec, "bbox_px", None) == [800.0, 200.0, 1200.0, 400.0]
+    assert getattr(rec, "image_size_px", None) == [1000, 1000]
+    overflow = getattr(rec, "overflow_ratio", None)
+    assert overflow is not None and 0.4 < overflow < 0.6
+
+
+def test_extract_rooms_keeps_room_with_minor_overflow() -> None:
+    """A room whose bbox overflows by < 5 % must be KEPT. Vision often
+    emits points 1-2 px past the image bound on perfectly legitimate
+    rooms — we must tolerate that without dropping them."""
+
+    # Image 1000 × 1000 ; room x ∈ [200, 1010] = 810 px wide × 200 high
+    # → bbox area 162 000, overflow strip 10 × 200 = 2000 → ratio 1.2 %.
+    vision = {
+        "rooms_px": [
+            {
+                "points_px": [[200, 200], [1010, 200], [1010, 400], [200, 400]],
+                "label": "Slight overhang",
+                "kind": "room",
+            }
+        ]
+    }
+    rooms = _extract_rooms_from_vision(vision, IMG, PLATE)
+    assert len(rooms) == 1
+    assert rooms[0].label == "Slight overhang"
+
+
+def test_extract_rooms_rejects_extreme_overflow() -> None:
+    """A room placed entirely outside the image must drop with overflow
+    ratio == 1.0. This is the literal Bâtiment A class : Vision emitted
+    points with y_px > img_h."""
+
+    vision = {
+        "rooms_px": [
+            {
+                "points_px": [[2000, 2000], [3000, 2000], [3000, 3000], [2000, 3000]],
+                "label": "Nowhere",
+                "kind": "room",
+            }
+        ]
+    }
+    rooms = _extract_rooms_from_vision(vision, IMG, PLATE)
+    assert rooms == []
+
+
+def test_extract_interior_walls_rejects_out_of_envelope_segment(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """iter-27 P2 L2 — interior walls whose endpoints exceed the image
+    envelope by > 5 % must drop with a WARNING (project_id +
+    wall_index + bbox)."""
+
+    import logging
+
+    vision = {
+        "interior_walls_px": [
+            {"x1": 100, "y1": 100, "x2": 300, "y2": 100},  # in-bounds, keep
+            {"x1": 1500, "y1": 1500, "x2": 1700, "y2": 1500},  # outside, drop
+        ]
+    }
+    caplog.set_level(logging.WARNING, logger="design_office.pdf.parser")
+    walls = _extract_interior_walls_from_vision(
+        vision, IMG, PLATE, project_id="proj-xyz"
+    )
+    assert len(walls) == 1
+    matching = [
+        r for r in caplog.records
+        if r.message == "vision_wall_rejected_out_of_envelope"
+    ]
+    assert len(matching) == 1
+    rec = matching[0]
+    assert getattr(rec, "project_id", None) == "proj-xyz"
+    assert getattr(rec, "wall_index", None) == 1
+
+
+def test_extract_openings_rejects_out_of_envelope_center(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """iter-27 P2 L2 — openings whose center pixel sits > 5 % of an
+    image dimension outside the envelope must drop with a WARNING."""
+
+    import logging
+
+    vision = {
+        "openings_px": [
+            {"center_px": [200, 200], "width_px": 90, "kind": "door"},      # keep
+            {"center_px": [1300, 200], "width_px": 90, "kind": "door"},      # 30% outside, drop
+        ]
+    }
+    caplog.set_level(logging.WARNING, logger="design_office.pdf.parser")
+    ops = _extract_openings_from_vision(
+        vision, IMG, PLATE, wall_count=0, project_id="upload42"
+    )
+    assert len(ops) == 1
+    matching = [
+        r for r in caplog.records
+        if r.message == "vision_opening_rejected_out_of_envelope"
+    ]
+    assert len(matching) == 1
+    rec = matching[0]
+    assert getattr(rec, "project_id", None) == "upload42"
+    assert getattr(rec, "opening_index", None) == 1
+
+
+def test_extract_rooms_no_warnings_when_all_in_bounds(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """The Lumen-class case : every room squarely inside the image must
+    NOT trigger any rejection log line. This is the regression guard
+    against false positives that would silence production rooms."""
+
+    import logging
+
+    vision = {
+        "rooms_px": [
+            _square_room_px(100, 100, 300, 300),
+            _square_room_px(400, 400, 700, 700),
+        ]
+    }
+    caplog.set_level(logging.WARNING, logger="design_office.pdf.parser")
+    rooms = _extract_rooms_from_vision(vision, IMG, PLATE)
+    assert len(rooms) == 2
+    rejection_logs = [
+        r for r in caplog.records
+        if "out_of_envelope" in r.message
+    ]
+    assert rejection_logs == []

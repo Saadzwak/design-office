@@ -10,10 +10,16 @@ from __future__ import annotations
 import base64
 import hashlib
 import io
+import logging
 import math
 import re
 from pathlib import Path
 from typing import Any
+
+# iter-27 P2 — structured logger for Vision-vs-envelope diagnostics. The
+# rejection events are emitted at WARNING so they show up in production
+# logs without stack-trace noise. Test code reads them via caplog.
+_logger = logging.getLogger("design_office.pdf.parser")
 
 # iter-21d (Phase B) — persist parsed source PDFs so the variant
 # generator can drop them into SketchUp as a reference layer underneath
@@ -349,11 +355,25 @@ def _rescale_px_to_mm(x_px: float, y_px: float, image_size: tuple[int, int], pla
     """Assume the rendered plate fills most of the image — linear rescale.
     image origin is top-left with y increasing down; plan origin is bottom-left
     with y increasing up. Flip Y during rescale.
+
+    iter-27 P2 L1 — clamp pixel coordinates to ``[0, img_w] × [0, img_h]``
+    BEFORE the linear rescale. Vision HD occasionally emits points just
+    past the image bounds (rounding errors, OCR strays into a margin
+    legend) and historically also returned wildly out-of-bounds values
+    when it confused a multi-building campus plan for a single envelope.
+    Both used to leak as negative mm coordinates downstream — a y_px of
+    8000 on a 1822-pixel-tall image rescaled to y_mm ≈ -17 000 mm,
+    poisoning the variant generator's prompt with rooms outside the
+    plate. The clamp is a defensive backstop ; the active filter that
+    rejects whole rooms with a real overflow lives in
+    ``_extract_rooms_from_vision`` (L2).
     """
     img_w, img_h = image_size
     pw_mm, ph_mm = plate_mm
-    x_mm = (x_px / img_w) * pw_mm
-    y_mm = (1 - y_px / img_h) * ph_mm
+    x_clamped = min(max(float(x_px), 0.0), float(img_w))
+    y_clamped = min(max(float(y_px), 0.0), float(img_h))
+    x_mm = (x_clamped / img_w) * pw_mm if img_w > 0 else 0.0
+    y_mm = (1 - y_clamped / img_h) * ph_mm if img_h > 0 else 0.0
     return x_mm, y_mm
 
 
@@ -368,6 +388,40 @@ def _rescale_px_to_mm(x_px: float, y_px: float, image_size: tuple[int, int], pla
 _MIN_ROOM_AREA_M2 = 1.0          # drop sub-1 m² polygons — always noise
 _MIN_WALL_LEN_MM = 500.0         # drop sub-50 cm walls — Vision fragments
 _DEFAULT_WALL_THICKNESS = 150.0  # mm, reasonable cloison placo-sur-ossature
+
+# iter-27 P2 L2 — reject Vision geometry whose pixel-space bbox exceeds
+# the image bounds by more than this fraction of the bbox area. Anything
+# above this threshold is considered "leaked outside the plate" and gets
+# logged + dropped rather than clamped (clamping a room with 80 % of
+# its area outside produces a meaningless L-shape stuck to the edge).
+# 5 % gives us tolerance for Vision's typical rounding strays without
+# admitting genuine multi-building bleed.
+_BBOX_OVERFLOW_REJECT_THRESHOLD = 0.05
+
+
+def _bbox_overflow_ratio(
+    x_min: float, y_min: float, x_max: float, y_max: float,
+    img_w: int, img_h: int,
+) -> float:
+    """Return the fraction of the bbox area that lies OUTSIDE the image.
+
+    Both bbox and image are axis-aligned in pixel space. A bbox entirely
+    inside returns 0.0 ; one entirely outside returns 1.0 ; one half
+    outside returns 0.5. Used by ``_extract_*_from_vision`` to drop
+    geometry that Vision placed past the page bounds.
+    """
+    bbox_area = max(0.0, x_max - x_min) * max(0.0, y_max - y_min)
+    if bbox_area <= 0:
+        return 0.0
+    inside_x_min = max(x_min, 0.0)
+    inside_y_min = max(y_min, 0.0)
+    inside_x_max = min(x_max, float(img_w))
+    inside_y_max = min(y_max, float(img_h))
+    inside_area = (
+        max(0.0, inside_x_max - inside_x_min)
+        * max(0.0, inside_y_max - inside_y_min)
+    )
+    return max(0.0, min(1.0, 1.0 - inside_area / bbox_area))
 
 
 def _polygon_area_mm2(pts: list[Point2D]) -> float:
@@ -396,11 +450,17 @@ def _extract_rooms_from_vision(
     vision: dict,
     image_size: tuple[int, int],
     plate_mm: tuple[float, float],
+    *,
+    project_id: str | None = None,
 ) -> list[Room]:
     """Convert `vision["rooms_px"]` into a list of `Room` in mm.
 
     Filters :
     - polygon must have ≥ 3 unique points
+    - iter-27 P2 L2 — pre-rescale bbox must overlap the image envelope
+      (overflow ratio ≤ 5 %) ; rooms placed past the page bounds get
+      dropped with a structured WARNING rather than clamped to a
+      meaningless L-shape.
     - computed area ≥ 1 m² (parasitic polygons otherwise)
     - label string is preserved verbatim when present — this is what the
       variant generator will reference ("Lot 4", "Chambre", "Entrée").
@@ -409,13 +469,56 @@ def _extract_rooms_from_vision(
     raw = vision.get("rooms_px") or []
     if not isinstance(raw, list):
         return []
+    img_w, img_h = image_size
     out: list[Room] = []
-    for entry in raw:
+    for room_index, entry in enumerate(raw):
         if not isinstance(entry, dict):
             continue
         pts_px = entry.get("points_px")
         if not isinstance(pts_px, list) or len(pts_px) < 3:
             continue
+        # ---- iter-27 P2 L2 overflow gate ------------------------------
+        xs_px: list[float] = []
+        ys_px: list[float] = []
+        for p in pts_px:
+            if not isinstance(p, (list, tuple)) or len(p) < 2:
+                continue
+            try:
+                xs_px.append(float(p[0]))
+                ys_px.append(float(p[1]))
+            except (TypeError, ValueError):
+                continue
+        if not xs_px or not ys_px:
+            continue
+        x_min_px, x_max_px = min(xs_px), max(xs_px)
+        y_min_px, y_max_px = min(ys_px), max(ys_px)
+        overflow = _bbox_overflow_ratio(
+            x_min_px, y_min_px, x_max_px, y_max_px, img_w, img_h
+        )
+        label = entry.get("label")
+        if overflow > _BBOX_OVERFLOW_REJECT_THRESHOLD:
+            # Compute the post-rescale mm bbox for the log so the human
+            # reading the warning sees both coordinate frames.
+            x0_mm, y1_mm = _rescale_px_to_mm(x_min_px, y_min_px, image_size, plate_mm)
+            x1_mm, y0_mm = _rescale_px_to_mm(x_max_px, y_max_px, image_size, plate_mm)
+            _logger.warning(
+                "vision_room_rejected_out_of_envelope",
+                extra={
+                    "project_id": project_id,
+                    "room_index": room_index,
+                    "room_label": str(label) if label else None,
+                    "bbox_px": [x_min_px, y_min_px, x_max_px, y_max_px],
+                    "image_size_px": [img_w, img_h],
+                    "bbox_mm_post_rescale": [x0_mm, y0_mm, x1_mm, y1_mm],
+                    "overflow_ratio": round(overflow, 4),
+                    "reason": (
+                        f"bbox overflows image bounds by "
+                        f"{overflow:.1%} > {_BBOX_OVERFLOW_REJECT_THRESHOLD:.0%}"
+                    ),
+                },
+            )
+            continue
+
         pts_mm: list[Point2D] = []
         for p in pts_px:
             if not isinstance(p, (list, tuple)) or len(p) < 2:
@@ -432,7 +535,6 @@ def _extract_rooms_from_vision(
         area_m2 = area_mm2 / 1_000_000.0
         if area_m2 < _MIN_ROOM_AREA_M2:
             continue
-        label = entry.get("label")
         kind = entry.get("kind", "unknown")
         if kind not in {
             "room", "corridor", "wc", "kitchen", "stairwell",
@@ -454,6 +556,8 @@ def _extract_interior_walls_from_vision(
     vision: dict,
     image_size: tuple[int, int],
     plate_mm: tuple[float, float],
+    *,
+    project_id: str | None = None,
 ) -> list[InteriorWall]:
     """Convert `vision["interior_walls_px"]` into InteriorWall (mm).
 
@@ -461,24 +565,63 @@ def _extract_interior_walls_from_vision(
     Does NOT dedupe — the variant generator is happy to see a few
     overlaps, and dedup heuristics on fragmented walls tend to create
     more false merges than real wins at this stage. We can add a
-    proper line-merge pass later if it becomes noisy."""
+    proper line-merge pass later if it becomes noisy.
+
+    iter-27 P2 L2 — drops walls whose endpoint bbox exceeds the image
+    envelope by more than 5 % (same threshold as room rejection). A
+    wall that "leaks" outside the page is almost always Vision drifting
+    onto a margin label or a neighbouring building, never a legitimate
+    partition we want to keep."""
 
     raw = vision.get("interior_walls_px") or []
     if not isinstance(raw, list):
         return []
+    img_w, img_h = image_size
     out: list[InteriorWall] = []
-    for entry in raw:
+    for wall_index, entry in enumerate(raw):
         if not isinstance(entry, dict):
             continue
         try:
-            x1_mm, y1_mm = _rescale_px_to_mm(
-                float(entry["x1"]), float(entry["y1"]), image_size, plate_mm
-            )
-            x2_mm, y2_mm = _rescale_px_to_mm(
-                float(entry["x2"]), float(entry["y2"]), image_size, plate_mm
-            )
+            x1_px = float(entry["x1"]); y1_px = float(entry["y1"])
+            x2_px = float(entry["x2"]); y2_px = float(entry["y2"])
         except (KeyError, TypeError, ValueError):
             continue
+        # iter-27 P2 L2 overflow gate. Walls are 1D — the bbox-area
+        # ratio degenerates to 0 for axis-aligned segments. Instead we
+        # check each endpoint against the image rectangle and reject
+        # if either lies > 5 % of an image dimension outside the
+        # envelope. This matches the opening logic and mirrors the room
+        # bbox-area metric semantically.
+        endpoint_outside = False
+        endpoint_offset_px: list[float] = []
+        for px, py in ((x1_px, y1_px), (x2_px, y2_px)):
+            dx_outside = max(0.0, -px, px - img_w)
+            dy_outside = max(0.0, -py, py - img_h)
+            endpoint_offset_px.append(max(dx_outside, dy_outside))
+            if (
+                (img_w > 0 and dx_outside / img_w > _BBOX_OVERFLOW_REJECT_THRESHOLD)
+                or (img_h > 0 and dy_outside / img_h > _BBOX_OVERFLOW_REJECT_THRESHOLD)
+            ):
+                endpoint_outside = True
+        if endpoint_outside:
+            _logger.warning(
+                "vision_wall_rejected_out_of_envelope",
+                extra={
+                    "project_id": project_id,
+                    "wall_index": wall_index,
+                    "endpoints_px": [[x1_px, y1_px], [x2_px, y2_px]],
+                    "image_size_px": [img_w, img_h],
+                    "max_endpoint_offset_px": max(endpoint_offset_px),
+                    "reason": (
+                        f"endpoint sits > "
+                        f"{_BBOX_OVERFLOW_REJECT_THRESHOLD:.0%} of image "
+                        f"dimension outside [0,{img_w}] × [0,{img_h}]"
+                    ),
+                },
+            )
+            continue
+        x1_mm, y1_mm = _rescale_px_to_mm(x1_px, y1_px, image_size, plate_mm)
+        x2_mm, y2_mm = _rescale_px_to_mm(x2_px, y2_px, image_size, plate_mm)
         length = math.hypot(x2_mm - x1_mm, y2_mm - y1_mm)
         if length < _MIN_WALL_LEN_MM:
             continue
@@ -506,12 +649,19 @@ def _extract_openings_from_vision(
     plate_mm: tuple[float, float],
     *,
     wall_count: int,
+    project_id: str | None = None,
 ) -> list[WallOpening]:
     """Convert `vision["openings_px"]` into WallOpening (mm).
 
     `wall_count` is used to validate the `in_wall_index_hint` — an
     out-of-range index is coerced to None so downstream doesn't trust
-    a bad pointer."""
+    a bad pointer.
+
+    iter-27 P2 L2 — drops openings whose center pixel sits more than 5 %
+    of the image dimension outside ``[0, img_w] × [0, img_h]``. The
+    metric is asymmetric vs. rooms / walls (no bbox, just a center)
+    so we measure the distance from the image rectangle relative to
+    image dimensions."""
 
     raw = vision.get("openings_px") or []
     if not isinstance(raw, list):
@@ -519,21 +669,44 @@ def _extract_openings_from_vision(
     out: list[WallOpening] = []
     # pixel → mm scale factor for widths (use X axis ; a real architectural
     # plan is close to isotropic so either axis is fine within 1 %).
-    img_w, _ = image_size
+    img_w, img_h = image_size
     pw_mm, _ = plate_mm
     px_to_mm = pw_mm / img_w if img_w > 0 else 1.0
-    for entry in raw:
+    for opening_index, entry in enumerate(raw):
         if not isinstance(entry, dict):
             continue
         center_px = entry.get("center_px")
         if not isinstance(center_px, (list, tuple)) or len(center_px) < 2:
             continue
         try:
-            cx_mm, cy_mm = _rescale_px_to_mm(
-                float(center_px[0]), float(center_px[1]), image_size, plate_mm
-            )
+            cx_px = float(center_px[0])
+            cy_px = float(center_px[1])
         except (TypeError, ValueError):
             continue
+        # iter-27 P2 L2 — reject openings outside the image. Use the
+        # pixel-distance / image-dimension ratio as overflow proxy.
+        dx_outside = max(0.0, -cx_px, cx_px - img_w)
+        dy_outside = max(0.0, -cy_px, cy_px - img_h)
+        if (
+            (img_w > 0 and dx_outside / img_w > _BBOX_OVERFLOW_REJECT_THRESHOLD)
+            or (img_h > 0 and dy_outside / img_h > _BBOX_OVERFLOW_REJECT_THRESHOLD)
+        ):
+            _logger.warning(
+                "vision_opening_rejected_out_of_envelope",
+                extra={
+                    "project_id": project_id,
+                    "opening_index": opening_index,
+                    "center_px": [cx_px, cy_px],
+                    "image_size_px": [img_w, img_h],
+                    "reason": (
+                        f"center_px ({cx_px}, {cy_px}) outside image "
+                        f"({img_w}×{img_h}) by > "
+                        f"{_BBOX_OVERFLOW_REJECT_THRESHOLD:.0%}"
+                    ),
+                },
+            )
+            continue
+        cx_mm, cy_mm = _rescale_px_to_mm(cx_px, cy_px, image_size, plate_mm)
         width_px = entry.get("width_px")
         try:
             width_mm = float(width_px) * px_to_mm if width_px is not None else 900.0
@@ -587,12 +760,19 @@ def fuse(
     vision: dict | None,
     image_size: tuple[int, int] | None = None,
     plate_mm: tuple[float, float] | None = None,
+    *,
+    project_id: str | None = None,
 ) -> FloorPlan:
     """Reconcile PyMuPDF vector extraction with Vision HD output.
 
     The fusion treats PDF-vector primitives as authoritative for geometry
     (envelope, columns, cores, stairs) and uses Vision HD to fill in the
     semantic labels (window facades, room names) when available.
+
+    iter-27 P2 L2 — ``project_id`` (typically the source PDF content hash
+    — see ``save_source_pdf``) is plumbed through to the room / wall /
+    opening extractors so out-of-envelope rejection warnings are
+    correlatable to a specific upload in production logs.
     """
 
     from app.models import Stair
@@ -808,16 +988,19 @@ def fuse(
     openings_out: list[WallOpening] = []
     if vision and image_size:
         rooms_out = _extract_rooms_from_vision(
-            vision, image_size, (plate_w_mm, plate_h_mm)
+            vision, image_size, (plate_w_mm, plate_h_mm),
+            project_id=project_id,
         )
         interior_walls_out = _extract_interior_walls_from_vision(
-            vision, image_size, (plate_w_mm, plate_h_mm)
+            vision, image_size, (plate_w_mm, plate_h_mm),
+            project_id=project_id,
         )
         openings_out = _extract_openings_from_vision(
             vision,
             image_size,
             (plate_w_mm, plate_h_mm),
             wall_count=len(interior_walls_out),
+            project_id=project_id,
         )
 
     confidence = 0.9 if vision else 0.7
@@ -952,11 +1135,22 @@ def resolve_source_png(plan_source_id: str | None) -> Path | None:
     return png_path if png_path.exists() else None
 
 
-def parse_pdf(pdf_path: Path, use_vision: bool | None = None) -> FloorPlan:
+def parse_pdf(
+    pdf_path: Path,
+    use_vision: bool | None = None,
+    *,
+    project_id: str | None = None,
+) -> FloorPlan:
     """Top-level helper: run the hybrid pipeline, return a FloorPlan.
 
     `use_vision=None` (default) : call Vision HD iff `ANTHROPIC_API_KEY` is
     loaded. `True` forces, `False` disables (useful for unit tests).
+
+    iter-27 P2 L2 — when callers know the source content-hash id (the
+    string returned by ``save_source_pdf``) they should pass it as
+    ``project_id`` so out-of-envelope room rejection warnings are
+    correlatable to the upload. Defaults to None for back-compat with
+    fixtures and CLI callers that don't track an upload id.
     """
 
     vectors = extract_vectors_pymupdf(pdf_path)
@@ -971,4 +1165,6 @@ def parse_pdf(pdf_path: Path, use_vision: bool | None = None) -> FloorPlan:
         image_size = img.size
         vision = call_vision_hd(png)
 
-    return fuse(vectors, vision, image_size=image_size)
+    return fuse(
+        vectors, vision, image_size=image_size, project_id=project_id,
+    )

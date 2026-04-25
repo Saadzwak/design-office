@@ -288,7 +288,10 @@ async def testfit_parse(
         fh.write(raw)
         tmp = Path(fh.name)
     try:
-        plan = parse_pdf(tmp, use_vision=use_vision)
+        # iter-27 P2 L2 — pass plan_source_id so any out-of-envelope
+        # vision rejection warnings emitted during parsing carry the
+        # correlatable upload id in their structured log payload.
+        plan = parse_pdf(tmp, use_vision=use_vision, project_id=plan_source_id)
     finally:
         tmp.unlink(missing_ok=True)
     return plan.model_copy(update={"plan_source_id": plan_source_id})
