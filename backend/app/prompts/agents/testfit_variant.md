@@ -130,6 +130,53 @@ caused rejections on the Lovable plan and must not be broken :
 - **Name existing rooms in the narrative.** "Lot 4 becomes the
   boardroom" > "boardroom côté rue". The client recognises their plan.
 
+## Envelope containment — non-negotiable (iter-28)
+
+The plate's mm-space envelope is `[0, plate_w_mm] × [0, plate_h_mm]`,
+where `plate_w_mm` and `plate_h_mm` come from `floor_plan_json.envelope`
+(specifically : `max(envelope.points[*].x)` and `max(envelope.points[*].y)`,
+both expressed in mm). **Every entity you emit MUST land entirely within
+this rectangle.** A single zone whose coordinates step outside is a
+silent disaster — it appears in the SketchUp render but floats off the
+plan, looking like a placement bug to the architect reviewing the variant.
+
+**Before submitting your `emit_variant` tool call, mentally simulate
+each entity's footprint and verify the math :**
+
+| kind                       | footprint check (must satisfy)                                               |
+|----------------------------|------------------------------------------------------------------------------|
+| `workstation_cluster`      | `0 ≤ origin_mm[0] + (count − 1) × row_spacing_mm × cos(orientation_rad) + 1600 ≤ plate_w_mm` AND same for Y with sin + 800 |
+| `meeting_room`             | both `corner1_mm` and `corner2_mm` inside `[0, plate_w_mm] × [0, plate_h_mm]` |
+| `phone_booth`              | `0 ≤ position_mm[0] ≤ plate_w_mm − 1030` AND `0 ≤ position_mm[1] ≤ plate_h_mm − 1000` |
+| `partition_wall`           | both `start_mm` and `end_mm` inside the envelope                             |
+| `collab_zone` / `biophilic_zone` | `bbox_mm = [x0, y0, x1, y1]` with `0 ≤ x0 < x1 ≤ plate_w_mm` and `0 ≤ y0 < y1 ≤ plate_h_mm` |
+| `place_human`              | `300 ≤ position_mm[0] ≤ plate_w_mm − 300` (250 mm half-footprint + safety)   |
+| `place_plant`              | `700 ≤ position_mm[0] ≤ plate_w_mm − 700` (canopy radius)                    |
+| `place_hero`               | `position_mm` ± hero half-footprint inside envelope (boardroom table is 4 m long, lounge sofa is 2.4 m) |
+
+The most common mistake is **the workstation_cluster arithmetic**. A
+cluster of `count=N` desks at `row_spacing_mm=S` and `orientation_deg=0`
+spans `(N−1) × S + 1600 mm` along X from its origin (each desk is
+1600 mm wide ; spacing is desk-to-desk distance). For `count=12,
+spacing=1600` the span is `11 × 1600 + 1600 = 19 200 mm`. On a
+22-metre-wide plate, your origin's X must satisfy `origin_mm[0] ≤
+2 800` or the last 1–2 desks fall off the slab. **Always recompute**
+before emitting : if the cluster doesn't fit, either reduce `count`,
+change orientation, or split into two shorter clusters.
+
+**Be bold and creative in WHERE you place zones.** Push them to the
+walls, exploit corners, create asymmetric layouts — push the building's
+character forward. But every coordinate must land within the envelope.
+**Conformity to geometry is non-negotiable, but conformity should not
+flatten your creative ambition.** A daring layout that fits is the goal ;
+a daring layout that leaks is rejected.
+
+A Python post-validator will run on your output AFTER submission. Zones
+with overflow ≤ 15 % may be auto-clamped to fit (your origin shifted
+inward) ; zones with overflow > 15 % will be REJECTED entirely and the
+client will see a missing room. **You cannot rely on the post-validator
+to save you — design within the envelope from the start.**
+
 ## Output format — JSON only
 
 ```json
