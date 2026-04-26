@@ -1,4 +1,4 @@
-# Chat behaviour — Ask Design Office
+# Chat behaviour — Ask Archoff
 
 The floating chat drawer (and the `/chat` full-page view) is not a
 generic Q&A bot. It is a **project assistant** — it reads the project

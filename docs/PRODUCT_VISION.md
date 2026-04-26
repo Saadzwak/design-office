@@ -1,6 +1,6 @@
 # Product vision
 
-A short explanation of what Design Office is, who it is for, and the
+A short explanation of what Archoff is, who it is for, and the
 product-level decisions that shaped iteration 16.
 
 ---
@@ -20,7 +20,7 @@ project:
   director. The register is editorial, visual, emotional. Sell the
   feeling first, then the plan.
 
-Design Office has to serve both hats without being generic or confusing
+Archoff has to serve both hats without being generic or confusing
 which audience any given screen is built for.
 
 ## The six surfaces
@@ -35,7 +35,7 @@ space planners actually use:
 |   |             | **Micro-zoning** | Per-zone drill-down for the retained variant |
 | 3 | Mood Board  | Curation         | A3 landscape PDF (palette, materials, furniture, planting, light) |
 | 4 | Justify     | Argumentaire     | A4 PDF + 6-slide PPTX pitch deck      |
-| 5 | Export      | Technical DWG    | A1 DXF with 5 Design Office layers    |
+| 5 | Export      | Technical DWG    | A1 DXF with 5 Archoff layers    |
 
 Macro-zoning decides **where** each space typology lives on the plate.
 Micro-zoning decides **how** each of those zones is detailed: specific
@@ -82,7 +82,7 @@ The full industry matrix lives in
 
 ## The chat is an assistant, not a chatbot
 
-"Ask Design Office" is present on every page. It is allowed to:
+"Ask Archoff" is present on every page. It is allowed to:
 
 1. **Enrich the project state from conversation.** If the user types
    "we actually have 140 staff now, not 120", a regex scan fires
@@ -115,14 +115,14 @@ Full style guide in [`UI_DESIGN.md`](UI_DESIGN.md).
 
 ## What is deliberately out of scope
 
-- **Structural / MEP engineering**: Design Office doesn't try to do
+- **Structural / MEP engineering**: Archoff doesn't try to do
   BIM clash detection, energy modelling or loads calculation. That
   belongs to the engineering subcontractors.
 - **Residential, hospitality, retail**: the product is specialised to
   **office fit-out**. Extending to other typologies would dilute the
   MCP resources (programming, acoustics, PMR, flex ratios) that make
   the output credible.
-- **Bureau de contrôle certification**: Design Office outputs can be
+- **Bureau de contrôle certification**: Archoff outputs can be
   handed to a certification firm as a starting point, but the
   `[TO VERIFY]` discipline means no output claims certification-grade
   accuracy on its own.

@@ -1,17 +1,21 @@
-# Design Office
+# Archoff
+
+<p align="center">
+  <img src="frontend/public/archoff-logo.svg" width="96" height="80" alt="Archoff logo">
+</p>
 
 > **A quiet co-architect for office interiors.** Turn a client brief into a
 > sourced programme, then a 3D test fit, a client-facing argumentaire, and a
-> dimensioned A1 DWG — in minutes, not weeks.
+> dimensioned A1 DXF — in minutes, not weeks.
 
-![Design Office landing](docs/screenshots/01-landing.png)
+![Archoff landing](docs/screenshots/01-landing.png)
 
 Built for the Anthropic **Built with Opus 4.7** hackathon (deadline
 2026-04-26). MIT License, 100 % open source.
 
 ## What it does
 
-Design Office covers the five surfaces where space planners spend the most
+Archoff covers the five surfaces where space planners spend the most
 time today, and where no serious AI tool exists :
 
 | # | Surface | Input | Output | Time today |
@@ -21,7 +25,7 @@ time today, and where no serious AI tool exists :
 |   | **Test fit — Micro-zoning** | Retained variant | Per-zone drill-down (furniture SKUs, finishes, acoustic targets, light Kelvin), with 6-angle pseudo-3D viewer | ∅ today |
 | 3 | **Mood Board** | Retained variant + industry | **A3 landscape PDF** (palette, materials, furniture, planting, light) — client-aware | 1 – 2 weeks |
 | 4 | **Justify** | Retained variant | Client-facing argumentaire with citations + **18-slide magazine-grade pitch deck** (PDF, rendered via headless Chromium, embeds atmosphere photographs, KPI dials, comparison chart, vertical timeline) + A4 long-form report | 3 – 5 days |
-| 5 | **Export** | Retained variant | Dimensioned A1 **DXF** with five named Design Office layers (DO_WALLS · DO_ZONES · DO_FURN · DO_ACOUSTIC · DO_GRID). Opens in AutoCAD, Revit, Vectorworks. | 2 – 4 days |
+| 5 | **Export** | Retained variant | Dimensioned A1 **DXF** with five named Archoff layers (DO_WALLS · DO_ZONES · DO_FURN · DO_ACOUSTIC · DO_GRID). Generated headless via `ezdxf` ; opens cleanly in AutoCAD, Revit and Vectorworks for the engineering team to pick up where the architect left off. | 2 – 4 days |
 
 Everything orchestrated by Claude **Opus 4.7** — Vision HD reads the plans,
 three-level managed-agent orchestration produces the programme / variants /
@@ -37,7 +41,7 @@ the product adapts instead of fighting them.
 
 ### Chat that actually acts
 
-"Ask Design Office" is present on every page. It executes real actions
+"Ask Archoff" is present on every page. It executes real actions
 (`start_macro_zoning`, `iterate_variant`, `export_dwg`, etc.) against
 the backend, not just suggests them. It also enriches the project state
 from plain conversation: tell it "we have 140 staff now" and a
@@ -49,7 +53,7 @@ confirmation card pops up to update the programme. Full behaviour in
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │  FRONTEND (React 18 + TypeScript + Tailwind + Framer)           │
-│  Landing · Brief · Test Fit · Justify · Export                  │
+│  Landing · Brief · Test Fit · Mood Board · Justify · Export     │
 └─────────────────────────┬───────────────────────────────────────┘
                           │
                           ▼
@@ -59,26 +63,25 @@ confirmation card pops up to update the programme. Full behaviour in
 │  ├ Vision HD PDF parser (fusion with PyMuPDF primitives)        │
 │  ├ 10 MCP Resources (2 700 lines, fully sourced)                │
 │  ├ 41-SKU furniture catalogue                                    │
-│  ├ Claude client (exponential retries, JSONL audit log)         │
-│  └ MCP clients (SketchUp TCP/JSON-RPC, AutoCAD ezdxf + File-IPC)│
-└─────┬──────────────────────────────────────────┬────────────────┘
-      │                                          │
-      ▼                                          ▼
-┌─────────────────────┐                 ┌────────────────────────┐
-│  SKETCHUP MCP       │                 │  AUTOCAD MCP           │
-│  (mhyrr/sketchup-   │                 │  (puran-water/         │
-│   mcp forked)       │                 │   autocad-mcp forked)  │
-│                     │                 │                        │
-│  + DesignOffice     │                 │  + ezdxf headless      │
-│    Ruby module      │                 │    DXF writer          │
-│    (8 high-level    │                 │  + A1 sheet + cartouche│
-│    ops : workstation│                 │  + 5 standard layers   │
-│    cluster, meeting │                 │                        │
-│    room, phone      │                 │                        │
-│    booth, partition,│                 │                        │
-│    collab zone,     │                 │                        │
-│    biophilic zone…) │                 │                        │
-└─────────────────────┘                 └────────────────────────┘
+│  ├ Claude Opus 4.7 client (exponential retries, JSONL audit log)│
+│  ├ NanoBanana Pro client (image generation + categorisation)    │
+│  ├ Headless Chromium (Jinja2 → 18-slide magazine PDF)           │
+│  ├ ezdxf headless (5-layer DXF, A1 sheet, cartouche)            │
+│  └ SketchUp MCP client (TCP/JSON-RPC)                           │
+└─────────────────────────┬───────────────────────────────────────┘
+                          │
+                          ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  SKETCHUP MCP (mhyrr/sketchup-mcp, forked)                      │
+│  + Archoff Ruby module — 8 high-level ops :                     │
+│    workstation_cluster · meeting_room · phone_booth ·           │
+│    partition_wall · collab_zone · biophilic_zone ·              │
+│    validate_pmr_circulation · compute_surfaces_by_type          │
+└─────────────────────────────────────────────────────────────────┘
+
+Engineering hand-off : the DXF lands as a real file. Open it in
+AutoCAD, Revit, Vectorworks or BricsCAD — whatever the engineering
+team uses — to take over from the architect's hand-off.
 ```
 
 Deep dive in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
@@ -112,10 +115,14 @@ retried with exponential jittered back-off and audited to
    type W, PMR arrêté 20/04/2017, Browning 14 patterns, Kellert,
    Nieuwenhuis 2014, Hongisto / Haapakangas, Leesman multi-year, Gensler
    multi-year. Every number cited or flagged `[À VÉRIFIER]`.
-4. **Double MCP CAD orchestration** — SketchUp (mhyrr/sketchup-mcp, fork)
-   + AutoCAD (puran-water/autocad-mcp, fork) connected to the same
-   backend. Rarely seen combined, drives the "Most Creative Opus 4.7
-   Exploration" prize.
+4. **SketchUp MCP with editorial Ruby ops** — we forked mhyrr/sketchup-mcp
+   and shipped an Archoff Ruby module of eight high-level studio ops
+   (workstation_cluster, meeting_room, phone_booth, biophilic_zone,
+   validate_pmr_circulation…). Opus drives the SketchUp build via
+   these architect-vocabulary primitives instead of low-level vertex
+   ops, and the model writes back screenshots via the same MCP. The
+   DXF export is generated headless via `ezdxf` and opens in any CAD
+   tool the engineering team prefers.
 5. **Vision HD as a content classifier** — every cached editorial
    photograph carries a JSON sidecar tagging its content category
    (material / furniture / plant / light / atmosphere / biophilic).
@@ -179,7 +186,7 @@ design-office/
 │
 ├── vendor/
 │   ├── sketchup-mcp/         # Forked mhyrr/sketchup-mcp
-│   └── autocad-mcp/          # Forked puran-water/autocad-mcp
+│   └── (engineering hand-off uses headless `ezdxf` → DXF, no AutoCAD MCP needed)
 │
 ├── sketchup-plugin/
 │   └── design_office_extensions.rb  # DesignOffice Ruby module (8 high-level ops)
@@ -208,10 +215,11 @@ design-office/
 ### 1. Clone + env
 
 ```powershell
-git clone <repo>
-cd "Design Office"
+git clone https://github.com/Saadzwak/design-office.git archoff
+cd archoff
 cp .env.example .env
 # Edit .env and paste a fresh ANTHROPIC_API_KEY from https://console.anthropic.com/
+# Optionally, paste a FAL_KEY for live image generation on the Mood Board.
 ```
 
 ### 2. Backend
@@ -243,24 +251,36 @@ cd ..
 
 ### 5. (Optional) Wire SketchUp live
 
-Follow the checklist in [`BUILD_LOG.md`](BUILD_LOG.md) → "Saad-facing live
-connection checklist" :
+To see the three macro-zoning variants build live in SketchUp Pro :
 
 1. Copy `vendor/sketchup-mcp/su_mcp.rb` and `vendor/sketchup-mcp/su_mcp/`
    into your SketchUp Plugins folder
 2. Copy `sketchup-plugin/design_office_extensions.rb` into the same
-   folder
+   folder (provides the 8 high-level Archoff Ruby ops)
 3. Restart SketchUp, then **Extensions → MCP Server → Start Server**
 4. `python backend/scripts/sketchup_smoke_cube.py` — a 1 m cube should
    appear in your SketchUp model
+5. Open the SketchUp file referenced in `vendor/sketchup-mcp/`
+6. Trigger a Test Fit run from the web UI — Archoff will drive
+   SketchUp through the MCP and the three variants will build live
+   on screen, ~30-60 s per variant.
 
-### 6. (Optional) Wire AutoCAD live
+### 6. Open the DXF in your CAD tool of choice
 
-1. In AutoCAD, `APPLOAD` → load `vendor/autocad-mcp/lisp-code/mcp_dispatch.lsp`
-2. Add it to the Startup Suite
-3. Set `AUTOCAD_MCP_WATCH_DIR=<repo>\autocad_watch` in `.env`
-4. Restart the backend — the Export surface auto-switches to the live
-   File-IPC backend
+Once the Export surface produces a DXF (under
+`backend/app/out/export/<id>.dxf`) just open it with whatever your
+engineering team uses :
+
+- **AutoCAD / AutoCAD LT** : double-click. The five Archoff layers
+  (DO_WALLS, DO_ZONES, DO_FURN, DO_ACOUSTIC, DO_GRID) are immediately
+  toggleable and the cartouche is on its own layer too.
+- **Revit** : *Insert → Link CAD* keeps the layers linked.
+- **Vectorworks** / **BricsCAD** / **DraftSight** : same, native
+  AutoCAD-2018 DXF format.
+
+The DXF is generated headless by `ezdxf` so you don't need AutoCAD to
+*produce* the file — only to view or edit it once the architect's hand-off
+is done.
 
 ## Try it on the Lumen fixture (no GUI)
 
@@ -278,7 +298,7 @@ The repo ships with **live-generated fixtures** under
   full-bleeds, a "Why we chose" comparison chart, KPI dials, and a
   vertical 8-step timeline.
 - `lumen_export_atelier.dxf` — the Atelier variant rendered to an A1 DXF
-  (168 KB, 334 ops, all 5 Design Office layers populated).
+  (168 KB, 334 ops, all 5 Archoff layers populated).
 
 Replay :
 
@@ -296,7 +316,7 @@ Each script writes outputs back to `tests/fixtures/` and
 
 ## Design language
 
-Design Office ships with an **Organic Modern** identity — ivory paper
+Archoff ships with an **Organic Modern** identity — ivory paper
 (`#FAF7F2`), forest accent (`#2F4A3F`), sand and sun pigments for the
 three variants, clay for errors. Typography is Fraunces (variable,
 SOFT + opsz axes) for display + body, Inter for UI, JetBrains Mono for
@@ -321,7 +341,7 @@ Full principles + palette + motion tokens live in
 ## Client-aware — the same system, three very different outputs
 
 A fintech, a law firm and a creative agency ask for the same floor to
-be fit out. Design Office reads the industry profile from the brief,
+be fit out. Archoff reads the industry profile from the brief,
 picks palette, materials, furniture and lighting from the right
 catalogues, and produces a mood board that actually reads as
 industry-appropriate rather than as beige LLM output. Every product
@@ -418,9 +438,9 @@ URL; figures not verified are flagged `[À VÉRIFIER]`.
 ## Acknowledgements
 
 - [mhyrr/sketchup-mcp](https://github.com/mhyrr/sketchup-mcp) — the MCP
-  server we forked and extended with our DesignOffice Ruby module
-- [puran-water/autocad-mcp](https://github.com/puran-water/autocad-mcp)
-  — the dual-backend AutoCAD MCP we forked
+  server we forked and extended with our Archoff Ruby module
+- The [`ezdxf`](https://ezdxf.readthedocs.io) project — the headless
+  Python writer that produces our A1 DXF
 - Everyone whose peer-reviewed work is cited in the MCP Resources
   (Browning, Kellert, Heerwagen, Nieuwenhuis, Ulrich, Kaplan, Taylor,
   Hongisto, Haapakangas). The standards teams at AFNOR, ISO, WELL, and

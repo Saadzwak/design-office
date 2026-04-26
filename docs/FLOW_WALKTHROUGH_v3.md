@@ -12,7 +12,7 @@ plan and backed by the adapters documented in
 
 ## 0. Boot — `/` (Landing)
 
-Editorial marketing hero : italic Fraunces "Design Office." at
+Editorial marketing hero : italic Fraunces "Archoff." at
 `clamp(52px, 9vw, 112px)`, "Augment your test-fit, mood board, and
 client presentation." subhead at display-350 weight, 4:5 placeholder
 of an "architectural corridor" tinted forest, floating LUMEN · PARIS
@@ -283,7 +283,7 @@ route except `/chat`, with the soft-breathe animation. App.tsx owns
 the open state ; the ChatDrawer panel is controlled from there.
 
 Drawer (460 px right-edge, backdrop-blur, body-scroll lock) shows
-the ChatPanel in drawer mode. Header : "Ask Design Office" display
+the ChatPanel in drawer mode. Header : "Ask Archoff" display
 15 / page context · Opus 4.7 mono / maximize + clear + close icons.
 Context strip below with "● WORKING ON · LUMEN · TECH · 120 STAFF"
 line synthesized from project state + active project.

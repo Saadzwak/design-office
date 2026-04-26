@@ -1,8 +1,8 @@
-# Design Office — Mission CTO pour Claude Code
+# Archoff — Mission CTO pour Claude Code
 
 ## 0. Contexte et cadre d'exécution
 
-Tu es l'ingénieur de build autonome pour **Design Office**, un produit web destiné au hackathon Anthropic "Built with Opus 4.7" (deadline dimanche 26 avril 2026, 20h EST).
+Tu es l'ingénieur de build autonome pour **Archoff**, un produit web destiné au hackathon Anthropic "Built with Opus 4.7" (deadline dimanche 26 avril 2026, 20h EST).
 
 Le développeur humain (Saad) est solo, non-codeur direct, et dort pendant que tu construis. Tu travailles en **mode boucle autonome** via `/loop` : tu planifies, implémentes, testes, itères, journalises ton avancement, et tu ne t'arrêtes que sur les points de blocage explicitement listés en section 12 qui nécessitent son intervention physique.
 
@@ -16,7 +16,7 @@ Le développeur humain (Saad) est solo, non-codeur direct, et dort pendant que t
 
 ## 1. Objectif produit
 
-**Design Office** est un copilote IA pour architectes d'intérieur et space planners qui aménagent des bureaux tertiaires (office fit-out). Il couvre 4 surfaces fonctionnelles :
+**Archoff** est un copilote IA pour architectes d'intérieur et space planners qui aménagent des bureaux tertiaires (office fit-out). Il couvre 4 surfaces fonctionnelles :
 
 1. **Brief intelligent** — transformation d'un brief client textuel en programme fonctionnel chiffré et sourcé
 2. **Test fit 3D** — lecture d'un plan PDF de plateau + programme → 3 variantes 3D générées dans SketchUp avec itération langage naturel
@@ -79,7 +79,7 @@ Le hackathon est jugé sur :
 │  SKETCHUP MCP                │  │  AUTOCAD MCP                   │
 │  (fork mhyrr/sketchup-mcp)   │  │  (fork puran-water/autocad-mcp)│
 │                              │  │                                │
-│  + Extensions Design Office: │  │  v3.1, 8 outils consolidés     │
+│  + Extensions Archoff: │  │  v3.1, 8 outils consolidés     │
 │    create_workstation_cluster│  │  Backend ezdxf (headless)      │
 │    create_meeting_room       │  │  Backend File IPC (AutoCAD live)│
 │    create_phone_booth        │  │  Cotations natives             │
@@ -385,11 +385,11 @@ Inspiration : **Linear, Arc browser, Things 3, Framer, Vercel**. Jamais de SaaS 
 
 ### 4 écrans principaux
 
-**Landing (`/`)** : titre éditorial type "Design Office. Your AI co-architect for office interiors." + hero visuel statique + CTA "Start a project" + "How it works" en 4 étapes.
+**Landing (`/`)** : titre éditorial type "Archoff. Your AI co-architect for office interiors." + hero visuel statique + CTA "Start a project" + "How it works" en 4 étapes.
 
 **Brief (`/brief`)** : gros champ texte style éditeur, exemple Lumen pré-rempli en placeholder. Bouton "Generate program". Pendant calcul : animation discrète des 3 sub-agents au travail. Résultat : programme en tableau élégant, sources en footnotes hover.
 
-**Test Fit (`/testfit`)** : à gauche zone upload PDF + résumé programme, à droite viewer 3D avec onglets 3 variantes. En bas : chat "Dis à Design Office de modifier la variante". Sortie SketchUp en screenshots haute qualité refreshés.
+**Test Fit (`/testfit`)** : à gauche zone upload PDF + résumé programme, à droite viewer 3D avec onglets 3 variantes. En bas : chat "Dis à Archoff de modifier la variante". Sortie SketchUp en screenshots haute qualité refreshés.
 
 **Justify (`/justify`)** : variante retenue à gauche en 3D, à droite document argumentaire avec citations cliquables. Bouton "Generate client PDF".
 
@@ -548,7 +548,7 @@ Script pressenti (oriente les UI states) :
 
 ```
 00:00–00:15  Hook : "Un space planner passe 3 semaines à faire un test fit.
-              Avec Design Office, c'est 3 minutes."
+              Avec Archoff, c'est 3 minutes."
 00:15–00:35  Surface 1 : brief Lumen collé → programme chiffré apparait,
               3 agents visibles au travail
 00:35–01:15  Surface 2 : upload PDF plan → Claude lit (vision HD)
@@ -570,7 +570,7 @@ Tous les écrans doivent être beaux sans data, avec data, et pendant loading.
 Structure :
 
 - **Problem** : space planners passent 2-8 semaines en programming et 1-3 semaines en test fit. Pas d'IA sérieuse sur ce métier.
-- **Solution** : Design Office augmente les 4 phases critiques.
+- **Solution** : Archoff augmente les 4 phases critiques.
 - **Creative Opus 4.7** : Vision HD sur plans, orchestration Managed Agents à 3 niveaux, MCP Resources métier consultées à la volée (Keep Thinking).
 - **MCP** : double MCP CAD (SketchUp + AutoCAD), rarement vu en combiné.
 - **Tech** : FastAPI, React, MCPs forkés et étendus.
@@ -604,6 +604,6 @@ Tu as carte blanche sur les choix d'implémentation tant qu'ils respectent :
 
 Tu peux enrichir, simplifier, optimiser. Pas dévier de la direction produit sans justification écrite dans `BUILD_LOG.md`.
 
-**L'objectif** : Saad se réveille, lance `./scripts/run_dev.ps1`, installe SketchUp et AutoCAD, et voit Design Office fonctionner bout-en-bout sur le cas Lumen.
+**L'objectif** : Saad se réveille, lance `./scripts/run_dev.ps1`, installe SketchUp et AutoCAD, et voit Archoff fonctionner bout-en-bout sur le cas Lumen.
 
 Bon build. Tu es responsable du résultat. Go.

@@ -87,7 +87,7 @@ class TcpJsonBackend:
     Every call is translated to a `tools/call` JSON-RPC method with the
     appropriate tool name and arguments.
 
-    Our Design Office high-level operations (`create_workstation_cluster`,
+    Our Archoff high-level operations (`create_workstation_cluster`,
     etc.) are not native to the vendor plugin — they live in the
     `DesignOffice` Ruby module we install alongside the plugin. We call them
     by sending an `eval_ruby` request that invokes

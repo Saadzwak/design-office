@@ -1,4 +1,4 @@
-"""Domain models for the Design Office backend.
+"""Domain models for the Archoff backend.
 
 Everything the orchestrator, SketchUp client and API need to agree on lives
 here. Keep it small, Pydantic v2, immutable by default.

@@ -1,4 +1,4 @@
-"""FastAPI entrypoint for the Design Office backend."""
+"""FastAPI entrypoint for the Archoff backend."""
 
 import tempfile
 from pathlib import Path
@@ -77,9 +77,9 @@ FIXTURE_PDF = Path(__file__).resolve().parent / "data" / "fixtures" / "lumen_pla
 settings = get_settings()
 
 app = FastAPI(
-    title="Design Office API",
+    title="Archoff API",
     version=__version__,
-    description="Opus 4.7 orchestrator powering the Design Office copilot for office fit-outs.",
+    description="Opus 4.7 orchestrator powering the Archoff copilot for office fit-outs.",
 )
 
 app.add_middleware(
@@ -713,7 +713,7 @@ def export_dxf(export_id: str) -> FileResponse:
 
 
 # ---------------------------------------------------------------------------
-# Cross-page chat — "Ask Design Office"
+# Cross-page chat — "Ask Archoff"
 # ---------------------------------------------------------------------------
 
 

@@ -2,7 +2,7 @@
 
 Runs a fixed set of sub-agents in parallel over a shared context, then feeds
 their outputs into a consolidator prompt. The pattern is reusable for all
-three orchestration levels in the Design Office system.
+three orchestration levels in the Archoff system.
 
 iter-23 (Saad, 2026-04-24) — added `StructuredSubAgent` that uses the
 Anthropic `tool_use` API for guaranteed-valid JSON output. When you

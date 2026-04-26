@@ -87,7 +87,7 @@ class EzdxfHeadlessBackend:
         import ezdxf
 
         doc = ezdxf.new(setup=True)
-        # Standard set of Design Office layers — extended with any user layers.
+        # Standard set of Archoff layers — extended with any user layers.
         defaults = {
             "AGENCEMENT": {"color": 7},
             "MOBILIER": {"color": 5},

@@ -1,7 +1,7 @@
 # design://adjacency-rules
 
 > Catalogue of spatial-adjacency rules for office fit-out. Consumed by
-> the `adjacency_validator` agent in Design Office's Level 2 + Level 2b
+> the `adjacency_validator` agent in Archoff's Level 2 + Level 2b
 > orchestration (`backend/app/agents/orchestrator.py`). Every rule
 > carries a stable `rule_id` so violations surface as structured data
 > the frontend can link to.

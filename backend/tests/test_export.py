@@ -125,7 +125,7 @@ def test_export_surface_writes_dxf_with_all_layers() -> None:
     assert path is not None and path.exists()
 
     # Validate the DXF can be re-opened and contains at least one
-    # entity on each of the five Design Office layers.
+    # entity on each of the five Archoff layers.
     doc = ezdxf.readfile(str(path))
     layer_names = {layer.dxf.name for layer in doc.layers}
     for expected in ("AGENCEMENT", "MOBILIER", "COTATIONS", "CLOISONS", "CIRCULATIONS"):

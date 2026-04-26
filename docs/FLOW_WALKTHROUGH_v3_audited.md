@@ -191,7 +191,7 @@ Drawer :
 | Step | Observed |
 |------|----------|
 | Floating 56 px circular forest button | Opens drawer with soft-breathe animation. |
-| Header | "Ask Design Office" + clear / maximize / close icons. |
+| Header | "Ask Archoff" + clear / maximize / close icons. |
 | Bubble shape | User mist-100 sharp-bottom-right, assistant canvas 2 px forest left border, sharp-top-left. |
 | Enrichment detection | Typing "Actually we're 120 people now" flashes the sand enrichment card. |
 | Action card | When the assistant proposes a start_brief / retain_variant / … action, forest-bordered Apply/Cancel card fires the action for real. |

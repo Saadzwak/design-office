@@ -1,7 +1,7 @@
 """fal.ai NanoBanana Pro client — iter-17 C.
 
 NanoBanana Pro (branded alias for Gemini 3 Pro Image on fal.ai) is the
-visual generator Design Office uses for :
+visual generator Archoff uses for :
 
 - Pinterest-style composite mood boards (text-to-image),
 - 2D floor-plan zone overlays (image-to-image on the client's plan).

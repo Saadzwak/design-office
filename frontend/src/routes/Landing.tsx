@@ -19,19 +19,18 @@ export default function Landing() {
         style={{ background: "rgba(250, 247, 242, 0.85)" }}
       >
         <div className="flex items-center gap-2.5">
-          <span
-            className="inline-block h-2.5 w-2.5"
-            style={{
-              background: "var(--forest)",
-              borderRadius: 2,
-              transform: "rotate(45deg)",
-            }}
+          <img
+            src="/archoff-logo.svg"
+            alt=""
+            aria-hidden="true"
+            className="h-7 w-auto"
+            style={{ flex: "0 0 auto" }}
           />
           <span
             className="font-display text-[20px] font-medium leading-none tracking-[-0.01em] text-ink"
             style={{ fontVariationSettings: '"opsz" 96, "wght" 500, "SOFT" 100' }}
           >
-            Design Office
+            Archoff
           </span>
         </div>
         <div className="flex items-center gap-7">

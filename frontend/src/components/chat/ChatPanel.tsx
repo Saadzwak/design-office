@@ -54,7 +54,7 @@ const PAGE_HELLO: Record<string, string> = {
   justify:
     "We're on Justify. I can summarise the argumentaire, isolate the acoustic / PMR / biophilic argument, or propose alternative phrasings.",
   export:
-    "We're on Export. I can help choose the DWG scale, explain the five Design Office layers, or trigger the export directly.",
+    "We're on Export. I can help choose the DXF scale, explain the five Archoff layers, or trigger the export directly.",
   chat: "How can I help on the project?",
 };
 
@@ -209,7 +209,7 @@ export default function ChatPanel({ mode, onClose, onExpand: _onExpand }: Props)
           </span>
           <div>
             <p className="font-display text-[15px] leading-none text-ink" style={{ fontVariationSettings: '"opsz" 36, "wght" 520, "SOFT" 100' }}>
-              Ask Design Office
+              Ask Archoff
             </p>
             <p className="mt-1 font-mono text-[10px] uppercase tracking-label text-ink-muted">
               {context.page} · Opus 4.7

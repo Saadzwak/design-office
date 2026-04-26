@@ -1,7 +1,7 @@
 # design://client-profiles
 
 Characteristic programming, spatial, and aesthetic signatures of the
-industries Design Office targets. Used to bias the Brief programme, the
+industries Archoff targets. Used to bias the Brief programme, the
 macro-zoning agent, the mood-board curator, and the argumentaire.
 
 All ratios and figures come either from the other MCP resources
@@ -13,7 +13,7 @@ industry benchmarks cited below. Anything not fully verified is marked
 
 ## How to use this resource
 
-Every generation in Design Office accepts a `client_profile` hint. It is
+Every generation in Archoff accepts a `client_profile` hint. It is
 one of :
 
 - `tech_startup`

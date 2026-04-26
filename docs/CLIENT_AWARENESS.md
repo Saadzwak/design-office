@@ -1,6 +1,6 @@
 # Client-awareness: a deep-dive index
 
-Design Office adapts to the client's industry — not cosmetically but at
+Archoff adapts to the client's industry — not cosmetically but at
 the level of **ratios, typology mix, materials, furniture, lighting, and
 language**. This document indexes the three proof points, with concrete
 numbers, fixture pointers, and the exact agent prompts / MCP resources
@@ -139,7 +139,7 @@ Fixture : `backend/tests/fixtures/lumen_microzoning_atelier.md`.
 
 The competing approach for design-LLM apps is to template-fill — pick
 a client type, pull the pre-written programme, swap the company name
-in. Design Office doesn't. **The agents read every brief as if they
+in. Archoff doesn't. **The agents read every brief as if they
 were reading it for the first time**, cite peer-reviewed studies and
 French standards by resource URI, and carry their epistemic doubt
 through as `[TO VERIFY]` markers.

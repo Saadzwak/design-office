@@ -1,4 +1,4 @@
-# Build Log — Design Office
+# Build Log — Archoff
 
 Format: each loop iteration appends a timestamped entry. Phase banners mark transitions.
 
@@ -10,7 +10,7 @@ Format: each loop iteration appends a timestamped entry. Phase banners mark tran
 - **Hackathon deadline** : 2026-04-26 20:00 EST (= 2026-04-27 00:00 UTC)
 - **Time budget remaining at start** : ~113 h
 - **Operator** : Claude Code (Opus 4.7, 1M context) running `/loop` dynamic mode
-- **Working dir** : `C:\Users\redaz\Desktop\Design Office`
+- **Working dir** : `<repo>`
 - **Platform** : Windows 10, bash shell
 
 ### Planned phase durations (section 13 of CLAUDE.md)
@@ -331,7 +331,7 @@ verification command so we know it landed.
    The **outer** `vendor/sketchup-mcp/su_mcp.rb` is an older v0.1.0
    with a broken path — DO NOT copy it.
 
-4. **Copy the Design Office extensions** : copy
+4. **Copy the Archoff extensions** : copy
    `sketchup-plugin/design_office_extensions.rb` → `Plugins/design_office_extensions.rb`.
 
    Final state of the Plugins folder (mcp- / design-office-only entries) :
@@ -353,7 +353,7 @@ verification command so we know it landed.
    Console prints `Server started and listening` on port 9876.
 7. **Verify from the backend** : with the backend venv active, run
    `python -c "from app.mcp.sketchup_client import try_connect_tcp; print(try_connect_tcp('127.0.0.1', 9876))"`. Expect `True`.
-8. **Verify Design Office tools** : in the Ruby Console, call
+8. **Verify Archoff tools** : in the Ruby Console, call
    `DesignOffice.create_phone_booth(position_mm: [5000, 5000], product_id: 'framery_one_compact')`. A pod-shaped block should appear at (5, 5 m).
 9. **No code changes needed backend-side** — `get_backend()` in
    `backend/app/mcp/sketchup_client.py` auto-detects the open TCP port and
@@ -457,7 +457,7 @@ ready, richer resources/code, Vision HD always-on).
     Browning 14-pattern enumeration, key-studies citation index.
 - **AutoCAD MCP** (`backend/app/mcp/autocad_client.py`) : dual-backend
   client with identical facade.
-  - `EzdxfHeadlessBackend` materialises a real DXF with Design Office
+  - `EzdxfHeadlessBackend` materialises a real DXF with Archoff
     layers (AGENCEMENT / MOBILIER / COTATIONS / CLOISONS /
     CIRCULATIONS) — unit-tested against a 60 × 40 m Lumen envelope.
   - `FileIpcBackend` talks to the puran-water LISP dispatcher via a
@@ -589,7 +589,7 @@ into a surface + endpoint + frontend).
 **ExportSurface** (`backend/app/surfaces/export.py`) — takes a retained
 variant + floor plan and translates them into an A1-sheet DXF. Pipeline :
 
-1. `AutoCadFacade.new_drawing` + standard Design Office layers
+1. `AutoCadFacade.new_drawing` + standard Archoff layers
    (AGENCEMENT / MOBILIER / COTATIONS / CLOISONS / CIRCULATIONS)
 2. A1 sheet frame sized at 1:SCALE (default 1:100) with an inner frame
 3. Floor plan (envelope, columns, cores with labels, stairs with
@@ -621,7 +621,7 @@ variant + floor plan and translates them into an A1-sheet DXF. Pipeline :
 - 168 k bytes DXF
 - 334 AutoCad operations
 - Sheet A1 @ 1:100
-- All 5 Design Office layers populated
+- All 5 Archoff layers populated
 - Copied to `backend/tests/fixtures/lumen_export_atelier.dxf` for Saad
   to open in AutoCAD tomorrow
 
@@ -631,7 +631,7 @@ variant + floor plan and translates them into an A1-sheet DXF. Pipeline :
 - Scale picker (1:50 / 1:100 / 1:200) + project reference field
 - "Generate technical DXF" CTA → POST /api/export/dwg
 - Status states (idle / generating / done / error)
-- Download link once ready, layer chips showing the 5 Design Office
+- Download link once ready, layer chips showing the 5 Archoff
   layers, file-size + ops count chips
 - Explainer panel documenting the ezdxf-vs-File-IPC backend switch
 - `tsc --noEmit` clean.
@@ -766,7 +766,7 @@ argumentaire and persisted as a demo fixture.
 ### What landed
 
 **PPTX renderer** (`backend/app/surfaces/justify_pptx.py`, 355 lines)
-- 16:9 deck (13.333 × 7.5 in) with Design Office palette (ink
+- 16:9 deck (13.333 × 7.5 in) with Archoff palette (ink
   background, terracotta eyebrows, ochre rules, bone text)
 - 6 slides :
   1. **Cover** — client name + variant title, 4-metric strapline,
@@ -1050,7 +1050,7 @@ MCP Server → Start Server`.
 
 ---
 
-## Iter 14 — Cross-page "Ask Design Office" chat (2026-04-22T20:45Z)
+## Iter 14 — Cross-page "Ask Archoff" chat (2026-04-22T20:45Z)
 
 **Status** : ✅ done, live.
 

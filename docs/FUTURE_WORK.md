@@ -1,6 +1,6 @@
 # Future Work — roadmap after the hackathon
 
-The current Design Office build covers the four hackathon surfaces
+The current Archoff build covers the four hackathon surfaces
 end-to-end (Brief, Test Fit, Justify, Export) with live SketchUp MCP and
 AutoCAD MCP integration. The items below are the next strategic bets.
 Each has enough implementation detail that the engineer picking it up
@@ -48,7 +48,7 @@ DD. A Revit MCP closes the loop by letting Claude drive Revit families.
 - **Bi-directional sync** — a round-trip from SketchUp test fit to
   Revit DD with the partition layout preserved as a placeholder phase
   that the Revit user promotes to real walls + families.
-- **Demo hook** — "Phase 2 pricing : click here and Design Office
+- **Demo hook** — "Phase 2 pricing : click here and Archoff
   writes a Revit model ready for your BIM team."
 
 ## 3. IFC export for BIM exchange

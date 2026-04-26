@@ -175,19 +175,21 @@ function GlobalNav({
           className="flex items-center gap-2"
           aria-label="Back to landing"
         >
-          <span
-            className="inline-block h-2.5 w-2.5"
-            style={{
-              background: "var(--forest)",
-              borderRadius: 2,
-              transform: "rotate(45deg)",
-            }}
+          <img
+            src="/archoff-logo.svg"
+            alt=""
+            aria-hidden="true"
+            className="h-6 w-auto"
+            style={{ flex: "0 0 auto" }}
           />
           <span
             className="font-display text-[17px] font-medium leading-none text-ink"
-            style={{ fontVariationSettings: '"opsz" 72, "wght" 500, "SOFT" 100' }}
+            style={{
+              fontVariationSettings: '"opsz" 72, "wght" 500, "SOFT" 100',
+              letterSpacing: "-0.005em",
+            }}
           >
-            Design Office
+            Archoff
           </span>
         </NavLink>
 

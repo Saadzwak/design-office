@@ -1,7 +1,7 @@
 # design://mood-board-method
 
 How to assemble a credible interior-architecture mood board for an office
-fit-out client. The output of Design Office's Mood Board surface is a
+fit-out client. The output of Archoff's Mood Board surface is a
 **single A3-landscape PDF** the space planner can walk into a room with.
 
 ---
@@ -35,7 +35,7 @@ The A3 output lays out six sections. Each is required:
 - Industry (small mono-caps eyebrow)
 - Tagline — one sentence that captures the spatial idea
   (e.g. *"A quiet courtyard of focus between two bright edges."*)
-- Date + Design Office logotype
+- Date + Archoff logotype
 
 ### 2. Atmosphere
 
@@ -100,7 +100,7 @@ The A3 output lays out six sections. Each is required:
   - Materials : 6 columns left, height ~95 mm
   - Furniture : 6 columns right, height ~95 mm
   - Planting + Light : stacked 6 columns at the bottom, 50 mm each
-- Footer : *"Curated by Design Office for [Client Name]"* in mono-caps
+- Footer : *"Curated by Archoff for [Client Name]"* in mono-caps
   at 8 pt
 
 ---

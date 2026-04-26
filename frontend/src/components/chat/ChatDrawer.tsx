@@ -70,7 +70,7 @@ export default function ChatDrawer({
       {showOwnTrigger && (
         <button
           onClick={() => setOpen(!open)}
-          aria-label="Open Ask Design Office"
+          aria-label="Open Ask Archoff"
           className="fixed bottom-7 right-7 z-40 flex h-14 w-14 items-center justify-center rounded-full animate-soft-breathe transition-all duration-300 ease-out-gentle hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-forest/40"
           style={{
             background: "var(--forest)",
@@ -103,7 +103,7 @@ export default function ChatDrawer({
               exit={{ x: 500, opacity: 0 }}
               transition={{ type: "spring", damping: 32, stiffness: 280 }}
               role="dialog"
-              aria-label="Ask Design Office"
+              aria-label="Ask Archoff"
               className="fixed bottom-0 right-0 top-0 z-50 flex w-full max-w-[480px] flex-col border-l border-mist-200 bg-canvas shadow-drawer"
             >
               <ChatPanel

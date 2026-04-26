@@ -474,12 +474,12 @@ def _render_client_pdf(
         rightMargin=2 * cm,
         topMargin=2.2 * cm,
         bottomMargin=2 * cm,
-        title=f"Design Office — {client_name}",
-        author="Design Office",
+        title=f"Archoff — {client_name}",
+        author="Archoff",
     )
 
     story: list = []
-    story.append(Paragraph("Design Office — client argumentaire", eyebrow_style))
+    story.append(Paragraph("Archoff — client argumentaire", eyebrow_style))
     story.append(Paragraph(f"{client_name} · variant « {variant.title} »", hero_style))
     story.append(
         Paragraph(

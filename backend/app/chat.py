@@ -1,4 +1,4 @@
-"""Cross-page chat — 'Ask Design Office'.
+"""Cross-page chat — 'Ask Archoff'.
 
 A single Opus 4.7 agent accessible as a floating drawer on every page
 and as a full-page route. Receives :

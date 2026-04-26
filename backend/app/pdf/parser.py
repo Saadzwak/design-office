@@ -148,7 +148,7 @@ def extract_vectors_pymupdf(pdf_path: Path, page_index: int = 0) -> dict[str, An
 # Vision HD path
 # ---------------------------------------------------------------------------
 
-_VISION_SYSTEM = """You are the Design Office plan reader, a senior architect who has interpreted
+_VISION_SYSTEM = """You are the Archoff plan reader, a senior architect who has interpreted
 thousands of architectural drawings. Extract the floor plan geometry AND the
 architectural symbols and labels from the image. Your output is the semantic
 layer that will be fused with a separate PyMuPDF vector extraction.

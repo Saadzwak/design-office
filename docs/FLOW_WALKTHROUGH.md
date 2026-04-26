@@ -1,6 +1,6 @@
 # End-user flow walkthrough — Lumen
 
-Live A→Z walk of the Design Office UI by an interior-architect persona.
+Live A→Z walk of the Archoff UI by an interior-architect persona.
 Run on 2026-04-22T20:40Z against the live stack (SketchUp Pro 2026 MCP
 on :9876, backend on :8000, Vite on :5173, Claude Opus 4.7 via
 `.env`). Every step includes the real latency and token cost observed.
@@ -48,7 +48,7 @@ Neither is blocking for the demo. Core geometry is correct.
 | 10 | Click **Generate sourced argumentaire** | ✅ OK | 250 s | 142 729 / 23 395 | 4 parallel researchers + consolidator. Argumentaire renders in 7-section markdown. `pdf_id` + `pptx_id` come back together. |
 | 10b | Download client PDF | ✅ OK | ~1 s | — | `GET /api/justify/pdf/b2a4377d14bce2ff` → 25 408 bytes, 5 pages. |
 | 10c | Download pitch deck PPTX | ✅ OK | ~1 s | — | `GET /api/justify/pptx/790f73755a9a0280` → 39 596 bytes, 6 slides. |
-| 11 | Nav → `/export` → **Generate technical DXF** → download | ✅ OK | 1 s | 0 / 0 (no Opus) | Scale 1:100, project `LUMEN-CAT-B`, output 160.5 KB, 322 ops, 5 Design Office layers. Download link functional. |
+| 11 | Nav → `/export` → **Generate technical DXF** → download | ✅ OK | 1 s | 0 / 0 (no Opus) | Scale 1:100, project `LUMEN-CAT-B`, output 160.5 KB, 322 ops, 5 Archoff layers. Download link functional. |
 
 **End-to-end token budget for one Lumen walk** (not counting the
 accidental extra testfit re-generate noted in P2-c below) :

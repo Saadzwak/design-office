@@ -1,7 +1,7 @@
 """Client-pitch PowerPoint renderer for the Justify argumentaire.
 
 Complements `_render_client_pdf` in `justify.py`: same sourced content,
-different format. The PPTX is 16:9, 6 slides in the Design Office palette,
+different format. The PPTX is 16:9, 6 slides in the Archoff palette,
 safe to hand to a client meeting or a steering committee.
 """
 
@@ -336,7 +336,7 @@ def _build_cover_slide(
         1.3,
         6.0,
         0.35,
-        "Design Office — client argumentaire",
+        "Archoff — client argumentaire",
         font=MONO_FONT,
         size=11,
         color=TERRACOTTA,

@@ -1,6 +1,6 @@
-# Design Office — Runtime configuration
+# Archoff — Runtime configuration
 
-All Design Office configuration lives in environment variables, loaded
+All Archoff configuration lives in environment variables, loaded
 by the backend at startup (see `.env.example` for the canonical list).
 Most settings are wired through `app.config.get_settings()` and read
 per-request ; a few — like the SketchUp plugin's furniture toggle — are

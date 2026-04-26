@@ -330,8 +330,8 @@ def _render_moodboard_pdf(
 
     page_w, page_h = landscape(A3)  # 420 x 297 mm
     c = canvas.Canvas(str(path), pagesize=landscape(A3))
-    c.setTitle(f"Design Office — Mood Board — {client.name}")
-    c.setAuthor("Design Office")
+    c.setTitle(f"Archoff — Mood Board — {client.name}")
+    c.setAuthor("Archoff")
 
     # Organic Modern palette — mirrors tailwind.config.ts.
     INK = HexColor("#1C1F1A")
@@ -384,7 +384,7 @@ def _render_moodboard_pdf(
     # DO wordmark, bottom-right of header
     c.setFillColor(INK)
     c.setFont("Helvetica-Bold", 10)
-    c.drawRightString(page_w - margin, header_top - 28 * mm, "Design Office")
+    c.drawRightString(page_w - margin, header_top - 28 * mm, "Archoff")
 
     # Separator hairline under the header
     header_bottom = header_top - header_h
@@ -592,7 +592,7 @@ def _render_moodboard_pdf(
     # ---- Footer ----------------------------------------------------------
     c.setFillColor(INK_MUTED)
     c.setFont("Helvetica", 7)
-    c.drawString(margin, margin - 8, f"Curated by Design Office for {client.name}")
+    c.drawString(margin, margin - 8, f"Curated by Archoff for {client.name}")
     c.drawRightString(
         page_w - margin,
         margin - 8,

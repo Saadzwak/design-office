@@ -1,6 +1,6 @@
 # Use case — Lumen, fintech, 2 400 m²
 
-Walkthrough of the reference use case Design Office ships with. Every
+Walkthrough of the reference use case Archoff ships with. Every
 number below was produced by a live run through the six surfaces —
 see `backend/tests/fixtures/` for the raw JSON outputs, the mood-board
 and argumentaire PDFs, the PPTX pitch deck, and the DXF.
@@ -265,7 +265,7 @@ Lumen — L'Atelier Nord — Fabrique Lumineuse
 Projet : LUMEN-CAT-B-DEMO        Échelle : 1:100 — A1
 Niveau : Atelier                 Date : 2026-04-22
 Dessiné : DO                     Postes : 130
-Design Office — Built with Opus 4.7 — MIT License
+Archoff — Built with Opus 4.7 — MIT License
 ```
 
 Copy of the DXF is saved at

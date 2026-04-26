@@ -1,6 +1,6 @@
-# Design Office — UI design
+# Archoff — UI design
 
-A short guide to the visual language of Design Office. The product is aimed at
+A short guide to the visual language of Archoff. The product is aimed at
 interior architects who design tertiary fit-outs for Gensler, Saguez, MoreySmith
 and similar agencies. The interface must feel at home next to their mood boards
 and Kinfolk subscriptions — never like a SaaS dashboard.
@@ -143,7 +143,7 @@ Transitions on state changes use `transition-colors duration-200 ease-out-gentle
   canvas reaches 8.6:1 — comfortably above the 4.5:1 threshold.
 - Focus rings use `focus-visible:ring-2 ring-forest/40`. Never removed.
 - Every icon carries an `aria-label`. The chat button uses
-  `aria-label="Open Ask Design Office"`.
+  `aria-label="Open Ask Archoff"`.
 
 ## Five pages at a glance
 

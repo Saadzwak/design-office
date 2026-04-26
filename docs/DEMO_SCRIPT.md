@@ -34,7 +34,7 @@ the screenshots pane will show the PlanSvg overlay instead.
 
 ## 00:00 – 00:15 Hook
 
-> *"A space planner spends 3 weeks doing a test fit. With Design Office,
+> *"A space planner spends 3 weeks doing a test fit. With Archoff,
 > it's 3 minutes."*
 
 - **Visual** : Landing page. Editorial magazine hero — *"A quiet
@@ -156,7 +156,7 @@ the screenshots pane will show the PlanSvg overlay instead.
 
 ## 02:15 – 02:45 Surface V — Export
 
-> *"And here's the dimensioned A1 DXF, with the five Design Office
+> *"And here's the dimensioned A1 DXF, with the five Archoff
 > layers — AGENCEMENT, MOBILIER, COTATIONS, CLOISONS, CIRCULATIONS."*
 
 - **Click** into /export. A 4:3 viewer on the left, a Fraunces hero
@@ -170,15 +170,15 @@ the screenshots pane will show the PlanSvg overlay instead.
   COTATIONS layer…" → "Composing the title-block cartouche…" →
   "Saving DXF + manifest to disk…"*. ~2 s wall-clock.
 - **Download card appears** : filename in Fraunces, size / sheet / scale
-  / ops count in mono-caps, layer chips for the 5 Design Office
+  / ops count in mono-caps, layer chips for the 5 Archoff
   layers, and a right aside listing the backend pipeline (ezdxf
   headless + File IPC live + manifest).
 - **Click** "Download ↗" — the DXF lands on disk. **Cut** to
   AutoCAD window with the DXF already loaded (or prompt the loading
   if AutoCAD is live). Layer panel on the right shows the five
-  Design Office layers in their palette colours. Zoom to the title
+  Archoff layers in their palette colours. Zoom to the title
   block in the bottom-right — client, variant, scale 1:100, date,
-  "Design Office — Built with Opus 4.7".
+  "Archoff — Built with Opus 4.7".
 - ~30 s.
 
 ## 02:45 – 03:00 Outro · the client-aware flex

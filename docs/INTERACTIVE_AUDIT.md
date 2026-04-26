@@ -42,7 +42,7 @@ the iter-18 port, plus Saad's iter-19 directive.
 
 | # | Element | Expected | Actual | Status | Priority |
 |---|---------|----------|--------|--------|----------|
-| D1 | GlobalNav logo "Design Office" | Back to landing | Works | ✅ | — |
+| D1 | GlobalNav logo "Archoff" | Back to landing | Works | ✅ | — |
 | D2 | GlobalNav items (HOME / I / II / III / IV / V / VI) | Route to each surface | Works | ✅ | — |
 | D3 | Engineering / Client PillToggle (nav) | Switch view_mode globally | Works | ✅ | — |
 | D4 | Integration status badge | Opens integration-status popover | Works | ✅ | — |

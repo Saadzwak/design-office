@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 100" fill="none" stroke-linejoin="miter" stroke-linecap="butt">
+  <!-- Archoff brand mark — forest green architectural monogram.
+       Two interlocking zigzags : a wide M (rooflines) with a narrower V
+       descending inside it. Four windows in a 2×2 grid below.
+       The whole mark uses the Organic Modern forest token (#2F4A3F). -->
+  <g stroke="#2F4A3F" stroke-width="7" fill="none">
+    <!-- Outer M : peak-dip-peak across the full width -->
+    <polyline points="6,76 30,10 60,38 90,10 114,76" />
+    <!-- Inner descending V, nested inside the M -->
+    <polyline points="30,38 60,76 90,38" />
+  </g>
+  <!-- 4 windows arranged 2×2, centered horizontally -->
+  <g fill="#2F4A3F">
+    <rect x="50" y="84" width="8" height="8" />
+    <rect x="62" y="84" width="8" height="8" />
+    <rect x="50" y="96" width="8" height="8"/>
+    <rect x="62" y="96" width="8" height="8"/>
+  </g>
+</svg>

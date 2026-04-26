@@ -1,6 +1,6 @@
 # Architecture
 
-Deep dive on how Design Office is wired. Reads best alongside
+Deep dive on how Archoff is wired. Reads best alongside
 [`BUILD_LOG.md`](../BUILD_LOG.md), which timestamps every iteration and
 records live token usage, and [`CLAUDE.md`](../CLAUDE.md), which frames
 the original mission.
@@ -19,8 +19,8 @@ the original mission.
 │           /testfit    → Macro (3 variants) + Micro (drill-down)   │
 │           /moodboard  → Client-aware A3 landscape mood board      │
 │           /justify    → Sourced argumentaire + A4 PDF + PPTX      │
-│           /export     → A1 DXF with Design Office layers          │
-│           /chat       → Full-page Ask Design Office               │
+│           /export     → A1 DXF with Archoff layers          │
+│           /chat       → Full-page Ask Archoff               │
 │                                                                   │
 │  Components : PlanSvg (envelope + columns + cores + variant zones)│
 │               PseudoThreeDViewer (6-angle SketchUp captures)      │
@@ -85,7 +85,7 @@ the original mission.
 │  mhyrr/sketchup-mcp  │                 │  puran-water/          │
 │  fork + our          │                 │  autocad-mcp fork      │
 │  design_office_      │                 │                        │
-│  extensions.rb       │                 │  Design Office         │
+│  extensions.rb       │                 │  Archoff         │
 │                      │                 │  ezdxf headless +      │
 │  Real SketchUp Pro   │                 │  File-IPC live         │
 └──────────────────────┘                 └────────────────────────┘
@@ -95,7 +95,7 @@ the original mission.
 
 ## 2. Managed-agent orchestration across six surfaces
 
-The core claim of Design Office is that **managed agents at the right level
+The core claim of Archoff is that **managed agents at the right level
 of abstraction** produce better design artefacts than a single monolithic
 call. The orchestration fans out across four levels, serving six
 surfaces :
@@ -203,7 +203,7 @@ Each emits a Markdown block matching its system-prompt template. The
 Consolidator merges the four memos into one 7-section document (Le pari /
 recherche / réglementation / arbitrages / KPIs / prochaines étapes /
 sources). A **ReportLab** renderer ships the final argumentaire as an A4
-PDF with the Design Office palette and typography.
+PDF with the Archoff palette and typography.
 
 On the Lumen fixture : 148 k in / 22 k out tokens, 229 s, 14 242-char
 argumentaire, 5-page PDF.
@@ -236,7 +236,7 @@ as metadata on matching entities.
 **Vision is always on** — even when PyMuPDF has clean vector data, Vision
 contributes the facade cardinal direction (from the N-arrow), door swings,
 and the room-name labels the plan may carry. This is the single most
-creative use of Opus 4.7 in Design Office and drives the "Most Creative
+creative use of Opus 4.7 in Archoff and drives the "Most Creative
 Opus 4.7 Exploration" prize bet.
 
 ---
@@ -296,7 +296,7 @@ port 9876 and exposes a small set of primitive tools :
 `chamfer_edges`, `fillet_edges`, `create_mortise_tenon`, `create_dovetail`,
 `create_finger_joint`, **`eval_ruby`**.
 
-Our Design Office operations (`create_workstation_cluster`,
+Our Archoff operations (`create_workstation_cluster`,
 `create_meeting_room`, `create_phone_booth`, `create_partition_wall`,
 `create_collab_zone`, `apply_biophilic_zone`) are **not** in the vendor
 set — they live in our own `DesignOffice` Ruby module. The module is
@@ -332,10 +332,10 @@ same `AutoCadBackend` protocol :
 
 - Pure Python, no AutoCAD required
 - Buffers facade calls and materialises at `save()` time using `ezdxf`
-- Produces a real DXF file with the five Design Office layers
+- Produces a real DXF file with the five Archoff layers
   (AGENCEMENT / MOBILIER / COTATIONS / CLOISONS / CIRCULATIONS), entities
   (lines, polylines, circles, rectangles, text, dimensions), layer
-  colours set to the Design Office palette
+  colours set to the Archoff palette
 - `plot_pdf` is a no-op here (emulated, returns a note)
 
 ### FileIpcBackend

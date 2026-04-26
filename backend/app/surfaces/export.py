@@ -2,7 +2,7 @@
 
 Translates a `FloorPlan` + retained `VariantOutput` into a DXF file with :
 
-- The five Design Office layers (AGENCEMENT, MOBILIER, COTATIONS, CLOISONS,
+- The five Archoff layers (AGENCEMENT, MOBILIER, COTATIONS, CLOISONS,
   CIRCULATIONS).
 - The plan geometry (envelope, columns, cores, stairs) on AGENCEMENT.
 - The variant zones (workstation clusters, meeting rooms, phone booths,
@@ -469,7 +469,7 @@ def _draw_title_block(
     # Bottom tag line.
     facade.add_label(
         position_mm=(x0 + 500, y0 + ch * 0.10),
-        text="Design Office — Built with Opus 4.7 — MIT License",
+        text="Archoff — Built with Opus 4.7 — MIT License",
         height_mm=text_height - 50,
         layer="AGENCEMENT",
     )
