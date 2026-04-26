@@ -1,7 +1,7 @@
 [project]
-name = "design-office-backend"
+name = "archoff-backend"
 version = "0.1.0"
-description = "Design Office backend — FastAPI + Opus 4.7 orchestrator for the Anthropic hackathon"
+description = "Archoff backend — FastAPI + Opus 4.7 orchestrator for the Anthropic hackathon"
 requires-python = ">=3.11"
 license = { text = "MIT" }
 authors = [{ name = "Saad Zwaki", email = "saadzwaki@gmail.com" }]
