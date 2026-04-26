@@ -263,6 +263,178 @@ def test_demo_fallback_env_var_toggles_mode(
 # ------------------------------------------------------- visual mood board prompt
 
 
+def test_fresh_generation_writes_a_sidecar_with_category(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Iter-33 follow-up — `text_to_image(category=...)` produces a
+    `{cache_key}.json` sidecar tagged with the category. Without this,
+    the demo fallback can't filter by category and may serve a plant
+    image for a material slot."""
+
+    client = NanoBananaClient(api_key="fake:key", cache_dir=tmp_path)
+    fake_png = b"\x89PNG\r\n\x1a\nfaked"
+
+    monkeypatch.setattr(
+        client, "_submit_and_poll",
+        lambda *, model, body: ("https://fake/img.png", "req-1"),
+    )
+    monkeypatch.setattr(
+        client, "_download_bytes", lambda url: fake_png,
+    )
+
+    out = client.text_to_image(
+        prompt="Editorial product photography of European oak",
+        aspect_ratio="4:3",
+        category="material",
+        item_key="mat:european-oak:oiled",
+    )
+    sidecar = out.path.with_suffix(".json")
+    assert sidecar.exists(), "sidecar JSON must be written next to the PNG"
+    data = json.loads(sidecar.read_text(encoding="utf-8"))
+    assert data["category"] == "material"
+    assert data["item_key"] == "mat:european-oak:oiled"
+    assert data["aspect_ratio"] == "4:3"
+    assert data["cache_key"] == out.cache_key
+    assert data["schema_version"] == 1
+
+
+def test_demo_fallback_filters_by_category_so_plant_never_serves_material(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The bug Saad reported : a plant image showed up in a material
+    slot. Root cause was the demo fallback only filtered by aspect
+    ratio. With per-image sidecar categories, a `category=material`
+    request must pick from the material bucket — even if the plant
+    bucket has more images."""
+
+    from PIL import Image  # type: ignore[import-untyped]
+
+    monkeypatch.delenv("FAL_KEY", raising=False)
+    # Three plant images at 4:3 + one material image at 4:3. Without
+    # category filtering, the prompt's hash could land on a plant
+    # 75% of the time.
+    plant_paths: list[Path] = []
+    for i in range(3):
+        p = tmp_path / f"plant_{i}.png"
+        Image.new("RGB", (320, 240), color=(40 + i * 10, 100, 40)).save(p)
+        p.with_suffix(".json").write_text(
+            json.dumps({"cache_key": p.stem, "category": "plant"}),
+            encoding="utf-8",
+        )
+        plant_paths.append(p)
+    mat_path = tmp_path / "material_0.png"
+    Image.new("RGB", (320, 240), color=(180, 150, 120)).save(mat_path)
+    mat_path.with_suffix(".json").write_text(
+        json.dumps({"cache_key": mat_path.stem, "category": "material"}),
+        encoding="utf-8",
+    )
+
+    client = NanoBananaClient(cache_dir=tmp_path, demo_fallback=True)
+    monkeypatch.setattr(
+        client, "_submit_and_poll",
+        lambda **_: (_ for _ in ()).throw(AssertionError("no fal.ai")),
+    )
+
+    # Ten distinct prompts, all asking for category="material". Every
+    # single fallback pick must come from the single material image.
+    for i in range(10):
+        out = client.text_to_image(
+            prompt=f"European oak — variant {i}",
+            aspect_ratio="4:3",
+            category="material",
+        )
+        assert out.path.read_bytes() == mat_path.read_bytes(), (
+            f"prompt {i}: a plant was served for a material request"
+        )
+
+    # Sanity check the sidecar — the new entry inherits the source
+    # category so a future pool query for `material` includes it.
+    new_sidecar = out.path.with_suffix(".json")
+    data = json.loads(new_sidecar.read_text(encoding="utf-8"))
+    assert data["category"] == "material"
+
+
+def test_demo_fallback_falls_back_to_aspect_when_no_category_match(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """If the cache has zero images of the requested category, we
+    degrade to aspect-only matching (with a warning) rather than
+    return None. Returning None would route to fal.ai and fail in
+    offline demos."""
+
+    from PIL import Image  # type: ignore[import-untyped]
+
+    monkeypatch.delenv("FAL_KEY", raising=False)
+    plant = tmp_path / "plant_0.png"
+    Image.new("RGB", (320, 240), color=(40, 100, 40)).save(plant)
+    plant.with_suffix(".json").write_text(
+        json.dumps({"cache_key": plant.stem, "category": "plant"}),
+        encoding="utf-8",
+    )
+
+    client = NanoBananaClient(cache_dir=tmp_path, demo_fallback=True)
+    monkeypatch.setattr(
+        client, "_submit_and_poll",
+        lambda **_: (_ for _ in ()).throw(AssertionError("no fal.ai")),
+    )
+
+    # Request category="furniture" — the cache has zero furniture, only
+    # a plant. The fallback degrades to aspect-only match and serves
+    # the plant rather than failing.
+    out = client.text_to_image(
+        prompt="Steelcase Series 1",
+        aspect_ratio="4:3",
+        category="furniture",
+    )
+    assert out.path.read_bytes() == plant.read_bytes()
+
+
+def test_cache_hit_tops_up_sidecar_when_category_was_unknown(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A pre-existing cache entry that landed when the call site didn't
+    pass a category should be top-up-tagged when a later call with the
+    same prompt + aspect provides one. Stops legacy unknown sidecars
+    from sticking around forever."""
+
+    client = NanoBananaClient(api_key="fake:key", cache_dir=tmp_path)
+    body = {
+        "prompt": "Vitra Eames Aluminum",
+        "aspect_ratio": "4:3",
+        "num_images": 1,
+        "output_format": "png",
+    }
+    key = client._cache_key(
+        model=client.text_to_image_model,
+        body=body,
+        base_image_hash=None,
+    )
+    (tmp_path / f"{key}.png").write_bytes(b"fake png bytes")
+    # Sidecar with category=unknown — simulates a legacy backfill miss.
+    (tmp_path / f"{key}.json").write_text(
+        json.dumps({"cache_key": key, "category": "unknown"}),
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr(
+        client, "_submit_and_poll",
+        lambda **_: (_ for _ in ()).throw(AssertionError("must not call")),
+    )
+
+    out = client.text_to_image(
+        prompt="Vitra Eames Aluminum",
+        aspect_ratio="4:3",
+        category="furniture",
+    )
+    assert out.from_cache is True
+    data = json.loads(
+        (tmp_path / f"{key}.json").read_text(encoding="utf-8")
+    )
+    assert data["category"] == "furniture", (
+        "legacy unknown sidecars must be upgraded on subsequent calls"
+    )
+
+
 def test_compose_prompt_embeds_industry_register_and_variant_atmosphere() -> None:
     plan, variant = _load_sample_variant()
     req = VisualMoodBoardRequest(

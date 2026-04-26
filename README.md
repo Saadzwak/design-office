@@ -20,8 +20,8 @@ time today, and where no serious AI tool exists :
 | 2 | **Test fit — Macro-zoning** | PDF floor plan + programme | Three 3D variants in SketchUp, **iterable in natural language** | 1 – 3 weeks |
 |   | **Test fit — Micro-zoning** | Retained variant | Per-zone drill-down (furniture SKUs, finishes, acoustic targets, light Kelvin), with 6-angle pseudo-3D viewer | ∅ today |
 | 3 | **Mood Board** | Retained variant + industry | **A3 landscape PDF** (palette, materials, furniture, planting, light) — client-aware | 1 – 2 weeks |
-| 4 | **Justify** | Retained variant | Client-facing argumentaire with citations + A4 PDF + 6-slide PPTX pitch deck (with client logo + SketchUp iso) | 3 – 5 days |
-| 5 | **Export** | Retained variant | Dimensioned A1 DXF with Design Office layers | 2 – 4 days |
+| 4 | **Justify** | Retained variant | Client-facing argumentaire with citations + **18-slide magazine-grade pitch deck** (PDF, rendered via headless Chromium, embeds atmosphere photographs, KPI dials, comparison chart, vertical timeline) + A4 long-form report | 3 – 5 days |
+| 5 | **Export** | Retained variant | Dimensioned A1 **DXF** with five named Design Office layers (DO_WALLS · DO_ZONES · DO_FURN · DO_ACOUSTIC · DO_GRID). Opens in AutoCAD, Revit, Vectorworks. | 2 – 4 days |
 
 Everything orchestrated by Claude **Opus 4.7** — Vision HD reads the plans,
 three-level managed-agent orchestration produces the programme / variants /
@@ -116,6 +116,12 @@ retried with exponential jittered back-off and audited to
    + AutoCAD (puran-water/autocad-mcp, fork) connected to the same
    backend. Rarely seen combined, drives the "Most Creative Opus 4.7
    Exploration" prize.
+5. **Vision HD as a content classifier** — every cached editorial
+   photograph carries a JSON sidecar tagging its content category
+   (material / furniture / plant / light / atmosphere / biophilic).
+   The tags are produced by Claude Haiku 4.5 Vision in a one-shot
+   classification pass and drive the moodboard's per-slot lookup, so a
+   "European oak" prompt is never served a plant photograph by accident.
 
 ## Repository layout
 
@@ -265,8 +271,12 @@ The repo ships with **live-generated fixtures** under
   verdicts for Lumen (142 k input / 22 k output tokens, 108 s).
 - `justify_output_sample.json` — the consolidated argumentaire (148 k /
   22 k tokens, 229 s, 14 242 chars, 5 agents).
-- `lumen_justify_pitch_deck.pptx` — the 6-slide pitch deck derived from
-  the argumentaire (39 KB, opens in PowerPoint / Keynote / Slides).
+- `lumen_justify_pitch_deck.pdf` — the 18-slide magazine-grade pitch
+  deck derived from the argumentaire. Rendered via Jinja2 → headless
+  Chromium with embedded Fraunces / Inter / JetBrains Mono. Includes a
+  full-bleed atmosphere cover, About-the-project bento, three variant
+  full-bleeds, a "Why we chose" comparison chart, KPI dials, and a
+  vertical 8-step timeline.
 - `lumen_export_atelier.dxf` — the Atelier variant rendered to an A1 DXF
   (168 KB, 334 ops, all 5 Design Office layers populated).
 
@@ -276,8 +286,8 @@ Replay :
 cd backend
 .\.venv\Scripts\Activate.ps1
 python scripts/run_lumen_full.py        # regenerate 3 variants + 3 reviewers
-python scripts/run_lumen_justify.py     # regenerate Justify argumentaire + PDF
-python scripts/run_lumen_pptx.py        # regenerate the 6-slide pitch deck (no Opus)
+python scripts/run_lumen_justify.py     # regenerate Justify argumentaire +
+                                        #   18-slide magazine PDF + A4 PDF + PPTX
 python scripts/run_lumen_export.py      # regenerate the DXF (no Opus)
 ```
 

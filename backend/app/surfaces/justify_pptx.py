@@ -39,6 +39,20 @@ OCHRE = RGBColor(0xA0, 0x88, 0x63)       # sand-deep — hairlines, rules
 NEUTRAL_400 = RGBColor(0x7F, 0x83, 0x7D)  # ink-muted — secondary labels
 NEUTRAL_300 = RGBColor(0xC6, 0xC1, 0xB4)  # mist-300 — tertiary hairlines
 
+# Iter-33 — typography mirrors the app (Fraunces / Inter / JetBrains Mono).
+# Notes :
+# - python-pptx writes the font name into the slide XML; PowerPoint uses
+#   the chosen font when present on the local machine and falls back to
+#   the slide-master Latin font otherwise. For the demo and any client
+#   with the live app open both fonts resolve. Without Fraunces installed,
+#   the deck renders in Calibri — same content, different feel — which is
+#   acceptable as a v1 caveat.
+# - "Fraunces" is requested with italic for editorial display ; PowerPoint
+#   picks the closest variant available.
+DISPLAY_FONT = "Fraunces"   # serif display, italic for editorial pull quotes
+BODY_FONT = "Inter"          # sans body — default for paragraphs and metric values
+MONO_FONT = "JetBrains Mono"  # mono for eyebrows, kickers, folio numerals
+
 
 @dataclass(frozen=True)
 class PptxBuild:
@@ -111,6 +125,16 @@ def render_pitch_deck(
     sections = _split_argumentaire(argumentaire_markdown)
     logo_bytes = _decode_data_url(client_logo_data_url) if client_logo_data_url else None
 
+    # Iter-33 — slide order tuned for an architect-pitch read.
+    # Bet leads programme so the client hears the *why* before the
+    # *what* (standard architect-pitch convention). Section dividers
+    # break the deck into 4 acts so a long meeting has natural breath
+    # points.
+    #
+    # We also track divider indices explicitly so the folio stamper
+    # can skip them deterministically rather than scanning text runs
+    # (the pull quote's 220 pt opening mark fooled the old heuristic).
+    divider_indices: set[int] = set()
     _build_cover_slide(
         prs,
         client_name=client_name,
@@ -118,7 +142,6 @@ def render_pitch_deck(
         logo_bytes=logo_bytes,
         iso_path=sketchup_iso_path,
     )
-    # II. Vision — tagline + palette strip (NEW iter-20e).
     _build_vision_slide(
         prs,
         client_name=client_name,
@@ -126,26 +149,24 @@ def render_pitch_deck(
         tagline=tagline,
         palette_hexes=palette_hexes or [],
     )
-    # III. Programme — condensed from markdown (NEW iter-20e).
+    _build_bet_slide(prs, client_name=client_name, section=sections.get("1", ""))
+    divider_indices.add(len(prs.slides))
+    _build_section_divider_slide(prs, roman="I", label="Programme")
     _build_programme_slide(prs, programme_markdown=programme_markdown or "")
-    # IV. Three macro variants (NEW iter-20e).
     _build_three_variants_slide(
         prs,
         retained=variant,
         other_variants=other_variants or [],
         iso_by_style=sketchup_iso_by_style or {},
     )
-    # V. Retained variant focus (NEW iter-20e).
     _build_retained_variant_slide(
         prs,
         variant=variant,
         iso_path=sketchup_iso_path,
     )
-    # VI. Le pari / The bet (existing).
-    _build_bet_slide(prs, client_name=client_name, section=sections.get("1", ""))
-    # VII. Programme metrics (existing).
     _build_metrics_slide(prs, variant=variant)
-    # VIII. Atmosphere mood board (NEW iter-20e).
+    divider_indices.add(len(prs.slides))
+    _build_section_divider_slide(prs, roman="II", label="Atmosphere")
     _build_atmosphere_slide(
         prs,
         tagline=tagline,
@@ -153,7 +174,6 @@ def render_pitch_deck(
         atmosphere_image=(gallery_tile_paths or {}).get("atmosphere"),
         biophilic_image=(gallery_tile_paths or {}).get("biophilic"),
     )
-    # IX. Materials & furniture mood board (NEW iter-20e).
     _build_materials_furniture_slide(
         prs,
         materials_image=(gallery_tile_paths or {}).get("materials"),
@@ -161,17 +181,36 @@ def render_pitch_deck(
         materials=materials or [],
         furniture=furniture or [],
     )
-    # X. Research citations (existing).
+    divider_indices.add(len(prs.slides))
+    _build_section_divider_slide(prs, roman="III", label="Evidence")
+    # Iter-33 — pull-quote breath before the dense evidence block.
+    _build_pull_quote_slide(
+        prs,
+        quote=(
+            "Plants in field-of-view raise productivity 8–15 percent. "
+            "It is the cheapest performance lever a tenant can buy."
+        ),
+        attribution="Nieuwenhuis · Knight · Postmes · Haslam, 2014",
+    )
     _build_research_slide(prs, sections=sections)
-    # XI. Regulatory + constraints (existing).
+    # Iter-33 — six-card evidence grid sits beside the narrative.
+    _build_citation_cards_slide(prs)
     _build_regulatory_slide(prs, sections=sections)
-    # XII. Next steps (existing).
+    divider_indices.add(len(prs.slides))
+    _build_section_divider_slide(prs, roman="IV", label="What's next")
     _build_next_steps_slide(
         prs,
         sections=sections,
         project_reference=project_reference,
         logo_bytes=logo_bytes,
     )
+
+    # Iter-33 — folio (slide number) on every slide except the cover
+    # and the section dividers. Bottom-right, JetBrains Mono 8pt,
+    # Roman numeral so it reads editorial rather than SaaS. The
+    # divider indices were captured at build time so the pull quote
+    # (which has a 220 pt opening glyph) is correctly *not* skipped.
+    _stamp_folio_on_content_slides(prs, skip_indices=divider_indices)
 
     prs.save(str(target))
     size = target.stat().st_size
@@ -263,10 +302,12 @@ def _build_cover_slide(
     slide, _, _ = _blank_slide(prs)
 
     # Optional SketchUp iso render on the right half of the cover.
-    if iso_path and Path(iso_path).exists():
+    # Iter-33 — accept frontend URLs; resolver maps to disk path.
+    iso_resolved = _resolve_media_url(iso_path) or iso_path
+    if iso_resolved and Path(iso_resolved).exists():
         try:
             slide.shapes.add_picture(
-                iso_path,
+                iso_resolved,
                 Inches(7.0),
                 Inches(0.6),
                 width=Inches(5.8),
@@ -296,7 +337,7 @@ def _build_cover_slide(
         6.0,
         0.35,
         "Design Office — client argumentaire",
-        font="Courier New",
+        font=MONO_FONT,
         size=11,
         color=TERRACOTTA,
         letter_spacing=250,
@@ -308,7 +349,7 @@ def _build_cover_slide(
         6.0,
         2.6,
         f"{client_name}\n« {variant.title} »",
-        font="Calibri",
+        font=DISPLAY_FONT,
         size=48,
         color=BONE_TEXT,
         bold=True,
@@ -324,7 +365,7 @@ def _build_cover_slide(
         f"Desks: {variant.metrics.workstation_count}\n"
         f"Flex ratio: {variant.metrics.flex_ratio_applied:.2f}\n"
         f"Total programmed: ≈ {round(variant.metrics.total_programmed_m2)} m²",
-        font="Calibri",
+        font=BODY_FONT,
         size=18,
         color=BONE_TEXT,
     )
@@ -335,7 +376,7 @@ def _build_cover_slide(
         12,
         0.4,
         f"{datetime.now(tz=timezone.utc).date().isoformat()} · Built with Opus 4.7 · MIT License",
-        font="Courier New",
+        font=MONO_FONT,
         size=10,
         color=NEUTRAL_400,
     )
@@ -351,7 +392,7 @@ def _build_bet_slide(prs: Presentation, *, client_name: str, section: str) -> No
         12,
         1.0,
         f"Why this variant for {client_name}",
-        font="Calibri",
+        font=DISPLAY_FONT,
         size=36,
         color=BONE_TEXT,
         bold=True,
@@ -359,7 +400,7 @@ def _build_bet_slide(prs: Presentation, *, client_name: str, section: str) -> No
     _add_hr(slide, 0.8, 2.2, 4.0)
     body = _condense(section, max_chars=1100)
     _add_text(
-        slide, 0.8, 2.6, 12, 4.4, body, font="Calibri", size=18, color=BONE_TEXT
+        slide, 0.8, 2.6, 12, 4.4, body, font=BODY_FONT, size=18, color=BONE_TEXT
     )
 
 
@@ -373,7 +414,7 @@ def _build_metrics_slide(prs: Presentation, *, variant: VariantOutput) -> None:
         12,
         1.0,
         "Chiffres clés de la variante",
-        font="Calibri",
+        font=DISPLAY_FONT,
         size=36,
         color=BONE_TEXT,
         bold=True,
@@ -417,7 +458,7 @@ def _build_metrics_slide(prs: Presentation, *, variant: VariantOutput) -> None:
             col_w - 0.6,
             0.35,
             label.upper(),
-            font="Courier New",
+            font=MONO_FONT,
             size=10,
             color=NEUTRAL_300,
         )
@@ -428,7 +469,7 @@ def _build_metrics_slide(prs: Presentation, *, variant: VariantOutput) -> None:
             col_w - 0.6,
             0.9,
             value,
-            font="Calibri",
+            font=DISPLAY_FONT,
             size=38,
             color=BONE_TEXT,
             bold=True,
@@ -445,7 +486,7 @@ def _build_research_slide(prs: Presentation, *, sections: dict[str, str]) -> Non
         12,
         1.0,
         "Acoustique · Biophilie · Flex",
-        font="Calibri",
+        font=DISPLAY_FONT,
         size=36,
         color=BONE_TEXT,
         bold=True,
@@ -454,7 +495,7 @@ def _build_research_slide(prs: Presentation, *, sections: dict[str, str]) -> Non
 
     body = _condense(sections.get("2", ""), max_chars=1400)
     _add_text(
-        slide, 0.8, 2.6, 12, 4.4, body, font="Calibri", size=15, color=BONE_TEXT
+        slide, 0.8, 2.6, 12, 4.4, body, font=BODY_FONT, size=15, color=BONE_TEXT
     )
     _add_text(
         slide,
@@ -463,7 +504,7 @@ def _build_research_slide(prs: Presentation, *, sections: dict[str, str]) -> Non
         12,
         0.5,
         "Sources : Browning 2014 · Nieuwenhuis 2014 · Ulrich 1984 · NF S 31-080 · Leesman 2024",
-        font="Courier New",
+        font=MONO_FONT,
         size=9,
         color=NEUTRAL_300,
     )
@@ -479,7 +520,7 @@ def _build_regulatory_slide(prs: Presentation, *, sections: dict[str, str]) -> N
         12,
         1.0,
         "ERP type W · PMR · Code du travail",
-        font="Calibri",
+        font=DISPLAY_FONT,
         size=36,
         color=BONE_TEXT,
         bold=True,
@@ -488,7 +529,7 @@ def _build_regulatory_slide(prs: Presentation, *, sections: dict[str, str]) -> N
 
     body = _condense(sections.get("3", ""), max_chars=1500)
     _add_text(
-        slide, 0.8, 2.6, 12, 4.4, body, font="Calibri", size=15, color=BONE_TEXT
+        slide, 0.8, 2.6, 12, 4.4, body, font=BODY_FONT, size=15, color=BONE_TEXT
     )
     _add_text(
         slide,
@@ -497,7 +538,7 @@ def _build_regulatory_slide(prs: Presentation, *, sections: dict[str, str]) -> N
         12,
         0.5,
         "Sources : Arrêté 20 avril 2017 · Règlement sécurité ERP type W · R. 4222 / R. 4223 · EN 12464-1",
-        font="Courier New",
+        font=MONO_FONT,
         size=9,
         color=NEUTRAL_300,
     )
@@ -532,7 +573,7 @@ def _build_next_steps_slide(
         12,
         1.0,
         "What it takes to start",
-        font="Calibri",
+        font=DISPLAY_FONT,
         size=36,
         color=BONE_TEXT,
         bold=True,
@@ -549,11 +590,11 @@ def _build_next_steps_slide(
         5.9,
         0.35,
         "EXPECTED RESULTS 6–12 MONTHS",
-        font="Courier New",
+        font=MONO_FONT,
         size=10,
         color=OCHRE,
     )
-    _add_text(slide, 0.8, 3.1, 5.9, 3.4, kpis, font="Calibri", size=14, color=BONE_TEXT)
+    _add_text(slide, 0.8, 3.1, 5.9, 3.4, kpis, font=BODY_FONT, size=14, color=BONE_TEXT)
 
     _add_text(
         slide,
@@ -562,11 +603,11 @@ def _build_next_steps_slide(
         5.9,
         0.35,
         "NEXT STEPS",
-        font="Courier New",
+        font=MONO_FONT,
         size=10,
         color=OCHRE,
     )
-    _add_text(slide, 7.0, 3.1, 5.9, 3.4, steps, font="Calibri", size=14, color=BONE_TEXT)
+    _add_text(slide, 7.0, 3.1, 5.9, 3.4, steps, font=BODY_FONT, size=14, color=BONE_TEXT)
 
     footer = f"Project: {project_reference or 'DO-CAT-B'} · Built with Opus 4.7"
     _add_text(
@@ -576,7 +617,7 @@ def _build_next_steps_slide(
         12,
         0.4,
         footer,
-        font="Courier New",
+        font=MONO_FONT,
         size=9,
         color=NEUTRAL_300,
     )
@@ -590,10 +631,274 @@ def _eyebrow(slide, text: str) -> None:
         12,
         0.35,
         text.upper(),
-        font="Courier New",
+        font=MONO_FONT,
         size=10,
         color=TERRACOTTA,
     )
+
+
+# ---------------------------------------------------------------------------
+# Iter-33 — section divider + folio
+# ---------------------------------------------------------------------------
+
+
+# Roman numerals — used by the folio + the section divider numbering.
+# Caps at XX which is more than enough for any deck we'd realistically
+# render. Lookups beyond fall back to the integer string.
+_ROMANS = [
+    "", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X",
+    "XI", "XII", "XIII", "XIV", "XV", "XVI", "XVII", "XVIII", "XIX", "XX",
+]
+
+
+def _to_roman(n: int) -> str:
+    if 0 < n < len(_ROMANS):
+        return _ROMANS[n]
+    return str(n)
+
+
+def _build_section_divider_slide(
+    prs: Presentation, *, roman: str, label: str
+) -> None:
+    """A "breath" slide between acts — large numeral, label, sand rule.
+
+    Pure typography. No hairlines on the slide-master, no eyebrow, no
+    folio. The reader takes a beat ; the agency reasserts presence.
+    Uses the same Fraunces / JetBrains Mono pairing as the rest of the
+    deck so the divider doesn't read as a different deck.
+    """
+
+    slide, sw, sh = _blank_slide(prs)
+    # Vertically centered numeral, oversized.
+    _add_text(
+        slide,
+        0.8,
+        2.4,
+        12,
+        2.2,
+        roman,
+        font=DISPLAY_FONT,
+        size=180,
+        color=NEUTRAL_300,
+        italic=True,
+    )
+    # Label sits on the right rule of the numeral, in mono so it reads
+    # as a chapter kicker rather than a heading.
+    _add_text(
+        slide,
+        0.8,
+        4.6,
+        12,
+        0.5,
+        label.upper(),
+        font=MONO_FONT,
+        size=12,
+        color=TERRACOTTA,
+    )
+    _add_hr(slide, 0.8, 5.05, 2.0, color=OCHRE)
+
+
+def _add_folio(slide, *, roman: str) -> None:
+    """Drop a discreet roman-numeral folio bottom-right of a slide.
+
+    Editorial chrome — replaces the SaaS "Slide 7 of 12" reflex with a
+    page numeral that sits where a magazine spread would carry it.
+    """
+
+    _add_text(
+        slide,
+        12.6,
+        7.05,
+        0.6,
+        0.3,
+        roman,
+        font=MONO_FONT,
+        size=8,
+        color=NEUTRAL_400,
+    )
+
+
+def _build_pull_quote_slide(
+    prs: Presentation, *, quote: str, attribution: str
+) -> None:
+    """Editorial pull-quote slide — full-bleed Fraunces italic, mono kicker.
+
+    Used as a pause between two analytical sections. Single sentence,
+    no chrome, oversized italic. Reads like a magazine spread that
+    pulls a line out of the running text and floats it across two
+    pages."""
+
+    slide, _, _ = _blank_slide(prs)
+    # Lead quote mark in sand at 220pt — purely decorative.
+    _add_text(
+        slide,
+        0.5,
+        1.4,
+        2.0,
+        2.5,
+        "\u201C",
+        font=DISPLAY_FONT,
+        size=220,
+        color=OCHRE,
+        italic=True,
+    )
+    _add_text(
+        slide,
+        1.6,
+        2.0,
+        11.2,
+        4.4,
+        quote,
+        font=DISPLAY_FONT,
+        size=44,
+        color=BONE_TEXT,
+        italic=True,
+    )
+    _add_hr(slide, 1.6, 6.4, 1.5, color=OCHRE)
+    _add_text(
+        slide,
+        1.6,
+        6.55,
+        10.0,
+        0.4,
+        attribution.upper(),
+        font=MONO_FONT,
+        size=10,
+        color=TERRACOTTA,
+    )
+
+
+def _build_citation_cards_slide(prs: Presentation) -> None:
+    """3×2 grid of evidence cards — kicker / takeaway / citation.
+
+    Hard-coded sources matching the consolidator's research bibliography
+    so a client can inspect each line independently rather than reading
+    a dense paragraph. Each card mirrors the editorial chrome of the
+    rest of the deck (mono kicker, body in Inter, citation in mono).
+    """
+
+    slide, _, _ = _blank_slide(prs)
+    _eyebrow(slide, "Evidence · The studies behind the bet")
+    _add_text(
+        slide,
+        0.8,
+        1.15,
+        12,
+        1.0,
+        "What the literature says",
+        font=DISPLAY_FONT,
+        size=34,
+        color=BONE_TEXT,
+        bold=True,
+    )
+    _add_hr(slide, 0.8, 2.2, 4.0)
+
+    sources = [
+        (
+            "ACOUSTIC",
+            "Open-plan speech intelligibility above STI 0.50 cuts cognitive performance ~ 7%.",
+            "Hongisto, 2005 — Build. Acoustics 12.",
+        ),
+        (
+            "BIOPHILIC",
+            "Plants in field-of-view raise productivity 8–15 % and reduce reported stress.",
+            "Nieuwenhuis et al., 2014 — J. Exp. Psych. Applied.",
+        ),
+        (
+            "VIEW",
+            "Surgical recovery is shorter when patients see trees through their window.",
+            "Ulrich, 1984 — Science 224.",
+        ),
+        (
+            "STANDARD",
+            "Performant office target : DnT,A,tr ≥ 35 dB · Lp,A ≤ 45 dB · STI ≤ 0.50.",
+            "NF S 31-080 — class Performant.",
+        ),
+        (
+            "BENCHMARK",
+            "Leesman Lmi cuts off Excellent at 70 ; fintech median sits at 62.",
+            "Leesman 2024 Index — fintech subset.",
+        ),
+        (
+            "PROGRAMME",
+            "WELL Air + Light + Mind features set the Tier-A baseline most blue-chip clients audit against.",
+            "WELL Building Standard v2 Q3, 2024.",
+        ),
+    ]
+    x0, y0 = 0.8, 2.7
+    col_w, col_h = 4.0, 1.95
+    gutter = 0.18
+    for i, (kicker, takeaway, citation) in enumerate(sources):
+        col = i % 3
+        row = i // 3
+        left = x0 + col * (col_w + gutter)
+        top = y0 + row * (col_h + gutter)
+        card = slide.shapes.add_shape(
+            MSO_SHAPE.RECTANGLE,
+            Inches(left),
+            Inches(top),
+            Inches(col_w),
+            Inches(col_h),
+        )
+        card.line.color.rgb = NEUTRAL_300
+        card.line.width = Pt(0.5)
+        card.fill.solid()
+        card.fill.fore_color.rgb = BONE
+        _add_text(
+            slide,
+            left + 0.25,
+            top + 0.18,
+            col_w - 0.5,
+            0.32,
+            kicker,
+            font=MONO_FONT,
+            size=9,
+            color=TERRACOTTA,
+        )
+        _add_text(
+            slide,
+            left + 0.25,
+            top + 0.55,
+            col_w - 0.5,
+            1.0,
+            takeaway,
+            font=BODY_FONT,
+            size=12,
+            color=BONE_TEXT,
+        )
+        _add_text(
+            slide,
+            left + 0.25,
+            top + col_h - 0.45,
+            col_w - 0.5,
+            0.32,
+            citation,
+            font=MONO_FONT,
+            size=8,
+            color=NEUTRAL_400,
+            italic=True,
+        )
+
+
+def _stamp_folio_on_content_slides(
+    prs: Presentation, *, skip_indices: set[int]
+) -> None:
+    """Walk all slides and add a folio numeral to every slide except
+    the cover (index 0) and the explicit dividers in `skip_indices`.
+
+    Iter-33 originally tried to detect dividers heuristically by
+    looking for a 180 pt text run, but that misclassified the pull
+    quote (which has a 220 pt opening mark) as a divider too. The
+    explicit set is reliable — populated by the orchestrator at build
+    time, no scanning required.
+    """
+
+    page = 0
+    for i, slide in enumerate(prs.slides):
+        if i == 0 or i in skip_indices:
+            continue
+        page += 1
+        _add_folio(slide, roman=_to_roman(page))
 
 
 # ---------------------------------------------------------------------------
@@ -648,10 +953,67 @@ def _add_palette_strip(
             chip_w - 0.05,
             0.3,
             hx.upper(),
-            font="Courier New",
+            font=MONO_FONT,
             size=8,
             color=NEUTRAL_400,
         )
+
+
+def _resolve_media_url(url_or_path: str | None) -> str | None:
+    """Iter-33 — translate a frontend-served URL to a disk path so
+    `python-pptx`'s `add_picture` can embed the image directly.
+
+    The frontend forwards URLs (it has no notion of disk paths). We own
+    both URL families it sends, so the mapping is small and exhaustive :
+
+    - `/api/generated-images/{cache_key}` → the NanoBanana cache,
+      `backend/app/data/generated_images/{cache_key}.png`. The API
+      whitelists `.png` / `.svg` / `_base.png`; we try them in order
+      and return the first that exists. Most curator tiles are PNG.
+
+    - `/api/testfit/screenshot/{filename}.png` → SketchUp shots at
+      `backend/app/out/sketchup_shots/{filename}.png`.
+
+    Anything else is returned untouched — the caller's existing
+    `Path(image_path).exists()` check decides if it's already a disk
+    path or an unknown miss. Returns `None` if the URL points to our
+    own families but the file isn't on disk.
+    """
+
+    if not url_or_path:
+        return None
+    # If it already points to an existing on-disk path, hand it back as-is.
+    try:
+        if Path(url_or_path).exists():
+            return url_or_path
+    except OSError:
+        pass
+
+    # NanoBanana cache — `/api/generated-images/{id}` → data/generated_images/{id}.png
+    NB_PREFIX = "/api/generated-images/"
+    if NB_PREFIX in url_or_path:
+        cache_key = url_or_path.split(NB_PREFIX, 1)[1].split("?", 1)[0].split("#", 1)[0]
+        cache_key = cache_key.removesuffix(".png").removesuffix(".svg")
+        if cache_key:
+            from app.surfaces.zone_overlay import OUT_DIR as GEN_DIR
+
+            for suffix in (".png", "_base.png", ".svg"):
+                candidate = GEN_DIR / f"{cache_key}{suffix}"
+                if candidate.exists():
+                    return str(candidate)
+
+    # SketchUp shots — `/api/testfit/screenshot/{filename}.png`
+    SK_PREFIX = "/api/testfit/screenshot/"
+    if SK_PREFIX in url_or_path:
+        filename = url_or_path.split(SK_PREFIX, 1)[1].split("?", 1)[0].split("#", 1)[0]
+        if filename:
+            from app.surfaces.testfit import sketchup_shot_path_for
+
+            candidate = sketchup_shot_path_for(filename)
+            if candidate is not None:
+                return str(candidate)
+
+    return None
 
 
 def _safe_add_picture(
@@ -668,12 +1030,19 @@ def _safe_add_picture(
 
     Keeps the deck visually honest: empty frame with a label instead of
     a missing image.
+
+    Iter-33 — accepts either an absolute disk path *or* a URL the
+    frontend serves (`/api/generated-images/...` /
+    `/api/testfit/screenshot/...`). URLs get translated to a disk path
+    via `_resolve_media_url` before embedding.
     """
 
-    if image_path and Path(image_path).exists():
+    resolved = _resolve_media_url(image_path) or image_path
+
+    if resolved and Path(resolved).exists():
         try:
             slide.shapes.add_picture(
-                image_path,
+                resolved,
                 Inches(left),
                 Inches(top),
                 width=Inches(width),
@@ -701,7 +1070,7 @@ def _safe_add_picture(
             width - 0.5,
             0.4,
             placeholder_label.upper(),
-            font="Courier New",
+            font=MONO_FONT,
             size=9,
             color=NEUTRAL_400,
         )
@@ -730,7 +1099,7 @@ def _build_vision_slide(
         12,
         1.0,
         "The intent",
-        font="Calibri",
+        font=DISPLAY_FONT,
         size=36,
         color=BONE_TEXT,
         bold=True,
@@ -748,7 +1117,7 @@ def _build_vision_slide(
         11.8,
         2.4,
         f"« {headline} »",
-        font="Calibri",
+        font=DISPLAY_FONT,
         size=34,
         color=BONE_TEXT,
         italic=True,
@@ -762,7 +1131,7 @@ def _build_vision_slide(
         11.8,
         0.4,
         signature,
-        font="Courier New",
+        font=MONO_FONT,
         size=11,
         color=OCHRE,
     )
@@ -775,7 +1144,7 @@ def _build_vision_slide(
             11.8,
             0.3,
             "PALETTE",
-            font="Courier New",
+            font=MONO_FONT,
             size=9,
             color=NEUTRAL_400,
         )
@@ -810,7 +1179,7 @@ def _build_programme_slide(
         12,
         1.0,
         "What we programmed",
-        font="Calibri",
+        font=DISPLAY_FONT,
         size=36,
         color=BONE_TEXT,
         bold=True,
@@ -826,7 +1195,7 @@ def _build_programme_slide(
             12,
             1.0,
             "Programme à consolider à partir du brief.",
-            font="Calibri",
+            font=BODY_FONT,
             size=14,
             color=NEUTRAL_400,
             italic=True,
@@ -859,7 +1228,7 @@ def _build_programme_slide(
             col_w - 0.5,
             0.35,
             title.upper(),
-            font="Courier New",
+            font=MONO_FONT,
             size=9,
             color=TERRACOTTA,
         )
@@ -870,7 +1239,7 @@ def _build_programme_slide(
             col_w - 0.5,
             col_h - 0.7,
             body,
-            font="Calibri",
+            font=BODY_FONT,
             size=11,
             color=BONE_TEXT,
         )
@@ -899,7 +1268,7 @@ def _build_three_variants_slide(
         12,
         1.0,
         "Three hypotheses, one bet",
-        font="Calibri",
+        font=DISPLAY_FONT,
         size=32,
         color=BONE_TEXT,
         bold=True,
@@ -939,7 +1308,7 @@ def _build_three_variants_slide(
             col_w,
             0.3,
             label_txt,
-            font="Courier New",
+            font=MONO_FONT,
             size=9,
             color=label_color,
         )
@@ -950,7 +1319,7 @@ def _build_three_variants_slide(
             col_w,
             0.55,
             v.title,
-            font="Calibri",
+            font=BODY_FONT,
             size=18,
             color=BONE_TEXT,
             bold=is_retained,
@@ -967,7 +1336,7 @@ def _build_three_variants_slide(
             col_w,
             0.5,
             metrics,
-            font="Courier New",
+            font=MONO_FONT,
             size=10,
             color=NEUTRAL_400,
         )
@@ -994,7 +1363,7 @@ def _build_retained_variant_slide(
         12,
         1.0,
         variant.title,
-        font="Calibri",
+        font=DISPLAY_FONT,
         size=36,
         color=BONE_TEXT,
         bold=True,
@@ -1021,7 +1390,7 @@ def _build_retained_variant_slide(
         right_w,
         0.3,
         "PARTI",
-        font="Courier New",
+        font=MONO_FONT,
         size=9,
         color=TERRACOTTA,
     )
@@ -1032,7 +1401,7 @@ def _build_retained_variant_slide(
         right_w,
         1.1,
         variant.style.value.replace("_", " ").title(),
-        font="Calibri",
+        font=BODY_FONT,
         size=20,
         color=BONE_TEXT,
         bold=True,
@@ -1045,7 +1414,7 @@ def _build_retained_variant_slide(
         right_w,
         0.3,
         "FLEX RATIO",
-        font="Courier New",
+        font=MONO_FONT,
         size=9,
         color=TERRACOTTA,
     )
@@ -1056,7 +1425,7 @@ def _build_retained_variant_slide(
         right_w,
         0.6,
         f"{variant.metrics.flex_ratio_applied:.2f}",
-        font="Calibri",
+        font=DISPLAY_FONT,
         size=26,
         color=BONE_TEXT,
         bold=True,
@@ -1069,7 +1438,7 @@ def _build_retained_variant_slide(
         right_w,
         0.3,
         "TOTAL PROGRAMMED",
-        font="Courier New",
+        font=MONO_FONT,
         size=9,
         color=TERRACOTTA,
     )
@@ -1080,7 +1449,7 @@ def _build_retained_variant_slide(
         right_w,
         0.6,
         f"{round(variant.metrics.total_programmed_m2)} m²",
-        font="Calibri",
+        font=DISPLAY_FONT,
         size=26,
         color=BONE_TEXT,
         bold=True,
@@ -1111,7 +1480,7 @@ def _build_atmosphere_slide(
         12,
         1.0,
         "How it feels",
-        font="Calibri",
+        font=DISPLAY_FONT,
         size=36,
         color=BONE_TEXT,
         bold=True,
@@ -1145,7 +1514,7 @@ def _build_atmosphere_slide(
             11.8,
             0.45,
             f"« {tagline.strip()} »",
-            font="Calibri",
+            font=BODY_FONT,
             size=16,
             color=BONE_TEXT,
             italic=True,
@@ -1185,7 +1554,7 @@ def _build_materials_furniture_slide(
         12,
         1.0,
         "The palette, made real",
-        font="Calibri",
+        font=DISPLAY_FONT,
         size=32,
         color=BONE_TEXT,
         bold=True,
@@ -1200,7 +1569,7 @@ def _build_materials_furniture_slide(
         6.0,
         0.3,
         "MATERIALS",
-        font="Courier New",
+        font=MONO_FONT,
         size=9,
         color=TERRACOTTA,
     )
@@ -1220,7 +1589,7 @@ def _build_materials_furniture_slide(
         6.0,
         1.3,
         _caption_from_list(materials, keys=("material", "name"), limit=5),
-        font="Calibri",
+        font=BODY_FONT,
         size=11,
         color=BONE_TEXT,
     )
@@ -1233,7 +1602,7 @@ def _build_materials_furniture_slide(
         5.6,
         0.3,
         "FURNITURE",
-        font="Courier New",
+        font=MONO_FONT,
         size=9,
         color=TERRACOTTA,
     )
@@ -1253,7 +1622,7 @@ def _build_materials_furniture_slide(
         5.6,
         1.3,
         _caption_from_list(furniture, keys=("name", "brand", "type"), limit=5),
-        font="Calibri",
+        font=BODY_FONT,
         size=11,
         color=BONE_TEXT,
     )

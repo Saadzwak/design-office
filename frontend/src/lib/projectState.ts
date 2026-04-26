@@ -60,6 +60,9 @@ export type JustifyState = {
   argumentaire_markdown: string;
   pdf_id: string | null;
   pptx_id: string | null;
+  /** Iter-33 follow-up — the HTML→PDF magazine deck. Optional so older
+   *  serialised projects don't break on rehydrate. */
+  magazine_pdf_id?: string | null;
 };
 
 export type MoodBoardState = {
@@ -118,6 +121,9 @@ export type JustifyRun = {
   argumentaire_markdown: string;
   pdf_id: string | null;
   pptx_id: string | null;
+  /** Iter-33 follow-up — magazine PDF rendered via Jinja2 + headless
+   *  Chromium. Optional so pre-iter-33 serialised runs deserialize. */
+  magazine_pdf_id?: string | null;
 };
 
 export type ExportRun = {
@@ -282,6 +288,7 @@ export function reconcileDerivedViews(state: ProjectState): ProjectState {
         argumentaire_markdown: justifyRun.argumentaire_markdown,
         pdf_id: justifyRun.pdf_id,
         pptx_id: justifyRun.pptx_id,
+        magazine_pdf_id: justifyRun.magazine_pdf_id ?? null,
       }
     : null;
 
@@ -775,6 +782,7 @@ export function appendJustifyRun(payload: {
   argumentaire_markdown: string;
   pdf_id: string | null;
   pptx_id: string | null;
+  magazine_pdf_id?: string | null;
 }): ProjectState {
   const current = loadProjectState();
   const run: JustifyRun = {
@@ -785,6 +793,7 @@ export function appendJustifyRun(payload: {
     argumentaire_markdown: payload.argumentaire_markdown,
     pdf_id: payload.pdf_id,
     pptx_id: payload.pptx_id,
+    magazine_pdf_id: payload.magazine_pdf_id ?? null,
   };
   const next: ProjectState = {
     ...current,
@@ -801,6 +810,7 @@ export function setJustify(justify: JustifyState | null): ProjectState {
     argumentaire_markdown: justify.argumentaire_markdown,
     pdf_id: justify.pdf_id,
     pptx_id: justify.pptx_id,
+    magazine_pdf_id: justify.magazine_pdf_id ?? null,
   });
 }
 

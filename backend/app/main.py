@@ -32,6 +32,7 @@ from app.surfaces.justify import (
     pdf_path_for,
 )
 from app.surfaces.justify_pptx import pptx_path_for
+from app.surfaces.justify_html_pdf import pdf_path_for as magazine_pdf_path_for
 from app.surfaces.moodboard import (
     MoodBoardRequest,
     MoodBoardRerenderRequest,
@@ -437,6 +438,28 @@ def justify_pptx(pptx_id: str) -> FileResponse:
         path,
         media_type="application/vnd.openxmlformats-officedocument.presentationml.presentation",
         filename=f"design-office-{pptx_id}.pptx",
+    )
+
+
+@app.get("/api/justify/pdf-magazine/{pdf_id}")
+def justify_pdf_magazine(pdf_id: str) -> FileResponse:
+    """Iter-33 follow-up — the HTML→PDF magazine deck.
+
+    Same content as the PPTX (`render_pitch_deck`) and the A4 PDF
+    (`_render_client_pdf`), but laid out via Jinja2 + Tailwind-style CSS
+    and printed by headless Chromium. Magazine-grade typography that
+    python-pptx can't reach.
+    """
+
+    path = magazine_pdf_path_for(pdf_id)
+    if path is None:
+        raise HTTPException(
+            status_code=404, detail=f"Magazine PDF {pdf_id} not found."
+        )
+    return FileResponse(
+        path,
+        media_type="application/pdf",
+        filename=f"design-office-{pdf_id}.pdf",
     )
 
 

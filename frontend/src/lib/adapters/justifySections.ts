@@ -10,6 +10,8 @@
  * footer renders.
  */
 
+import { balanceMarkdown, firstSentence as sharedFirstSentence } from "./markdown";
+
 export type JustifyCard = {
   roman: string;
   title: string;
@@ -62,20 +64,11 @@ function cleanTitle(raw: string): string {
 }
 
 function firstSentence(text: string): string {
-  const trimmed = text.trim();
-  if (!trimmed) return "";
-  // Ignore meta headings like "### Acoustique & confort sonore"
-  // that show up as the first line — take the first line that is not a heading.
-  const lines = trimmed.split(/\r?\n/);
-  for (const line of lines) {
-    const t = line.trim();
-    if (!t || t.startsWith("#") || t.startsWith("-") || t.startsWith(">")) continue;
-    // Take the first 200 chars up to a `.` or `!`.
-    const match = t.match(/^(.+?[.!?])(\s|$)/s);
-    const first = match ? match[1] : t;
-    return first.length > 180 ? first.slice(0, 177).trimEnd() + "…" : first;
-  }
-  return trimmed.slice(0, 180);
+  // Iter-33 follow-up v3 — delegates to the shared helper. See
+  // `lib/adapters/markdown.ts` for the abbreviation handling and the
+  // unclosed-`**` balancing. Saad's "next steps" card on Justify was
+  // the second repro after Brief's Programme card.
+  return sharedFirstSentence(text, { maxLength: 180, skipChrome: true });
 }
 
 export function parseJustifyCards(argumentaire: string): JustifyCard[] {
@@ -95,10 +88,13 @@ export function parseJustifyCards(argumentaire: string): JustifyCard[] {
     }
     const bodyText = body.join("\n").trim();
     const tldr = firstSentence(bodyText);
+    // Iter-33 follow-up v3 — even the raw 140-char fallback gets
+    // balanced so a slice mid-bold doesn't leak literal `**`.
+    const fallback = balanceMarkdown(bodyText.slice(0, 140));
     cards.push({
       roman: ROMANS[cards.length] ?? String(cards.length + 1),
       title: cleaned,
-      tldr: tldr || bodyText.slice(0, 140),
+      tldr: tldr || fallback,
       citations: countCitations(bodyText),
       body: bodyText,
     });

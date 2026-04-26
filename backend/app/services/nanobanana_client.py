@@ -77,6 +77,37 @@ class GeneratedImage:
     bytes_size: int = 0
 
 
+# Iter-33 follow-up — content categories.
+# A single image always depicts ONE thing ; we store that thing in the
+# sidecar JSON so the demo fallback can pick a category-matching image
+# instead of a random one. Without this, a "European oak (matt)" prompt
+# could be served a plant photograph because the only filter was aspect
+# ratio.
+CATEGORY_MATERIAL = "material"             # single material swatch / sample
+CATEGORY_FURNITURE = "furniture"           # single furniture piece
+CATEGORY_PLANT = "plant"                   # single plant
+CATEGORY_LIGHT = "light"                   # single light fixture
+CATEGORY_GALLERY_ATMOSPHERE = "gallery_atmosphere"   # wide interior hero
+CATEGORY_GALLERY_BIOPHILIC = "gallery_biophilic"     # wide interior + plants
+CATEGORY_GALLERY_MATERIALS = "gallery_materials"     # wide swatches composition
+CATEGORY_GALLERY_FURNITURE = "gallery_furniture"     # wide furniture composition
+CATEGORY_HERO_COMPOSITE = "hero_composite"           # legacy single composite
+CATEGORY_UNKNOWN = "unknown"
+
+ALL_CATEGORIES = {
+    CATEGORY_MATERIAL,
+    CATEGORY_FURNITURE,
+    CATEGORY_PLANT,
+    CATEGORY_LIGHT,
+    CATEGORY_GALLERY_ATMOSPHERE,
+    CATEGORY_GALLERY_BIOPHILIC,
+    CATEGORY_GALLERY_MATERIALS,
+    CATEGORY_GALLERY_FURNITURE,
+    CATEGORY_HERO_COMPOSITE,
+    CATEGORY_UNKNOWN,
+}
+
+
 class NanoBananaClient:
     """Minimal async-free fal.ai NanoBanana client with disk caching."""
 
@@ -159,7 +190,20 @@ class NanoBananaClient:
         num_images: int = 1,
         output_format: str = "png",
         extra_params: dict[str, Any] | None = None,
+        category: str | None = None,
+        item_key: str | None = None,
     ) -> GeneratedImage:
+        """Generate (or hit cache for) one image.
+
+        `category` and `item_key` are written to the `{cache_key}.json`
+        sidecar at generation time and are also used by the demo
+        fallback to pick a category-matching image from the existing
+        pool instead of any random aspect-ratio match. Both are
+        optional ; legacy callers that don't pass them tag the image
+        as `unknown`, but the sidecar is still written so a later
+        Vision-based backfill can fill in the category.
+        """
+
         body: dict[str, Any] = {
             "prompt": prompt,
             "num_images": num_images,
@@ -175,6 +219,8 @@ class NanoBananaClient:
             body=body,
             aspect_ratio=aspect_ratio,
             base_image_hash=None,
+            category=category,
+            item_key=item_key,
         )
 
     def image_to_image(
@@ -187,6 +233,8 @@ class NanoBananaClient:
         num_images: int = 1,
         output_format: str = "png",
         extra_params: dict[str, Any] | None = None,
+        category: str | None = None,
+        item_key: str | None = None,
     ) -> GeneratedImage:
         base = Path(base_image_path)
         if not base.exists():
@@ -213,6 +261,8 @@ class NanoBananaClient:
             body=body,
             aspect_ratio=aspect_ratio,
             base_image_hash=base_hash,
+            category=category,
+            item_key=item_key,
         )
 
     # --------------------------------------------------------------- internal
@@ -247,11 +297,27 @@ class NanoBananaClient:
         body: dict[str, Any],
         aspect_ratio: str,
         base_image_hash: str | None,
+        category: str | None = None,
+        item_key: str | None = None,
     ) -> GeneratedImage:
         key = self._cache_key(model=model, body=body, base_image_hash=base_image_hash)
         output_format = str(body.get("output_format", "png"))
         cached = self._cache_path(key, output_format)
         if cached.exists() and cached.stat().st_size > 0:
+            # Iter-33 follow-up — even on a cache hit, top up the sidecar
+            # if the category has been provided this time and wasn't
+            # known previously. Lets a later call augment metadata
+            # without re-spending a generation.
+            if category or item_key:
+                self._write_sidecar(
+                    key=key,
+                    prompt=str(body.get("prompt", "")),
+                    model=model,
+                    aspect_ratio=aspect_ratio,
+                    category=category,
+                    item_key=item_key,
+                    only_if_missing_or_unknown=True,
+                )
             return GeneratedImage(
                 path=cached,
                 cache_key=key,
@@ -264,19 +330,38 @@ class NanoBananaClient:
 
         if self.demo_fallback:
             # Demo mode: pick a deterministic image from the existing pool
-            # by aspect ratio + stable hash of the prompt. Write it to the
-            # prompt's cache_path so subsequent identical requests hit the
-            # real cache. We never reach fal.ai in this branch.
+            # by category + aspect ratio + stable hash of the prompt.
+            # Write it to the prompt's cache_path so subsequent identical
+            # requests hit the real cache. We never reach fal.ai here.
             pool_path = self._pick_demo_fallback(
                 prompt=str(body.get("prompt", "")),
                 aspect_ratio=aspect_ratio,
+                category=category,
                 exclude=cached.resolve(),
             )
             if pool_path is not None:
                 cached.write_bytes(pool_path.read_bytes())
+                # Sidecar — copy the source's category if we can read it,
+                # otherwise tag with the requested category. Image bytes
+                # are identical so reusing the source category is correct.
+                source_meta = self._read_sidecar(pool_path)
+                final_category = (
+                    category
+                    or (source_meta.get("category") if source_meta else None)
+                    or CATEGORY_UNKNOWN
+                )
+                self._write_sidecar(
+                    key=key,
+                    prompt=str(body.get("prompt", "")),
+                    model=model,
+                    aspect_ratio=aspect_ratio,
+                    category=final_category,
+                    item_key=item_key,
+                )
                 log.info(
-                    "demo fallback: served %s for aspect %s (prompt hash %s)",
-                    pool_path.name, aspect_ratio, key[:8],
+                    "demo fallback: served %s for aspect %s · category %s "
+                    "(prompt hash %s)",
+                    pool_path.name, aspect_ratio, final_category, key[:8],
                 )
                 return GeneratedImage(
                     path=cached,
@@ -288,13 +373,14 @@ class NanoBananaClient:
                     request_id="demo-fallback",
                     bytes_size=cached.stat().st_size,
                 )
-            # Pool empty / no match for ratio — fall through to fal.ai so
+            # Pool empty / no category match — fall through to fal.ai so
             # we don't return a broken image. If fal.ai also fails, the
             # caller surface degrades gracefully (per-item failures don't
             # crash the response).
             log.warning(
-                "demo fallback: no pool image for aspect %s, attempting fal.ai",
-                aspect_ratio,
+                "demo fallback: no pool image for aspect %s · category %s, "
+                "attempting fal.ai",
+                aspect_ratio, category,
             )
 
         try:
@@ -306,6 +392,17 @@ class NanoBananaClient:
 
         png_bytes = self._download_bytes(image_url)
         cached.write_bytes(png_bytes)
+        # Sidecar at fresh-generation time. Category may be None if the
+        # caller didn't pass it ; we tag it `unknown` and let a later
+        # backfill (or an equivalent re-call) annotate.
+        self._write_sidecar(
+            key=key,
+            prompt=str(body.get("prompt", "")),
+            model=model,
+            aspect_ratio=aspect_ratio,
+            category=category or CATEGORY_UNKNOWN,
+            item_key=item_key,
+        )
         return GeneratedImage(
             path=cached,
             cache_key=key,
@@ -437,21 +534,111 @@ class NanoBananaClient:
 
     # --------------------------------------------------------------- demo
 
+    # ---------------------------------------------------------------- sidecar
+
+    def _sidecar_path(self, key: str) -> Path:
+        """Path to the JSON sidecar for a given cache_key."""
+
+        return self.cache_dir / f"{key}.json"
+
+    def _read_sidecar(self, png_path: Path) -> dict[str, Any] | None:
+        """Read `{cache_key}.json` next to a PNG. Returns None if absent
+        or malformed — the caller treats both as `unknown`.
+        """
+
+        sidecar = png_path.with_suffix(".json")
+        if not sidecar.exists():
+            return None
+        try:
+            data = json.loads(sidecar.read_text(encoding="utf-8"))
+            return data if isinstance(data, dict) else None
+        except (OSError, json.JSONDecodeError):
+            return None
+
+    def _write_sidecar(
+        self,
+        *,
+        key: str,
+        prompt: str,
+        model: str,
+        aspect_ratio: str,
+        category: str | None,
+        item_key: str | None,
+        only_if_missing_or_unknown: bool = False,
+    ) -> None:
+        """Write `{cache_key}.json` with metadata.
+
+        `only_if_missing_or_unknown` is set on cache-hit paths so we
+        don't overwrite a more-specific category that an earlier
+        run wrote.
+        """
+
+        sidecar = self._sidecar_path(key)
+        if only_if_missing_or_unknown and sidecar.exists():
+            try:
+                existing = json.loads(sidecar.read_text(encoding="utf-8"))
+                # Keep the existing if it already has a known category.
+                if (
+                    isinstance(existing, dict)
+                    and existing.get("category")
+                    and existing.get("category") != CATEGORY_UNKNOWN
+                ):
+                    return
+            except (OSError, json.JSONDecodeError):
+                pass
+
+        normalised_category = category if category in ALL_CATEGORIES else (
+            category or CATEGORY_UNKNOWN
+        )
+        payload: dict[str, Any] = {
+            "cache_key": key,
+            "category": normalised_category,
+            "item_key": item_key,
+            "prompt": prompt,
+            "model": model,
+            "aspect_ratio": aspect_ratio,
+            "generated_at": _utc_iso_now(),
+            "schema_version": 1,
+        }
+        try:
+            sidecar.write_text(
+                json.dumps(payload, ensure_ascii=False, indent=2),
+                encoding="utf-8",
+            )
+        except OSError as exc:
+            log.warning("failed to write sidecar %s: %s", sidecar, exc)
+
+    # ---------------------------------------------------------------- pool
+
     def _build_demo_pool(self) -> dict[str, list[Path]]:
-        """Classify cached PNGs by aspect ratio for demo fallback picks.
+        """Classify cached PNGs by (aspect ratio, category) for demo
+        fallback picks.
 
         Reads each PNG header (PIL only loads the metadata, not pixels)
-        and buckets by `3:2` (hero gallery) or `4:3` (item tiles). Other
-        ratios go to the `any` bucket as a last-resort fallback.
+        and bucket-routes the file. Each PNG is added to:
+
+        - `aspect:3:2` / `aspect:4:3` / `aspect:any`
+        - `category:<cat>` (from sidecar JSON, or `unknown` if absent)
+        - `aspect:<ratio>+category:<cat>` (the precise bucket the
+          fallback picker queries first)
+
+        Iter-33 follow-up : the category dimension stops the demo
+        fallback from serving a plant photograph for a material slot.
+        Without sidecars, every image lands in `category:unknown` and
+        the pool degrades to the legacy aspect-only behaviour.
         """
 
         try:
             from PIL import Image  # type: ignore[import-untyped]
         except ImportError:
             log.warning("Pillow unavailable; demo pool empty")
-            return {"3:2": [], "4:3": [], "any": []}
+            return {}
 
-        pool: dict[str, list[Path]] = {"3:2": [], "4:3": [], "any": []}
+        pool: dict[str, list[Path]] = {}
+
+        def _add(bucket_key: str, p: Path) -> None:
+            pool.setdefault(bucket_key, []).append(p)
+
         for png in sorted(self.cache_dir.glob("*.png")):
             try:
                 with Image.open(png) as im:
@@ -461,14 +648,30 @@ class NanoBananaClient:
             if h <= 0:
                 continue
             ratio = w / h
-            pool["any"].append(png)
             if abs(ratio - 1.5) < 0.05:
-                pool["3:2"].append(png)
+                aspect_bucket = "3:2"
             elif abs(ratio - 4 / 3) < 0.05:
-                pool["4:3"].append(png)
+                aspect_bucket = "4:3"
+            else:
+                aspect_bucket = "any"
+
+            sidecar = self._read_sidecar(png)
+            category = (
+                sidecar.get("category", CATEGORY_UNKNOWN)
+                if sidecar
+                else CATEGORY_UNKNOWN
+            )
+
+            _add("aspect:any", png)
+            _add(f"aspect:{aspect_bucket}", png)
+            _add(f"category:{category}", png)
+            _add(f"aspect:{aspect_bucket}+category:{category}", png)
+
         log.info(
-            "demo pool: %d/3:2 + %d/4:3 + %d/any (cache_dir=%s)",
-            len(pool["3:2"]), len(pool["4:3"]), len(pool["any"]),
+            "demo pool: %d total · 3:2=%d · 4:3=%d (cache_dir=%s)",
+            len(pool.get("aspect:any", [])),
+            len(pool.get("aspect:3:2", [])),
+            len(pool.get("aspect:4:3", [])),
             self.cache_dir,
         )
         return pool
@@ -478,32 +681,62 @@ class NanoBananaClient:
         *,
         prompt: str,
         aspect_ratio: str,
+        category: str | None = None,
         exclude: Path | None = None,
     ) -> Path | None:
-        """Pick a deterministic pool image for the prompt + aspect ratio.
+        """Pick a deterministic pool image for the prompt.
 
-        Picking is stable across runs : sha256(prompt) % len(pool). Same
-        prompt → same image, so the user never sees the moodboard "shuffle"
-        between renders. Different prompts (e.g. same SKU under three
-        directions) get different picks, preserving visual variety.
+        Tries buckets in priority order :
+
+        1. exact (aspect + category) match
+        2. category-only (any aspect)
+        3. aspect-only (legacy behaviour)
+        4. nothing — return None so the caller falls through to fal.ai
+
+        Picking within a bucket is stable : sha256(prompt) % len(bucket).
+        Same prompt → same image, so the moodboard never shuffles
+        between renders.
         """
 
         if self._demo_pool is None:
             self._demo_pool = self._build_demo_pool()
-        bucket = self._demo_pool.get(aspect_ratio) or self._demo_pool.get("any") or []
-        # Drop the file we'd be writing to (in case it's already in the
-        # pool from a previous demo fallback) so we never seed it from
-        # itself.
-        if exclude is not None:
-            try:
-                bucket = [p for p in bucket if p.resolve() != exclude]
-            except OSError:
-                pass
-        if not bucket:
-            return None
-        digest = hashlib.sha256(prompt.encode("utf-8", errors="replace")).hexdigest()
-        idx = int(digest[:12], 16) % len(bucket)
-        return bucket[idx]
+
+        candidate_buckets: list[str] = []
+        if category:
+            candidate_buckets.append(f"aspect:{aspect_ratio}+category:{category}")
+            candidate_buckets.append(f"category:{category}")
+        candidate_buckets.append(f"aspect:{aspect_ratio}")
+        candidate_buckets.append("aspect:any")
+
+        for bucket_name in candidate_buckets:
+            bucket = self._demo_pool.get(bucket_name) or []
+            if exclude is not None:
+                try:
+                    bucket = [p for p in bucket if p.resolve() != exclude]
+                except OSError:
+                    pass
+            if bucket:
+                digest = hashlib.sha256(prompt.encode("utf-8", errors="replace")).hexdigest()
+                idx = int(digest[:12], 16) % len(bucket)
+                pick = bucket[idx]
+                if bucket_name.startswith("aspect:") and "category:" not in bucket_name and category:
+                    log.warning(
+                        "demo fallback: no %s match for category %s, "
+                        "degraded to aspect-only pick %s",
+                        aspect_ratio, category, pick.name,
+                    )
+                return pick
+
+        return None
+
+
+def _utc_iso_now() -> str:
+    """Helper for sidecar timestamps. Defined at module scope so it
+    survives client GC and works in tests."""
+
+    from datetime import datetime, timezone
+
+    return datetime.now(tz=timezone.utc).isoformat(timespec="seconds")
 
 
 # Module-level convenience for tests / debug scripts.

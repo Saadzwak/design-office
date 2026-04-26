@@ -48,3 +48,12 @@ tmp/
 # The on-disk cache of fal.ai renders. One committed golden image
 # lives in backend/tests/fixtures/lumen_visual_moodboard.png.
 backend/app/data/generated_images/
+
+# --- Mid-iteration debug screenshots (iter-32 / iter-33 review) ---
+# These are full-bleed PNG renders we used during in-session visual
+# review. They're not part of the product, just engineering scratch.
+docs/screenshots/iter32_*/
+docs/screenshots/iter33_*/
+
+# --- Local backend run-time output ---
+backend/app/out/

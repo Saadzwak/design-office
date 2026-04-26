@@ -604,6 +604,9 @@ export type JustifyResponse = {
   tokens: { input: number; output: number };
   pdf_id: string | null;
   pptx_id: string | null;
+  /** Iter-33 follow-up — magazine-grade PDF rendered via Jinja2 + headless
+   *  Chromium. Same content as `pptx_id`, magazine-grade typography. */
+  magazine_pdf_id?: string | null;
 };
 
 export type JustifyRequest = {
@@ -640,6 +643,11 @@ export function justifyPdfUrl(pdfId: string): string {
 
 export function justifyPptxUrl(pptxId: string): string {
   return `/api/justify/pptx/${pptxId}`;
+}
+
+/** Magazine PDF (iter-33 follow-up) — Jinja2 + headless Chromium render. */
+export function justifyMagazinePdfUrl(pdfId: string): string {
+  return `/api/justify/pdf-magazine/${pdfId}`;
 }
 
 // ---------------------------------------------------------------------------

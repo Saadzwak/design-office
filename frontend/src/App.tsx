@@ -101,10 +101,7 @@ export default function App() {
 
       {showShell && (
         <footer className="mx-auto max-w-[1440px] border-t border-mist-200 px-6 py-6 md:px-12">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="font-mono text-[10px] uppercase tracking-label text-mist-500">
-              Built with Opus 4.7 · MIT License · Hackathon 2026
-            </p>
+          <div className="flex flex-wrap items-center justify-end gap-2">
             <p className="font-mono text-[10px] uppercase tracking-label text-mist-500">
               {activeProject?.name ?? project.client.name ?? "Untitled"}
               {activeProject?.ref ? ` · ${activeProject.ref}` : ""}

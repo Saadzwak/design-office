@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import ReactMarkdown from "react-markdown";
-import { useNavigate } from "react-router-dom";
 import remarkGfm from "remark-gfm";
 
 import {
@@ -18,9 +17,12 @@ import { useProjectState } from "../hooks/useProjectState";
 import {
   fetchTestFitSample,
   generateJustify,
+  generatedImageUrl,
+  justifyMagazinePdfUrl,
   justifyPdfUrl,
-  justifyPptxUrl,
   type JustifyResponse,
+  type VariantOutput,
+  type VisualMoodBoardGalleryTile,
 } from "../lib/api";
 import { setJustify } from "../lib/projectState";
 import {
@@ -28,6 +30,84 @@ import {
   parseJustifyCards,
   type JustifyCard,
 } from "../lib/adapters/justifySections";
+
+// ---------------------------------------------------------------------------
+// Iter-33 — image wiring for the client PPT.
+//
+// Until iter-33 the PPT was rendered with zero embedded media (every cover,
+// retained-focus, atmosphere and materials slot fell through to its grey
+// placeholder). The renderer was already wired for `sketchup_iso_path`,
+// `sketchup_iso_by_style` and `gallery_tile_paths`; the frontend just
+// never populated those three fields. The helpers below pull the URLs the
+// rest of the app already has cached and forward them to the backend, where
+// `_resolve_media_url()` (justify_pptx.py) translates each URL to the
+// matching disk path before `add_picture()`.
+//
+// We send URLs (not paths) on purpose: the frontend has no notion of disk
+// paths, and the backend already owns the URL → path mapping for both
+// `/api/generated-images/{id}` and `/api/testfit/screenshot/{name}.png`.
+// ---------------------------------------------------------------------------
+
+type MoodCacheLite = {
+  galleryByDir?: Record<string, VisualMoodBoardGalleryTile[]>;
+  activeDirection?: string;
+} | null;
+
+function readMoodCache(projectId: string): MoodCacheLite {
+  if (!projectId) return null;
+  try {
+    const raw = localStorage.getItem(`design-office.moodboard.tiles.${projectId}`);
+    return raw ? (JSON.parse(raw) as MoodCacheLite) : null;
+  } catch {
+    return null;
+  }
+}
+
+function pickIsoUrl(v: VariantOutput | null | undefined): string | null {
+  if (!v) return null;
+  const angles = v.sketchup_shot_urls;
+  if (angles) {
+    return (
+      angles.iso_ne ??
+      angles.iso_nw ??
+      angles.iso_se ??
+      angles.iso_sw ??
+      angles.eye_level ??
+      angles.top_down ??
+      v.sketchup_shot_url ??
+      null
+    );
+  }
+  return v.sketchup_shot_url ?? null;
+}
+
+function buildGalleryTilePaths(
+  projectId: string,
+): Record<string, string> | null {
+  const cache = readMoodCache(projectId);
+  if (!cache?.galleryByDir) return null;
+  const dir = cache.activeDirection ?? Object.keys(cache.galleryByDir)[0] ?? "";
+  const tiles = (dir && cache.galleryByDir[dir]) || [];
+  if (!tiles.length) return null;
+  const out: Record<string, string> = {};
+  for (const tile of tiles) {
+    if (tile?.label && tile?.visual_image_id) {
+      out[tile.label] = generatedImageUrl(tile.visual_image_id);
+    }
+  }
+  return Object.keys(out).length > 0 ? out : null;
+}
+
+function buildIsoByStyle(
+  variants: ReadonlyArray<VariantOutput>,
+): Record<string, string> | null {
+  const out: Record<string, string> = {};
+  for (const v of variants) {
+    const url = pickIsoUrl(v);
+    if (url) out[v.style] = url;
+  }
+  return Object.keys(out).length > 0 ? out : null;
+}
 
 /**
  * Justify — Claude Design bundle parity (iter-18k).
@@ -86,7 +166,6 @@ const JUSTIFY_AGENTS: Array<{
 
 export default function Justify() {
   const project = useProjectState();
-  const navigate = useNavigate();
   const isClient = project.view_mode === "client";
 
   const [response, setResponse] = useState<JustifyResponse | null>(null);
@@ -190,6 +269,14 @@ export default function Justify() {
       const others = (project.testfit?.variants ?? []).filter(
         (v) => v.style !== retainedStyle,
       );
+      // Iter-33 — wire the 3 image fields the renderer was always asking
+      // for. Frontend already has all of them cached locally; we just need
+      // to forward URLs. Server resolves URL → disk path before embedding.
+      const allVariants = project.testfit?.variants ?? [variant];
+      const sketchupIsoPath = pickIsoUrl(variant);
+      const sketchupIsoByStyle = buildIsoByStyle(allVariants);
+      const galleryTilePaths = buildGalleryTilePaths(project.project_id);
+
       const resp = await generateJustify({
         client_name: project.client.name,
         brief: project.brief,
@@ -205,12 +292,16 @@ export default function Justify() {
         client_logo_data_url: project.client.logo_data_url ?? null,
         mood_board_selection: project.mood_board?.selection ?? null,
         other_variants: others.length > 0 ? others : null,
+        sketchup_iso_path: sketchupIsoPath,
+        sketchup_iso_by_style: sketchupIsoByStyle,
+        gallery_tile_paths: galleryTilePaths,
       });
       setResponse(resp);
       setJustify({
         argumentaire_markdown: resp.argumentaire,
         pdf_id: resp.pdf_id,
         pptx_id: resp.pptx_id,
+        magazine_pdf_id: resp.magazine_pdf_id ?? null,
       });
       setPhase("done");
     } catch (err) {
@@ -279,7 +370,10 @@ export default function Justify() {
         </Card>
       )}
 
-      {/* Cards grid + optional research trace */}
+      {/* Cards grid — iter-33 follow-up v3 : the engineering-only
+          RESEARCH TRACE aside (per-agent token breakdown) was removed.
+          Saad's call : it's plumbing exposed at the user level, not
+          something a client or even a space planner needs to see. */}
       {/* Empty state (iter-20a #15) — visible when the user hasn't
           run the argumentaire yet. Replaces the old fallback cards
           that used to show generic "Acoustic Strategy…" content
@@ -322,13 +416,11 @@ export default function Justify() {
       )}
 
       {hasRealCards && (
-      <section
-        className="grid gap-12"
-        style={{ gridTemplateColumns: isClient ? "1fr" : "1fr 280px" }}
-      >
-        <div
+        <section
           className="grid gap-4"
-          style={{ gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))" }}
+          style={{
+            gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
+          }}
         >
           {cards.map((s, i) => (
             <Card
@@ -375,112 +467,35 @@ export default function Justify() {
               </div>
             </Card>
           ))}
-        </div>
-
-        {!isClient && (
-          <aside>
-            <Eyebrow style={{ marginBottom: 14 }}>RESEARCH TRACE</Eyebrow>
-            <div
-              className="rounded-[10px] border border-mist-200 p-5"
-              style={{ background: "var(--canvas-alt)" }}
-            >
-              {response?.sub_outputs && response.sub_outputs.length > 0 ? (
-                <>
-                  <div className="flex flex-col gap-2.5">
-                    {response.sub_outputs.map((o, i) => (
-                      <div
-                        key={i}
-                        className="flex justify-between text-[13px]"
-                      >
-                        <span>{o.name}</span>
-                        <span className="mono text-mist-500">
-                          {(o.tokens.input + o.tokens.output).toLocaleString()} tok
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                  <hr className="rule my-3.5" />
-                  <div className="flex justify-between text-[13px]">
-                    <span className="font-medium">Total</span>
-                    <span className="mono font-semibold text-forest">
-                      {response.tokens.input + response.tokens.output} tok
-                    </span>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="flex flex-col gap-2.5">
-                    {[
-                      ["Acoustic Agent", "≈ 14 k"],
-                      ["Biophilic Agent", "≈ 12 k"],
-                      ["Ergonomics Agent", "≈ 9 k"],
-                      ["Compliance Agent", "≈ 14 k"],
-                    ].map(([n, t]) => (
-                      <div
-                        key={n}
-                        className="flex justify-between text-[13px]"
-                      >
-                        <span>{n}</span>
-                        <span className="mono text-mist-500">{t}</span>
-                      </div>
-                    ))}
-                  </div>
-                  <hr className="rule my-3.5" />
-                  <div className="flex justify-between text-[13px]">
-                    <span className="font-medium">Est. total</span>
-                    <span className="mono font-semibold text-forest">
-                      ≈ 49 k tok
-                    </span>
-                  </div>
-                </>
-              )}
-              {phase === "idle" && !response && (
-                <button
-                  onClick={runGenerate}
-                  className="btn-primary btn-sm mt-5 w-full justify-center"
-                >
-                  <Icon name="sparkles" size={12} /> Compose live
-                </button>
-              )}
-              {phase === "running" && (
-                <div className="mono mt-5 flex items-center justify-center gap-2 text-forest">
-                  <span
-                    className="inline-block h-1.5 w-1.5 animate-[dot-pulse_1.1s_var(--ease)_infinite] rounded-full"
-                    style={{ background: "var(--forest)" }}
-                  />
-                  Composing the argumentaire…
-                </div>
-              )}
-            </div>
-          </aside>
-        )}
-      </section>
+        </section>
       )}
 
-      {/* CTAs — iter-19 D : "Compose client deck (PPTX)" actually
-          generates the PPTX now (or serves it if we already have
-          pptx_id). Was an orphan nav to /export. */}
+      {/* CTAs — iter-33 follow-up v3 : single primary "Download pitch
+          deck" CTA, points at the magazine PDF (the v2 18-slide deck
+          rendered via headless Chromium). The PPTX is still generated
+          server-side for parity but is no longer surfaced as a button
+          — the magazine PDF is the canonical client deliverable. The
+          A4 report PDF stays as a ghost button for the engineering
+          handoff (different format, different use). */}
       <div className="flex flex-wrap gap-3">
-        {response?.pptx_id ? (
+        {response?.magazine_pdf_id ? (
           <a
-            href={justifyPptxUrl(response.pptx_id)}
+            href={justifyMagazinePdfUrl(response.magazine_pdf_id)}
             target="_blank"
             rel="noreferrer"
             className="btn-primary"
+            title="Magazine-grade 18-slide PDF — atmosphere imagery, comparison chart, KPI dials, timeline."
           >
-            <Icon name="download" size={12} /> Download pitch deck (PPTX)
+            <Icon name="download" size={12} /> Download pitch deck
           </a>
         ) : (
           <button
             onClick={runGenerate}
             disabled={phase === "running"}
             className="btn-primary"
-            title="Compose the PPTX — 12 editorial slides including the retained variant's iso render, vision, programme, atmosphere tiles and materials."
+            title="Compose the 18-slide magazine pitch deck (PDF)."
             aria-busy={phase === "running"}
           >
-            {/* iter-20f (Saad #15) : add a pulsing dot while the
-                pipeline runs so the loading state reads from across
-                the room. Was previously only a text change. */}
             {phase === "running" ? (
               <>
                 <span
@@ -492,7 +507,7 @@ export default function Justify() {
             ) : (
               <>
                 <Icon name="presentation" size={12} />
-                Compose pitch deck (PPTX)
+                Compose pitch deck
               </>
             )}
           </button>
@@ -504,16 +519,9 @@ export default function Justify() {
             rel="noreferrer"
             className="btn-ghost"
           >
-            <Icon name="download" size={12} /> Download report (PDF)
+            <Icon name="download" size={12} /> Download report (PDF · A4)
           </a>
         )}
-        <button
-          onClick={() => navigate("/export")}
-          className="btn-ghost"
-          title="Hand off to engineering — generate the DXF export."
-        >
-          <Icon name="arrow-right" size={12} /> Open export
-        </button>
       </div>
 
       {/* Drawer */}

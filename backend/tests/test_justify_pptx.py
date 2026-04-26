@@ -7,6 +7,7 @@ from app.models import VariantMetrics, VariantOutput, VariantStyle
 from app.surfaces.justify_pptx import (
     PPTX_OUT_DIR,
     _condense,
+    _resolve_media_url,
     _split_argumentaire,
     pptx_path_for,
     render_pitch_deck,
@@ -91,10 +92,11 @@ def test_condense_trims_and_strips_markdown() -> None:
     assert "•" in out
 
 
-def test_render_pitch_deck_writes_twelve_slides() -> None:
-    """iter-20e (Saad #20) : the deck is now 12 slides minimum — magazine
-    layout with vision / programme / three variants / retained / atmosphere
-    / materials in addition to the original research + regulatory + KPIs.
+def test_render_pitch_deck_writes_eighteen_slides() -> None:
+    """iter-33 : 12 content slides + 4 section dividers + 1 pull-quote +
+    1 citation-cards = 18 slides. The dividers add breath between acts ;
+    the pull-quote breaks up the dense evidence block ; the citation
+    grid mirrors the consolidator's research as inspectable cards.
     """
     build = render_pitch_deck(
         client_name="Lumen",
@@ -104,12 +106,12 @@ def test_render_pitch_deck_writes_twelve_slides() -> None:
     )
     assert build.path.exists()
     assert build.bytes > 10_000  # a real PPTX is at least ~20 KB
-    assert build.slide_count == 12
+    assert build.slide_count == 18
     # Validate it can be reopened.
     from pptx import Presentation
 
     prs = Presentation(str(build.path))
-    assert len(prs.slides) == 12
+    assert len(prs.slides) == 18
     # 13.333 in × 914400 EMU/in, rounded; allow small tolerance.
     assert 12_180_000 < prs.slide_width < 12_200_000
     # 7.5 in × 914400 = 6 858 000 EMU exactly.
@@ -118,7 +120,7 @@ def test_render_pitch_deck_writes_twelve_slides() -> None:
 
 def test_render_pitch_deck_honours_rich_inputs() -> None:
     """With tagline + palette + programme + other variants + gallery
-    paths + materials + furniture, the deck still reports 12 slides and
+    paths + materials + furniture, the deck still reports 16 slides and
     the file stays openable. Placeholders handle missing images.
     """
     other = [
@@ -148,7 +150,7 @@ def test_render_pitch_deck_honours_rich_inputs() -> None:
         materials=[{"material": "oak", "finish": "matte"}],
         furniture=[{"name": "Series 1", "brand": "Steelcase"}],
     )
-    assert build.slide_count == 12
+    assert build.slide_count == 18
     assert build.bytes > 10_000
 
 
@@ -176,3 +178,75 @@ def test_pptx_endpoint_streams_existing_file() -> None:
 
 def test_out_dir_created() -> None:
     assert PPTX_OUT_DIR.exists()
+
+
+# ---------------------------------------------------------------------------
+# Iter-33 — URL-to-disk-path resolver tests
+# ---------------------------------------------------------------------------
+
+
+def test_resolve_media_url_returns_none_for_empty() -> None:
+    assert _resolve_media_url(None) is None
+    assert _resolve_media_url("") is None
+
+
+def test_resolve_media_url_passes_through_existing_disk_path(tmp_path) -> None:
+    f = tmp_path / "fake.png"
+    f.write_bytes(b"\x89PNG\r\n\x1a\n")  # PNG magic — enough to look real
+    resolved = _resolve_media_url(str(f))
+    assert resolved == str(f)
+
+
+def test_resolve_media_url_translates_nanobanana_url_when_file_exists() -> None:
+    """`/api/generated-images/{id}` → data/generated_images/{id}.png if real."""
+
+    from app.surfaces.zone_overlay import OUT_DIR as GEN_DIR
+
+    GEN_DIR.mkdir(parents=True, exist_ok=True)
+    fake_id = "deadbeef33iter33resolverunittest"
+    target = GEN_DIR / f"{fake_id}.png"
+    try:
+        target.write_bytes(b"\x89PNG\r\n\x1a\n")
+        resolved = _resolve_media_url(f"/api/generated-images/{fake_id}")
+        assert resolved == str(target)
+    finally:
+        target.unlink(missing_ok=True)
+
+
+def test_resolve_media_url_returns_none_for_unknown_nanobanana_id() -> None:
+    resolved = _resolve_media_url(
+        "/api/generated-images/this_id_does_not_exist_on_disk"
+    )
+    assert resolved is None
+
+
+def test_resolve_media_url_translates_sketchup_screenshot_url_when_file_exists() -> None:
+    """`/api/testfit/screenshot/{name}.png` → out/sketchup_shots/{name}.png."""
+
+    from app.surfaces.testfit import SKETCHUP_SHOTS_DIR
+
+    SKETCHUP_SHOTS_DIR.mkdir(parents=True, exist_ok=True)
+    fake_name = "iter33_resolver_unittest.png"
+    target = SKETCHUP_SHOTS_DIR / fake_name
+    try:
+        target.write_bytes(b"\x89PNG\r\n\x1a\n")
+        resolved = _resolve_media_url(f"/api/testfit/screenshot/{fake_name}")
+        assert resolved == str(target)
+    finally:
+        target.unlink(missing_ok=True)
+
+
+def test_resolve_media_url_handles_query_string() -> None:
+    """A `?ts=12345` cache-buster mustn't leak into the resolved path."""
+
+    from app.surfaces.zone_overlay import OUT_DIR as GEN_DIR
+
+    GEN_DIR.mkdir(parents=True, exist_ok=True)
+    fake_id = "cafebabe33resolveriterunittestqs"
+    target = GEN_DIR / f"{fake_id}.png"
+    try:
+        target.write_bytes(b"\x89PNG\r\n\x1a\n")
+        resolved = _resolve_media_url(f"/api/generated-images/{fake_id}?v=42")
+        assert resolved == str(target)
+    finally:
+        target.unlink(missing_ok=True)

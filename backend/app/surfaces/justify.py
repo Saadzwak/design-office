@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
@@ -13,6 +14,8 @@ from pydantic import BaseModel, Field
 from app.agents.orchestrator import Orchestration, SubAgent
 from app.claude_client import ClaudeClient
 from app.models import FloorPlan, VariantOutput, VariantStyle
+
+log = logging.getLogger(__name__)
 
 BACKEND_ROOT = Path(__file__).resolve().parent.parent
 PROMPTS_DIR = BACKEND_ROOT / "prompts" / "agents"
@@ -125,6 +128,16 @@ class JustifyResponse(BaseModel):
     tokens: dict[str, int]
     pdf_id: str | None = None
     pptx_id: str | None = None
+    # Iter-33 follow-up — the HTML→PDF "magazine" deck. Rendered via
+    # Jinja2 + Tailwind-style CSS + headless Chromium, with embedded
+    # NanoBanana / SketchUp imagery. Same content as `pptx_id`, different
+    # typographic ceiling.
+    magazine_pdf_id: str | None = None
+    # Iter-33 follow-up v3 — when `magazine_pdf_id` is None, this
+    # carries the reason (e.g. "RuntimeError: Headless Chromium not
+    # found"). The frontend surfaces it as a toast so the user knows
+    # why the Download button isn't there.
+    magazine_pdf_error: str | None = None
 
 
 _SUB_USER_TEMPLATE = """Client : {client_name} — language : {language}
@@ -294,12 +307,68 @@ class JustifySurface:
             # PDF path still succeeds.
             pptx_id = None
 
+        # Iter-33 follow-up — render the HTML→PDF magazine deck.
+        # Headless Chromium prints take ~6-12 s ; we run after the
+        # other artefacts are committed so a Chromium failure leaves
+        # pdf+pptx intact.
+        #
+        # Iter-33 follow-up v3 — the previous bare `except Exception`
+        # swallowed every error silently (missing browser, font CDN
+        # down, malformed input, ImportError after a partial deploy).
+        # Saad observed the symptom : "Compose pitch deck reruns but
+        # no PDF appears" — because magazine_pdf_id silently became
+        # None. We now log the exception with class + message so the
+        # next failure shows up in the server logs and on the fresh
+        # response (via a `magazine_pdf_error` field for the frontend
+        # to surface if needed).
+        magazine_pdf_id: str | None = None
+        magazine_pdf_error: str | None = None
+        try:
+            from app.surfaces.justify_html_pdf import render_magazine_pdf
+
+            magazine = render_magazine_pdf(
+                client_name=req.client_name,
+                variant=req.variant,
+                argumentaire_markdown=cons_out.text,
+                project_reference=None,
+                sketchup_iso_path=req.sketchup_iso_path,
+                tagline=tagline_mb,
+                palette_hexes=palette_hexes_mb or None,
+                programme_markdown=req.programme_markdown,
+                other_variants=req.other_variants,
+                sketchup_iso_by_style=req.sketchup_iso_by_style,
+                gallery_tile_paths=req.gallery_tile_paths,
+                materials=materials_mb or None,
+                furniture=furniture_mb or None,
+            )
+            magazine_pdf_id = magazine.pdf_id
+            log.info(
+                "magazine pdf rendered: client=%s variant=%s pdf_id=%s "
+                "bytes=%d gallery_tiles=%d other_variants=%d",
+                req.client_name,
+                req.variant.style.value,
+                magazine.pdf_id,
+                magazine.bytes,
+                len(req.gallery_tile_paths or {}),
+                len(req.other_variants or []),
+            )
+        except Exception as exc:  # noqa: BLE001
+            magazine_pdf_error = f"{type(exc).__name__}: {exc}"
+            log.exception(
+                "magazine pdf render failed: client=%s variant=%s — %s",
+                req.client_name,
+                req.variant.style.value,
+                magazine_pdf_error,
+            )
+
         return JustifyResponse(
             argumentaire=cons_out.text,
             sub_outputs=sub_outputs,
             tokens={"input": total_in, "output": total_out},
             pdf_id=pdf_id,
             pptx_id=pptx_id,
+            magazine_pdf_id=magazine_pdf_id,
+            magazine_pdf_error=magazine_pdf_error,
         )
 
 

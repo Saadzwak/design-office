@@ -61,7 +61,7 @@ Margin = 113 − 19 = ~94 h available for debug, rework, and Saad-side tasks (Sk
 
 ### Security flag (carry until resolved)
 
-> ⚠️ Anthropic API key `sk-ant-api03-9ja3…mhXwAA` was pasted in clear inside the `/loop` prompt. It is now considered compromised. **No facturable Opus call will be made until Saad rotates the key** on https://console.anthropic.com/settings/keys and stores the new value in `.env` (never in `CLAUDE.md`, never in commits).
+> ⚠️ The Anthropic API key was inadvertently pasted in clear inside the `/loop` prompt and is now considered compromised. **No billable Opus call will be made until Saad rotates the key** on https://console.anthropic.com/settings/keys and stores the new value in `.env` (never in `CLAUDE.md`, never in commits).
 > This log entry stays until the rotation is confirmed.
 
 ### Token budget (section 16)

@@ -14,6 +14,8 @@
  * studio chapter (Headcount, Workspace Mix, Collaboration, etc.).
  */
 
+import { firstSentence as sharedFirstSentence } from "./markdown";
+
 export type ProgrammeSection = {
   id: string;
   icon: string;
@@ -47,37 +49,13 @@ function pickIcon(title: string): string {
 }
 
 function firstSentence(text: string): string {
-  const trimmed = text.trim();
-  if (!trimmed) return "";
-  // Iter-20c (Saad #4) : if the section body starts with a markdown
-  // table header ("| col | col | …"), the first "sentence" would
-  // otherwise be the raw pipe-characters dump. Skip tables + the
-  // separator row underneath, resume extraction on the first real
-  // prose line.
-  //
-  // Iter-32 (Saad #2) : when the WHOLE section is just a table
-  // (no prose preamble or trailing line), `firstRealLine` is
-  // undefined and we used to fall back to `lines[0]` — the raw
-  // table header. The card preview then showed
-  // "| Category | Surface m² | % | Notes |" verbatim, AND the
-  // body slicing in `parseProgrammeSections` stripped the header
-  // off, breaking GFM parsing in the drawer. Returning "" here
-  // tells the caller "no inline preview available; just show the
-  // title", and the body remains intact for the drawer.
-  const lines = trimmed.split(/\r?\n/);
-  const firstRealLine = lines.find((line) => {
-    const t = line.trim();
-    if (!t) return false;
-    if (t.startsWith("|")) return false; // table row
-    if (/^[:\-\s|]+$/.test(t)) return false; // table separator
-    if (t.startsWith("#")) return false; // heading (already consumed)
-    return true;
-  });
-  if (!firstRealLine) return "";
-  // Stop at the first `.`, `!`, `?` followed by whitespace / end.
-  const match = firstRealLine.match(/^(.+?[.!?])(\s|$)/s);
-  const first = match ? match[1] : firstRealLine;
-  return first.length > 160 ? first.slice(0, 157).trimEnd() + "…" : first;
+  // Iter-33 follow-up v3 — delegates to the shared helper. The shared
+  // version skips abbreviations (`excl.`, `e.g.`, …) by requiring an
+  // uppercase letter after the period, and balances any unclosed
+  // `**` / `*` / `` ` `` so the rendered tldr never shows literal
+  // delimiters. Saad's Programme card screenshot ("**Programme
+  // subtotal (excl.") was the canonical repro for both bugs.
+  return sharedFirstSentence(text, { maxLength: 160, skipChrome: true });
 }
 
 /** Iter-20c (Saad #3) : strip markdown emphasis markers from a string

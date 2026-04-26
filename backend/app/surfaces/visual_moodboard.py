@@ -975,6 +975,17 @@ class VisualMoodBoardSurface:
         tiles: list[GalleryTile] = []
         total_bytes = 0
         cache_hits = 0
+        # Iter-33 follow-up — map the gallery slot label to the
+        # category the NanoBanana client uses for sidecar tagging +
+        # demo-fallback bucket lookup. Stops a "biophilic" slot from
+        # accidentally being filled with a "materials" composition
+        # (or vice versa) when the cache is partial.
+        gallery_label_to_category = {
+            "atmosphere": "gallery_atmosphere",
+            "biophilic": "gallery_biophilic",
+            "materials": "gallery_materials",
+            "furniture": "gallery_furniture",
+        }
         for label, prompt in _gallery_prompts(req):
             try:
                 image: GeneratedImage = self.client.text_to_image(
@@ -982,6 +993,8 @@ class VisualMoodBoardSurface:
                     aspect_ratio=req.aspect_ratio,
                     num_images=1,
                     output_format="png",
+                    category=gallery_label_to_category.get(label),
+                    item_key=f"gallery:{label}",
                 )
             except NanoBananaError:
                 raise
@@ -1048,6 +1061,15 @@ class VisualMoodBoardSurface:
                     aspect_ratio=item_aspect,
                     num_images=1,
                     output_format="png",
+                    # Iter-33 follow-up — pass the per-item category
+                    # ("material" / "furniture" / "plant" / "light") so
+                    # the sidecar tags it correctly AND the demo
+                    # fallback only picks images from the same category
+                    # if there's no exact cache hit. Without this a
+                    # "European oak" prompt could be served a plant
+                    # photograph because the only filter was aspect.
+                    category=category,
+                    item_key=item_key,
                 )
             except NanoBananaError as exc:
                 skipped.append(f"{item_key}: {exc}")
@@ -1090,6 +1112,8 @@ class VisualMoodBoardSurface:
                 aspect_ratio=req.aspect_ratio,
                 num_images=1,
                 output_format="png",
+                category="hero_composite",
+                item_key="hero",
             )
         except NanoBananaError:
             raise

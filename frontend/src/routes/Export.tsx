@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 import {
   AgentTrace,
@@ -14,6 +15,9 @@ import {
   exportDxfUrl,
   fetchTestFitSample,
   generateExport,
+  justifyMagazinePdfUrl,
+  justifyPdfUrl,
+  moodBoardPdfUrl,
   type ExportResponse,
 } from "../lib/api";
 
@@ -37,6 +41,7 @@ type Scale = "50" | "100" | "200";
 
 export default function Export() {
   const project = useProjectState();
+  const navigate = useNavigate();
   const [scale, setScale] = useState<Scale>("100");
   const [projectRef, setProjectRef] = useState<string>(
     () => "LUM-2026-" + String(Math.floor(Math.random() * 99) + 1).padStart(3, "0"),
@@ -256,111 +261,19 @@ export default function Export() {
           </div>
         </div>
 
-        <div className="grid gap-3.5" style={{ gridTemplateColumns: "1fr 1fr" }}>
-          <button
-            onClick={generate}
-            disabled={phase === "running"}
-            className="btn-primary justify-center"
-            style={{ padding: "20px 24px", fontSize: 16 }}
-          >
-            <Icon name="download" size={14} />
-            {phase === "running" ? "Generating…" : "Generate DXF"}
-          </button>
-          <button
-            disabled
-            title="Deferred — see BLOCKERS.md B7 (no ODA File Converter installed)"
-            className="btn-primary justify-center !bg-mist-300 !text-ink-heavy"
-            style={{
-              padding: "20px 24px",
-              fontSize: 16,
-              cursor: "not-allowed",
-            }}
-          >
-            <Icon name="download" size={14} />
-            Generate DWG
-            <span
-              className="mono ml-2 rounded-full px-2 py-0.5 text-[9px]"
-              style={{
-                background: "rgba(160, 82, 45, 0.15)",
-                color: "var(--clay)",
-              }}
-            >
-              ODA PENDING
-            </span>
-          </button>
-        </div>
-        <p className="mono mt-3 text-center text-[10px] uppercase tracking-label text-mist-500">
-          DWG blocked on ODA File Converter install · DXF opens in every
-          major CAD app (1-click save-as DWG).
-        </p>
-      </section>
-
-      {/* Pipeline */}
-      <section>
-        <Eyebrow style={{ marginBottom: 20 }}>PIPELINE · THREE STEPS</Eyebrow>
-        <div
-          className="grid items-stretch"
-          style={{ gridTemplateColumns: "1fr 48px 1fr 48px 1fr", gap: 0 }}
+        {/* Iter-33 follow-up v3 — DWG button + ODA pending line removed
+            per Saad's request. The DXF is the canonical engineering
+            artefact and opens in every major CAD app (1-click save-as
+            DWG), so the dual-CTA was confusing more than helpful. */}
+        <button
+          onClick={generate}
+          disabled={phase === "running"}
+          className="btn-primary justify-center w-full"
+          style={{ padding: "20px 24px", fontSize: 16 }}
         >
-          {[
-            [
-              "I",
-              "SketchUp model",
-              "Atelier variant exported from the 3D tool, all zones tagged.",
-            ],
-            [
-              "II",
-              "ezdxf · headless",
-              "Python translates geometry into CAD primitives — no AutoCAD required.",
-            ],
-            [
-              "III",
-              "DXF / DWG",
-              "5 layers : DO_WALLS · DO_ZONES · DO_FURN · DO_ACOUSTIC · DO_GRID.",
-            ],
-          ].map(([r, t, d], i) => (
-            <div key={r} style={{ display: "contents" }}>
-              <div
-                className="rounded-[10px] border border-mist-200 p-6"
-                style={{ background: "var(--canvas-alt)" }}
-              >
-                <div
-                  className="font-display italic leading-none"
-                  style={{
-                    fontSize: 32,
-                    color: "var(--sand)",
-                    fontVariationSettings:
-                      '"opsz" 144, "wght" 320, "SOFT" 100',
-                  }}
-                >
-                  {r}.
-                </div>
-                <div
-                  className="mt-2 font-display"
-                  style={{
-                    fontSize: 22,
-                    fontVariationSettings:
-                      '"opsz" 72, "wght" 440, "SOFT" 100',
-                  }}
-                >
-                  {t}
-                </div>
-                <div className="mt-2 text-[13px] leading-relaxed text-mist-600">
-                  {d}
-                </div>
-              </div>
-              {i < 2 && (
-                <div className="flex items-center justify-center">
-                  <Icon
-                    name="arrow-right"
-                    size={20}
-                    style={{ color: "var(--mist-400)" }}
-                  />
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
+          <Icon name="download" size={14} />
+          {phase === "running" ? "Generating…" : "Generate DXF"}
+        </button>
       </section>
 
       {phase === "error" && (
@@ -419,6 +332,236 @@ export default function Export() {
           )}
         </section>
       )}
+
+      {/* Iter-33 follow-up v3 — unified "All exports" panel.
+          Saad's ask : the Export page should surface every project
+          deliverable in one place, not just DXF. Each card lights up
+          when its source surface has produced an artefact, otherwise
+          it shows a "Run [page]" CTA instead of a Download button.
+          Cards stay shown even on partial state — keeping the panel
+          editorial and consistent across runs.
+      */}
+      <AllExportsPanel
+        dxf={response}
+        moodboardPdfId={project.mood_board?.pdf_id ?? null}
+        magazinePdfId={project.justify?.magazine_pdf_id ?? null}
+        reportPdfId={project.justify?.pdf_id ?? null}
+        navigate={navigate}
+      />
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────── all-exports panel ──
+
+type AllExportsProps = {
+  dxf: ExportResponse | null;
+  moodboardPdfId: string | null;
+  magazinePdfId: string | null;
+  reportPdfId: string | null;
+  navigate: (to: string) => void;
+};
+
+/**
+ * 5-card grid surfacing every downloadable artefact this project has
+ * produced. Each card has the same anatomy : roman numeral, format
+ * kicker (PDF · PPTX · DXF), title, one-line description, and either
+ * a Download button (when the artefact exists) or a navigate CTA
+ * pointing to the surface that produces it.
+ *
+ * Stays compact (2 rows × 3 cols on desktop) so it doesn't dominate
+ * the page — the engineering DXF generator above remains the
+ * primary action.
+ */
+function AllExportsPanel({
+  dxf,
+  moodboardPdfId,
+  magazinePdfId,
+  reportPdfId,
+  navigate,
+}: AllExportsProps) {
+  const cards: ExportCard[] = [
+    {
+      roman: "I",
+      title: "Pitch deck",
+      kicker: "PDF · 18 slides · 16:9",
+      description:
+        "Magazine-grade client deck — atmosphere, programme, evidence, KPIs.",
+      ready: !!magazinePdfId,
+      href: magazinePdfId ? justifyMagazinePdfUrl(magazinePdfId) : undefined,
+      ctaLabel: "Run Justify",
+      ctaTarget: "/justify",
+    },
+    {
+      roman: "II",
+      title: "Mood board",
+      kicker: "PDF · A3 landscape",
+      description:
+        "Editorial mood board — palette, materials, furniture, biophilic moments.",
+      ready: !!moodboardPdfId,
+      href: moodboardPdfId ? moodBoardPdfUrl(moodboardPdfId) : undefined,
+      ctaLabel: "Run Mood board",
+      ctaTarget: "/moodboard",
+    },
+    {
+      roman: "III",
+      title: "DXF file",
+      kicker: "DXF · 5 named layers",
+      description:
+        "Five-layer DXF for AutoCAD, Revit, Vectorworks. Save-as → DWG.",
+      ready: !!dxf?.export_id,
+      href: dxf?.export_id ? exportDxfUrl(dxf.export_id) : undefined,
+      ctaLabel: "Generate DXF",
+      ctaTarget: null, // generated on this page — no navigation
+    },
+    {
+      roman: "IV",
+      title: "Client report",
+      kicker: "PDF · A4 portrait",
+      description:
+        "Sourced argumentaire — readable A4 document for sharing or printing.",
+      ready: !!reportPdfId,
+      href: reportPdfId ? justifyPdfUrl(reportPdfId) : undefined,
+      ctaLabel: "Run Justify",
+      ctaTarget: "/justify",
+    },
+  ];
+
+  return (
+    <section>
+      <div className="mb-7 flex items-baseline justify-between gap-6">
+        <div>
+          <Eyebrow style={{ marginBottom: 12 }}>ALL EXPORTS</Eyebrow>
+          <h2
+            className="m-0 font-display italic"
+            style={{
+              fontSize: 36,
+              lineHeight: 1.05,
+              letterSpacing: "-0.02em",
+              fontVariationSettings: '"opsz" 144, "wght" 400, "SOFT" 60',
+            }}
+          >
+            Every deliverable, in one place.
+          </h2>
+        </div>
+        <span className="mono text-mist-500">
+          {cards.filter((c) => c.ready).length} / {cards.length} READY
+        </span>
+      </div>
+
+      <div className="flex flex-col gap-3">
+        {cards.map((c) => (
+          <ExportRowView
+            key={c.roman}
+            card={c}
+            onNavigate={navigate}
+          />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+type ExportCard = {
+  roman: string;
+  title: string;
+  kicker: string;
+  description: string;
+  ready: boolean;
+  href?: string;
+  ctaLabel: string;
+  /** When null, the artefact is produced on this same page —
+   *  the unready CTA falls back to a noop scroll-to-top. */
+  ctaTarget: string | null;
+};
+
+function ExportRowView({
+  card,
+  onNavigate,
+}: {
+  card: ExportCard;
+  onNavigate: (to: string) => void;
+}) {
+  return (
+    <div
+      className="grid items-center rounded-[10px] border border-mist-200 px-7 py-5"
+      style={{
+        background: card.ready ? "#FFFDF9" : "var(--canvas-alt)",
+        gridTemplateColumns: "auto 1fr auto",
+        gap: 24,
+      }}
+    >
+      {/* Roman numeral + status pill — left rail */}
+      <div className="flex flex-col items-start gap-2" style={{ minWidth: 60 }}>
+        <span
+          className="font-display italic leading-none"
+          style={{
+            fontSize: 32,
+            color: card.ready ? "var(--forest)" : "var(--sand)",
+            fontVariationSettings: '"opsz" 96, "wght" 400, "SOFT" 30',
+          }}
+        >
+          {card.roman}.
+        </span>
+        <span
+          className="mono px-2 py-0.5 text-[9px] tracking-label"
+          style={{
+            background: card.ready
+              ? "rgba(47, 74, 63, 0.12)"
+              : "rgba(28, 31, 26, 0.06)",
+            color: card.ready ? "var(--forest)" : "var(--mist-500)",
+            borderRadius: 3,
+          }}
+        >
+          {card.ready ? "READY" : "PENDING"}
+        </span>
+      </div>
+
+      {/* Title + kicker + description — middle */}
+      <div className="flex flex-col gap-1">
+        <div className="flex flex-wrap items-baseline gap-3">
+          <span
+            className="font-display"
+            style={{
+              fontSize: 22,
+              letterSpacing: "-0.01em",
+              lineHeight: 1.1,
+              fontVariationSettings: '"opsz" 72, "wght" 500, "SOFT" 0',
+            }}
+          >
+            {card.title}
+          </span>
+          <span className="mono text-mist-500">{card.kicker}</span>
+        </div>
+        <p className="m-0 text-[13px] leading-relaxed text-mist-600">
+          {card.description}
+        </p>
+      </div>
+
+      {/* Action — right */}
+      <div className="flex justify-end">
+        {card.ready && card.href ? (
+          <a
+            href={card.href}
+            target="_blank"
+            rel="noreferrer"
+            className="btn-primary"
+          >
+            <Icon name="download" size={12} /> Download
+          </a>
+        ) : card.ctaTarget ? (
+          <button
+            onClick={() => onNavigate(card.ctaTarget!)}
+            className="btn-ghost"
+          >
+            <Icon name="arrow-right" size={12} /> {card.ctaLabel}
+          </button>
+        ) : (
+          <span className="mono text-[10px] uppercase tracking-label text-mist-500">
+            Use the generator above
+          </span>
+        )}
+      </div>
     </div>
   );
 }

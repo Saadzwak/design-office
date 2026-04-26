@@ -48,13 +48,42 @@ export default function Drawer({
     return () => window.removeEventListener("keydown", onKey);
   }, [open, onClose]);
 
-  // Lock body scroll while open
+  // Lock body scroll while open — preserve scroll position on close.
+  //
+  // Iter-33 follow-up v3 (Saad bug report) : the previous version just
+  // toggled `body.style.overflow = 'hidden'` on open and restored it on
+  // close. That kept the page from scrolling under the drawer, but
+  // when Chrome on Windows closed the drawer the visible scroll
+  // position dropped back to the top — so after browsing card #1, the
+  // user had to re-scroll to reach card #2.
+  //
+  // The standard fix (used by Headless UI, Radix, Reakit) :
+  // 1. Capture `window.scrollY` before locking.
+  // 2. Pin the body to `position:fixed; top:-scrollY; width:100%`. The
+  //    page now visually stays where it was AND can't scroll.
+  // 3. On close, undo all four properties AND `window.scrollTo(0,
+  //    scrollY)` so the browser re-anchors at the previous offset.
   useEffect(() => {
     if (!open) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    const scrollY = window.scrollY;
+    const body = document.body;
+    const prev = {
+      overflow: body.style.overflow,
+      position: body.style.position,
+      top: body.style.top,
+      width: body.style.width,
+    };
+    body.style.overflow = "hidden";
+    body.style.position = "fixed";
+    body.style.top = `-${scrollY}px`;
+    body.style.width = "100%";
     return () => {
-      document.body.style.overflow = prev;
+      body.style.overflow = prev.overflow;
+      body.style.position = prev.position;
+      body.style.top = prev.top;
+      body.style.width = prev.width;
+      // Restore the visible offset Chrome lost while body was fixed.
+      window.scrollTo(0, scrollY);
     };
   }, [open]);
 

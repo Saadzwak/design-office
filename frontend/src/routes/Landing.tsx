@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 
-import { Eyebrow, Icon, Placeholder } from "../components/ui";
+import { Eyebrow, Icon } from "../components/ui";
 
 /**
  * Landing — Claude Design bundle parity (iter-18e).
@@ -123,12 +123,33 @@ export default function Landing() {
         </div>
 
         <div className="relative">
-          <Placeholder
-            tag="ARCHITECTURAL CORRIDOR · SUNLIT · 4:5"
-            ratio="4/5"
-            tint="#3C5D50"
-            style={{ boxShadow: "var(--sh-hero)" }}
-          />
+          {/* Iter-33 follow-up v3 — replaced the flat-color Placeholder
+              with a real interior photograph. Files live in
+              `/public/landing/` (sourced from cached NanoBanana
+              renders, served as static assets so the landing works
+              without the backend running). */}
+          <div
+            className="overflow-hidden"
+            style={{
+              aspectRatio: "4 / 5",
+              borderRadius: 8,
+              boxShadow: "var(--sh-hero)",
+              background: "var(--mist-100)",
+            }}
+          >
+            <img
+              src="/landing/img_4.png"
+              alt="Studio interior · soft daylight, oak, pendant light"
+              loading="eager"
+              decoding="async"
+              style={{
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
+                objectPosition: "center",
+              }}
+            />
+          </div>
           <div
             className="absolute bottom-[-18px] left-[-18px] flex flex-col gap-0.5 bg-canvas"
             style={{
@@ -226,17 +247,53 @@ export default function Landing() {
           }}
         >
           {[
-            { r: "I", t: "Brief", d: "Natural-language ingestion, Leesman-calibrated programme.", span: 5, offset: 0 },
-            { r: "II", t: "Test fit", d: "Three concepts, macro and micro zoning in 2D and 3D.", span: 5, offset: 2 },
-            { r: "III", t: "Mood board", d: "Editorial collage of materials, furniture, light.", span: 4, offset: 1 },
-            { r: "IV", t: "Justify", d: "Sourced argumentaire, toggled Engineering ↔ Client.", span: 5, offset: 2 },
-            { r: "V", t: "Export", d: "DXF and DWG, five named layers, zero rewrite.", span: 4, offset: 0 },
-            { r: "VI", t: "Chat", d: "A co-architect in the corner of every page.", span: 4, offset: 4 },
+            // Iter-33 follow-up v3 — each surface now carries a small
+            // photographic moment. Aspect ratios alternate (4/5, 4/3,
+            // 3/4) to break the grid rhythm and read as an editorial
+            // spread rather than a list of feature cards.
+            { r: "I", t: "Brief", d: "Natural-language ingestion, Leesman-calibrated programme.", span: 5, offset: 0, img: "/landing/img_1.png", ratio: "4 / 3", caption: "ACOUSTIC · LINEN" },
+            { r: "II", t: "Test fit", d: "Three concepts, macro and micro zoning in 2D and 3D.", span: 5, offset: 2, img: "/landing/img_5.png", ratio: "4 / 3", caption: "WORKSPACE · PHONE BOOTH" },
+            { r: "III", t: "Mood board", d: "Editorial collage of materials, furniture, light.", span: 4, offset: 1, img: "/landing/img_3.png", ratio: "4 / 3", caption: "MATERIALS · SWATCHES" },
+            { r: "IV", t: "Justify", d: "Sourced argumentaire, toggled Engineering ↔ Client.", span: 5, offset: 2, img: "/landing/img_2.png", ratio: "4 / 3", caption: "BIOPHILIC · DAYLIGHT" },
+            { r: "V", t: "Export", d: "DXF, five named layers, zero rewrite.", span: 4, offset: 0, img: "/landing/img_7.png", ratio: "4 / 3", caption: "PANEL · BLOND OAK" },
+            { r: "VI", t: "Chat", d: "A co-architect in the corner of every page.", span: 4, offset: 4, img: "/landing/img_6.png", ratio: "4 / 3", caption: "LOUNGE · QUIET" },
           ].map((s) => (
             <div
               key={s.r}
               style={{ gridColumn: `${s.offset + 1} / span ${s.span}` }}
             >
+              <div
+                className="relative mb-5 overflow-hidden"
+                style={{
+                  aspectRatio: s.ratio,
+                  borderRadius: 8,
+                  background: "var(--mist-100)",
+                  border: "1px solid var(--mist-200)",
+                }}
+              >
+                <img
+                  src={s.img}
+                  alt={s.t}
+                  loading="lazy"
+                  decoding="async"
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "cover",
+                    objectPosition: "center",
+                  }}
+                />
+                <span
+                  className="mono absolute bottom-2.5 left-2.5 px-2.5 py-1 text-[9px] tracking-label"
+                  style={{
+                    background: "rgba(28, 31, 26, 0.55)",
+                    color: "rgba(255, 255, 255, 0.92)",
+                    borderRadius: 3,
+                  }}
+                >
+                  {s.caption}
+                </span>
+              </div>
               <div className="mb-3.5 flex items-baseline gap-[18px]">
                 <span
                   className="font-display italic"
@@ -361,7 +418,6 @@ export default function Landing() {
           >
             JOURNAL
           </a>
-          <span>BUILT WITH OPUS 4.7</span>
         </div>
       </footer>
     </div>
