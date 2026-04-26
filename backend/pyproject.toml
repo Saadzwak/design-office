@@ -20,6 +20,10 @@ dependencies = [
     "reportlab>=4.2",
     "python-multipart>=0.0.9",
     "python-pptx>=1.0",
+    # Magazine PDF render (Jinja2 templates → headless Chromium).
+    # Listed explicitly so a fresh `pip install -e ".[dev]"` is enough ;
+    # we don't rely on FastAPI's transitive resolution.
+    "jinja2>=3.1",
 ]
 
 [project.optional-dependencies]
